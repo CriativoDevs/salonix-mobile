@@ -2,15 +2,14 @@ import React, { useState } from "react";
 import {
   View,
   Text,
-  TextInput,
-  TouchableOpacity,
   StyleSheet,
-  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  SafeAreaView,
 } from "react-native";
 import { useAuth } from "../hooks/useAuth";
 import { useTenant } from "../hooks/useTenant";
+import { Button, Input } from "../components/ui";
 
 export default function LoginScreen() {
   const [email, setEmail] = useState("");
@@ -18,61 +17,96 @@ export default function LoginScreen() {
   const { login, authError, isLoading } = useAuth();
   const { branding } = useTenant();
 
+  // Validação básica de email
+  const [emailError, setEmailError] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+
+  const validateEmail = (text) => {
+    setEmail(text);
+    if (text && !text.includes("@")) {
+      setEmailError("Email inválido");
+    } else {
+      setEmailError("");
+    }
+  };
+
+  const validatePassword = (text) => {
+    setPassword(text);
+    if (text && text.length < 6) {
+      setPasswordError("Senha muito curta (mínimo 6 caracteres)");
+    } else {
+      setPasswordError("");
+    }
+  };
+
   const handleLogin = async () => {
-    if (!email || !password) return;
+    // Validação antes de submeter
+    if (!email) {
+      setEmailError("Email é obrigatório");
+      return;
+    }
+    if (!password) {
+      setPasswordError("Senha é obrigatória");
+      return;
+    }
+    if (emailError || passwordError) return;
+
     await login(email, password);
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={styles.container}
-    >
-      <View style={styles.content}>
-        <Text style={styles.title}>{branding?.name || "TimelyOne"}</Text>
-        <Text style={styles.subtitle}>Acesse sua conta</Text>
+    <SafeAreaView style={styles.safeArea}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={styles.container}
+      >
+        <View style={styles.content}>
+          <Text style={styles.title}>{branding?.name || "TimelyOne"}</Text>
+          <Text style={styles.subtitle}>Acesse sua conta</Text>
 
-        <TextInput
-          style={styles.input}
-          placeholder="Email"
-          value={email}
-          onChangeText={setEmail}
-          autoCapitalize="none"
-          keyboardType="email-address"
-          editable={!isLoading}
-        />
+          <Input
+            label="Email"
+            placeholder="seu@email.com"
+            value={email}
+            onChangeText={validateEmail}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            error={emailError}
+          />
 
-        <TextInput
-          style={styles.input}
-          placeholder="Senha"
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-          editable={!isLoading}
-        />
+          <Input
+            label="Senha"
+            placeholder="••••••••"
+            value={password}
+            onChangeText={validatePassword}
+            secureTextEntry
+            error={passwordError}
+          />
 
-        {authError && <Text style={styles.error}>{authError}</Text>}
+          {authError && <Text style={styles.authError}>{authError}</Text>}
 
-        <TouchableOpacity
-          style={[styles.button, isLoading && styles.buttonDisabled]}
-          onPress={handleLogin}
-          disabled={isLoading}
-        >
-          {isLoading ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.buttonText}>Entrar</Text>
-          )}
-        </TouchableOpacity>
-      </View>
-    </KeyboardAvoidingView>
+          {/* Botão usa variant="link" (padrão no FEW - 90% dos casos) */}
+          <Button
+            variant="link"
+            onPress={handleLogin}
+            loading={isLoading}
+            disabled={isLoading || !!emailError || !!passwordError}
+          >
+            Entrar
+          </Button>
+        </View>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  safeArea: {
     flex: 1,
     backgroundColor: "#fff",
+  },
+  container: {
+    flex: 1,
   },
   content: {
     flex: 1,
@@ -81,44 +115,21 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 32,
-    fontWeight: "bold",
-    color: "#1f2937",
+    fontWeight: "700",
+    color: "#0f172a",
     marginBottom: 8,
     textAlign: "center",
   },
   subtitle: {
     fontSize: 16,
-    color: "#6b7280",
+    color: "#64748b",
     marginBottom: 32,
     textAlign: "center",
   },
-  input: {
-    height: 50,
-    borderWidth: 1,
-    borderColor: "#e5e7eb",
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    marginBottom: 16,
-    fontSize: 16,
-  },
-  button: {
-    height: 50,
-    backgroundColor: "#6366f1",
-    borderRadius: 8,
-    justifyContent: "center",
-    alignItems: "center",
-    marginTop: 8,
-  },
-  buttonDisabled: {
-    opacity: 0.6,
-  },
-  buttonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  error: {
+  authError: {
     color: "#ef4444",
+    fontSize: 14,
+    marginTop: 8,
     marginBottom: 16,
     textAlign: "center",
   },
