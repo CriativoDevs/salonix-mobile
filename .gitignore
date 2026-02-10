@@ -1,6 +1,7 @@
 MOB_RULES.md
 MOB_BUSINESS_BRIEF.md
 open-issues.json
+mobile-open-issues.json
 .DS_Store
 node_modules/
 dist/

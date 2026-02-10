@@ -36,7 +36,10 @@
           "icon": "./assets/notification-icon.png",
           "color": "#ffffff"
         }
-      ]
+      ],
+      "expo-asset",
+      "expo-font",
+      "expo-secure-store"
     ],
     "extra": {
       "eas": {
