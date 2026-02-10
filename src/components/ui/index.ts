@@ -1,6 +1,9 @@
 // Barrel export para facilitar imports dos componentes UI
-// Uso: import { Button, Input, Card } from '@/components/ui';
+// Uso: import { Button, Input, Card, Toast, Modal, Alert } from '@/components/ui';
 
 export { Button } from './Button';
 export { Input } from './Input';
 export { Card } from './Card';
+export { Toast } from './Toast';
+export { Modal } from './Modal';
+export { Alert } from './Alert';
