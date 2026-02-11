@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Pressable, ViewProps, StyleSheet } from 'react-native';
+import { useTheme } from '../../hooks/useTheme';
 
 interface CardProps extends Omit<ViewProps, 'style'> {
   children: React.ReactNode;
@@ -13,8 +14,14 @@ export const Card: React.FC<CardProps> = ({
   onPress,
   ...props
 }) => {
+  const { colors } = useTheme();
   // Baseado em StatCard.jsx e Card.jsx do FEW
   const shadowStyle = variant === 'elevated' ? styles.shadowElevated : styles.shadowDefault;
+
+  const dynamicStyles = {
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
+  };
 
   if (onPress) {
     return (
@@ -22,6 +29,7 @@ export const Card: React.FC<CardProps> = ({
         onPress={onPress}
         style={({ pressed }) => [
           styles.cardBase,
+          dynamicStyles,
           shadowStyle,
           pressed && styles.pressed,
         ]}
@@ -34,7 +42,7 @@ export const Card: React.FC<CardProps> = ({
   }
 
   return (
-    <View style={[styles.cardBase, shadowStyle]} {...props}>
+    <View style={[styles.cardBase, dynamicStyles, shadowStyle]} {...props}>
       {children}
     </View>
   );
@@ -42,11 +50,9 @@ export const Card: React.FC<CardProps> = ({
 
 const styles = StyleSheet.create({
   cardBase: {
-    backgroundColor: '#ffffff', // bg-brand-surface
     borderRadius: 12, // rounded-xl
     padding: 20, // p-5 (20px)
     borderWidth: 1,
-    borderColor: '#e2e8f0', // border-brand-border
   },
   
   // Shadow default (sombra sutil)

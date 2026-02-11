@@ -6,6 +6,7 @@ import {
   View,
   StyleSheet,
 } from 'react-native';
+import { useTheme } from '../../hooks/useTheme';
 
 interface ButtonProps {
   children: React.ReactNode;
@@ -26,14 +27,8 @@ export const Button: React.FC<ButtonProps> = ({
   disabled = false,
   accessibilityLabel,
 }) => {
+  const { colors } = useTheme();
   const isDisabled = disabled || loading;
-
-  // Estilos de variante (baseado no DESIGN_SYSTEM.md)
-  const variantStyles = {
-    primary: styles.primaryBg,
-    secondary: styles.secondaryBg,
-    link: styles.linkBg,
-  };
 
   // Estilos de tamanho (baseado no FEW FormButton.jsx)
   const sizeStyles = {
@@ -49,13 +44,6 @@ export const Button: React.FC<ButtonProps> = ({
     lg: styles.radiusXl,
   };
 
-  // Cores de texto por variante
-  const textColorStyles = {
-    primary: styles.textWhite,
-    secondary: styles.textDark,
-    link: styles.textPrimary,
-  };
-
   // Tamanho do texto
   const textSizeStyles = {
     sm: styles.textSm,
@@ -66,8 +54,17 @@ export const Button: React.FC<ButtonProps> = ({
   // Cor do ActivityIndicator por variante
   const spinnerColor = {
     primary: '#ffffff',
-    secondary: '#0f172a',
-    link: '#3b82f6',
+    secondary: colors.textPrimary,
+    link: colors.brandPrimary,
+  };
+
+  // Estilos dinâmicos baseados no tema
+  const dynamicStyles = {
+    primaryBg: { backgroundColor: colors.brandPrimary },
+    secondaryBg: { backgroundColor: colors.surfaceVariant },
+    secondaryBorder: { borderWidth: 1, borderColor: colors.border },
+    textDark: { color: colors.textPrimary },
+    textPrimary: { color: colors.brandPrimary },
   };
 
   return (
@@ -79,10 +76,12 @@ export const Button: React.FC<ButtonProps> = ({
       accessibilityState={{ disabled: isDisabled }}
       style={({ pressed }) => [
         styles.buttonBase,
-        variantStyles[variant],
+        variant === 'primary' && dynamicStyles.primaryBg,
+        variant === 'secondary' && dynamicStyles.secondaryBg,
+        variant === 'link' && styles.linkBg,
         sizeStyles[size],
         borderRadiusStyles[size],
-        variant === 'secondary' && styles.secondaryBorder,
+        variant === 'secondary' && dynamicStyles.secondaryBorder,
         isDisabled && styles.disabled,
         pressed && variant === 'link' && styles.linkPressed,
       ]}
@@ -99,7 +98,9 @@ export const Button: React.FC<ButtonProps> = ({
           <Text
             style={[
               styles.textMedium,
-              textColorStyles[variant],
+              variant === 'primary' && styles.textWhite,
+              variant === 'secondary' && dynamicStyles.textDark,
+              variant === 'link' && dynamicStyles.textPrimary,
               textSizeStyles[size],
               pressed && variant === 'link' && styles.textUnderline,
             ]}
@@ -125,18 +126,8 @@ const styles = StyleSheet.create({
   },
   
   // Backgrounds por variante
-  primaryBg: {
-    backgroundColor: '#3b82f6', // brand-primary
-  },
-  secondaryBg: {
-    backgroundColor: '#f1f5f9', // gray-100
-  },
   linkBg: {
     backgroundColor: 'transparent',
-  },
-  secondaryBorder: {
-    borderWidth: 1,
-    borderColor: '#e2e8f0', // brand-border
   },
   
   // Tamanhos (padding)
@@ -164,12 +155,6 @@ const styles = StyleSheet.create({
   // Text colors
   textWhite: {
     color: '#ffffff',
-  },
-  textDark: {
-    color: '#0f172a', // brand-surfaceForeground
-  },
-  textPrimary: {
-    color: '#3b82f6', // brand-primary
   },
   
   // Text sizes
