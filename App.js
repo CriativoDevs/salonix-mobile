@@ -39,7 +39,7 @@ export default function App() {
 
   // Temporário: Testar componentes
   // Altere para true para ver telas de teste, false para usar o app real
-  const [testMode] = useState(true); // ← TRUE para testar ThemeToggle
+  const [testMode] = useState(false); // ← FALSE para usar app normal
   const [testComponent, setTestComponent] = useState("menu"); // 'toast', 'modal', 'alert', 'theme', 'components' ou 'menu'
 
   if (!fontsLoaded) {
