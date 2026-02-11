@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Text, Pressable, Animated, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '../../hooks/useTheme';
 
 type ToastType = 'success' | 'error' | 'warning' | 'info';
 type ToastPosition = 'top-right' | 'top-left' | 'top-center' | 'bottom-right' | 'bottom-left' | 'bottom-center';
@@ -22,6 +23,7 @@ export const Toast: React.FC<ToastProps> = ({
   position = 'top-right',
   onClose,
 }) => {
+  const { colors } = useTheme();
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -51,31 +53,31 @@ export const Toast: React.FC<ToastProps> = ({
     });
   };
 
-  // Cores baseadas no DESIGN_SYSTEM.md
-  const colors = {
+  // Cores baseadas no tema
+  const toastColors = {
     success: {
-      background: '#f0fdf4', // green-50
-      border: '#10b981',     // emerald-500
-      text: '#059669',       // emerald-600
-      icon: '#10b981',       // emerald-500
+      background: colors.successBackground,
+      border: colors.success,
+      text: colors.success,
+      icon: colors.success,
     },
     error: {
-      background: '#fef2f2', // rose-50
-      border: '#ef4444',     // rose-600
-      text: '#dc2626',       // rose-700
-      icon: '#ef4444',       // rose-600
+      background: colors.errorBackground,
+      border: colors.error,
+      text: colors.error,
+      icon: colors.error,
     },
     warning: {
-      background: '#fffbeb', // amber-50
-      border: '#f59e0b',     // amber-500
-      text: '#d97706',       // amber-600
-      icon: '#f59e0b',       // amber-500
+      background: colors.warningBackground,
+      border: colors.warning,
+      text: colors.warning,
+      icon: colors.warning,
     },
     info: {
-      background: '#eff6ff', // blue-50
-      border: '#3b82f6',     // blue-500
-      text: '#2563eb',       // blue-600
-      icon: '#3b82f6',       // blue-500
+      background: colors.infoBackground,
+      border: colors.info,
+      text: colors.info,
+      icon: colors.info,
     },
   };
 
@@ -86,7 +88,7 @@ export const Toast: React.FC<ToastProps> = ({
     info: 'information-circle' as const,
   };
 
-  const currentColors = colors[type];
+  const currentColors = toastColors[type];
   const iconName = iconNames[type];
 
   const styles = StyleSheet.create({

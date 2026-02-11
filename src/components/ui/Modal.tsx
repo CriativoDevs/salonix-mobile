@@ -11,6 +11,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '../../hooks/useTheme';
 
 interface ModalProps {
   visible: boolean;
@@ -33,6 +34,7 @@ export const Modal: React.FC<ModalProps> = ({
   size = 'md',
   closeOnBackdrop = true,
 }) => {
+  const { colors } = useTheme();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.9)).current;
 
@@ -90,7 +92,7 @@ export const Modal: React.FC<ModalProps> = ({
       backgroundColor: 'rgba(0, 0, 0, 0.5)', // 50% opacity
     },
     modalContainer: {
-      backgroundColor: '#ffffff', // bg-brand-surface
+      backgroundColor: colors.surface,
       borderRadius: 16, // rounded-2xl
       padding: 24, // p-6
       maxHeight: Dimensions.get('window').height * 0.8, // Max 80% da tela
@@ -113,12 +115,12 @@ export const Modal: React.FC<ModalProps> = ({
     title: {
       fontSize: 20, // text-xl
       fontWeight: '700', // font-bold
-      color: '#0f172a', // text-brand-surfaceForeground
+      color: colors.textPrimary,
       marginBottom: 4,
     },
     description: {
       fontSize: 14, // text-sm
-      color: '#94a3b8', // text-brand-muted
+      color: colors.textSecondary,
       lineHeight: 20,
     },
     closeButton: {
@@ -170,7 +172,7 @@ export const Modal: React.FC<ModalProps> = ({
                   accessibilityLabel="Fechar modal"
                   accessibilityRole="button"
                 >
-                  <Ionicons name="close" size={24} color="#64748b" />
+                  <Ionicons name="close" size={24} color={colors.textSecondary} />
                 </Pressable>
               </View>
 

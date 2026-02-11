@@ -14,6 +14,7 @@
 
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
+import { useTheme } from '../../hooks/useTheme';
 
 interface PaginationDotsProps {
   total: number;
@@ -25,9 +26,15 @@ interface PaginationDotsProps {
 export const PaginationDots: React.FC<PaginationDotsProps> = ({
   total,
   activeIndex,
-  dotColor = '#cbd5e1', // Cinza claro (gray-300)
-  activeDotColor = '#3b82f6', // Azul primary
+  dotColor,
+  activeDotColor,
 }) => {
+  const { colors } = useTheme();
+  
+  // Usar cores do tema se não fornecidas explicitamente
+  const inactiveDotColor = dotColor || colors.border;
+  const activeDot = activeDotColor || colors.brandPrimary;
+  
   return (
     <View style={styles.container}>
       {Array.from({ length: total }).map((_, index) => (
@@ -36,7 +43,7 @@ export const PaginationDots: React.FC<PaginationDotsProps> = ({
           style={[
             styles.dot,
             {
-              backgroundColor: index === activeIndex ? activeDotColor : dotColor,
+              backgroundColor: index === activeIndex ? activeDot : inactiveDotColor,
               width: index === activeIndex ? 24 : 8, // Ativo é 3x maior
             },
           ]}

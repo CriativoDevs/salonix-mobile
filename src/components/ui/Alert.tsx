@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '../../hooks/useTheme';
 
 interface AlertProps {
   type: 'info' | 'success' | 'warning' | 'error';
@@ -17,31 +18,33 @@ export const Alert: React.FC<AlertProps> = ({
   closable = false,
   onClose,
 }) => {
-  // Cores baseadas no DESIGN_SYSTEM.md
-  const colors = {
+  const { colors } = useTheme();
+  
+  // Cores baseadas no tema
+  const alertColors = {
     info: {
-      border: '#3b82f6',        // blue-500
-      background: '#eff6ff',    // blue-50
-      text: '#1e40af',          // blue-800
-      icon: '#3b82f6',          // blue-500
+      border: colors.info,
+      background: colors.infoBackground,
+      text: colors.info,
+      icon: colors.info,
     },
     success: {
-      border: '#10b981',        // green-500
-      background: '#f0fdf4',    // green-50
-      text: '#059669',          // green-600
-      icon: '#10b981',          // green-500
+      border: colors.success,
+      background: colors.successBackground,
+      text: colors.success,
+      icon: colors.success,
     },
     warning: {
-      border: '#f59e0b',        // amber-500
-      background: '#fffbeb',    // amber-50
-      text: '#d97706',          // amber-600
-      icon: '#f59e0b',          // amber-500
+      border: colors.warning,
+      background: colors.warningBackground,
+      text: colors.warning,
+      icon: colors.warning,
     },
     error: {
-      border: '#ef4444',        // red-500
-      background: '#fef2f2',    // red-50
-      text: '#dc2626',          // red-600
-      icon: '#ef4444',          // red-500
+      border: colors.error,
+      background: colors.errorBackground,
+      text: colors.error,
+      icon: colors.error,
     },
   };
 
@@ -53,7 +56,7 @@ export const Alert: React.FC<AlertProps> = ({
     error: 'close-circle' as const,
   };
 
-  const currentColor = colors[type];
+  const currentColor = alertColors[type];
   const iconName = iconNames[type];
 
   const styles = StyleSheet.create({
