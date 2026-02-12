@@ -83,7 +83,7 @@ export const Button: React.FC<ButtonProps> = ({
         borderRadiusStyles[size],
         variant === 'secondary' && dynamicStyles.secondaryBorder,
         isDisabled && styles.disabled,
-        pressed && variant === 'link' && styles.linkPressed,
+        pressed && variant === 'link' && !isDisabled && styles.linkPressed,
       ]}
     >
       {({ pressed }) => (
@@ -102,7 +102,8 @@ export const Button: React.FC<ButtonProps> = ({
               variant === 'secondary' && dynamicStyles.textDark,
               variant === 'link' && dynamicStyles.textPrimary,
               textSizeStyles[size],
-              pressed && variant === 'link' && styles.textUnderline,
+              pressed && variant === 'link' && !isDisabled && styles.textUnderline,
+              isDisabled && variant === 'link' && { opacity: 0.3 },
             ]}
           >
             {children}

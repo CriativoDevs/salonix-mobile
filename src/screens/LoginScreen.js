@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -6,6 +6,8 @@ import {
   KeyboardAvoidingView,
   Platform,
   TouchableOpacity,
+  Alert as NativeAlert,
+  Linking,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -15,7 +17,7 @@ import { useToast } from "../contexts/ToastContext";
 import { useTheme } from "../hooks/useTheme";
 import { Button, Input, Alert } from "../components/ui";
 
-export default function LoginScreen() {
+export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const { login, authError, isLoading, isAuthenticated } = useAuth();
@@ -23,14 +25,20 @@ export default function LoginScreen() {
   const { showToast } = useToast();
   const { theme, colors, toggleTheme } = useTheme();
 
-  // Validação básica de email
+  // Validação de email
   const [emailError, setEmailError] = useState("");
   const [passwordError, setPasswordError] = useState("");
   const [showWelcomeAlert, setShowWelcomeAlert] = useState(true);
 
+  // Refs para auto-focus
+  const emailInputRef = useRef(null);
+  const passwordInputRef = useRef(null);
+
   const validateEmail = (text) => {
     setEmail(text);
-    if (text && !text.includes("@")) {
+    // Regex completo para validação de email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (text && !emailRegex.test(text.trim())) {
       setEmailError("Email inválido");
     } else {
       setEmailError("");
@@ -75,6 +83,40 @@ export default function LoginScreen() {
         duration: 3000,
       });
     } else {
+      // Check if plan upgrade is required
+      if (result.requiresPlanUpgrade) {
+        NativeAlert.alert(
+          "Upgrade Necessário",
+          result.error ||
+            "Seu plano não permite acesso ao Admin App. Faça upgrade para continuar.",
+          [
+            {
+              text: "Cancelar",
+              style: "cancel",
+            },
+            {
+              text: "Ver Planos",
+              onPress: () => {
+                const url = result.upgradeUrl
+                  ? `https://timelyone.com${result.upgradeUrl}`
+                  : "https://timelyone.com/pricing";
+                Linking.openURL(url).catch((err) => {
+                  console.error("[LoginScreen] Erro ao abrir URL:", err);
+                  showToast({
+                    type: "error",
+                    message: "Não foi possível abrir o link",
+                    duration: 3000,
+                  });
+                });
+              },
+              style: "default",
+            },
+          ],
+          { cancelable: true },
+        );
+        return;
+      }
+
       showToast({
         type: "error",
         message:
@@ -105,6 +147,14 @@ export default function LoginScreen() {
       });
     }
   }, [isAuthenticated]);
+
+  // Auto-focus no campo email ao montar
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      emailInputRef.current?.focus();
+    }, 100);
+    return () => clearTimeout(timer);
+  }, []);
 
   return (
     <SafeAreaView
@@ -151,6 +201,7 @@ export default function LoginScreen() {
           )}
 
           <Input
+            ref={emailInputRef}
             label="Email"
             placeholder="seu@email.com"
             value={email}
@@ -158,16 +209,31 @@ export default function LoginScreen() {
             keyboardType="email-address"
             autoCapitalize="none"
             error={emailError}
+            returnKeyType="next"
+            onSubmitEditing={() => passwordInputRef.current?.focus()}
           />
 
           <Input
+            ref={passwordInputRef}
             label="Senha"
             placeholder="••••••••"
             value={password}
             onChangeText={validatePassword}
             secureTextEntry
             error={passwordError}
+            returnKeyType="go"
+            onSubmitEditing={handleLogin}
           />
+
+          {/* Link Esqueci minha senha */}
+          <TouchableOpacity
+            onPress={() => navigation.navigate("ForgotPassword")}
+            style={styles.forgotPassword}
+          >
+            <Text style={[styles.linkText, { color: colors.brandPrimary }]}>
+              Esqueci minha senha
+            </Text>
+          </TouchableOpacity>
 
           {/* Botão usa variant="link" (padrão no FEW - 90% dos casos) */}
           <Button
@@ -178,6 +244,20 @@ export default function LoginScreen() {
           >
             Entrar
           </Button>
+
+          {/* Link Cliente (futuro - comentado para MOB-CTX-02) */}
+          {/*
+          <View style={styles.clientLinkContainer}>
+            <Text style={[styles.clientLinkText, { color: colors.textSecondary }]}>
+              É cliente?{' '}
+            </Text>
+            <TouchableOpacity onPress={() => navigation.navigate('ClientLogin')}>
+              <Text style={[styles.linkText, { color: colors.brandPrimary }]}>
+                Acesse sua área
+              </Text>
+            </TouchableOpacity>
+          </View>
+          */}
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -231,5 +311,23 @@ const styles = StyleSheet.create({
     marginTop: 8,
     marginBottom: 16,
     textAlign: "center",
+  },
+  forgotPassword: {
+    alignSelf: "flex-end",
+    marginTop: 8,
+    marginBottom: 16,
+    padding: 4,
+  },
+  linkText: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  clientLinkContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    marginTop: 24,
+  },
+  clientLinkText: {
+    fontSize: 14,
   },
 });

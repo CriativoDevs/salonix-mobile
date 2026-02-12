@@ -78,11 +78,19 @@ import {
  */
 export const loginStaff = async (email, password) => {
   try {
-    // Make POST request to /users/token/
-    const response = await client.post("users/token/", {
-      email,
-      password,
-    });
+    // Make POST request to /users/token/ with X-App-Type header
+    const response = await client.post(
+      "users/token/",
+      {
+        email,
+        password,
+      },
+      {
+        headers: {
+          "X-App-Type": "admin", // Identify Admin App for backend plan validation
+        },
+      },
+    );
 
     const { access, refresh, user, tenant } = response.data;
 
@@ -97,12 +105,68 @@ export const loginStaff = async (email, password) => {
 
     return { user, tenant };
   } catch (error) {
-    console.error("[auth] Staff login failed:", {
-      email,
-      status: error?.response?.status,
-      message: error?.message,
-      detail: error?.response?.data?.detail,
-    });
+    // Log as warning (not error) to avoid red overlay in Expo dev mode
+    // Invalid credentials (401) are expected user errors, not system errors
+    if (error?.response?.status === 401) {
+      console.log("[auth] Staff login failed: Invalid credentials");
+    } else {
+      console.warn("[auth] Staff login failed:", {
+        email,
+        status: error?.response?.status,
+        message: error?.message,
+        detail: error?.response?.data?.detail,
+      });
+    }
+
+    // Handle plan upgrade required (HTTP 403 from backend)
+    if (error?.response?.status === 403) {
+      const data = error.response.data;
+
+      // Check if it's a plan upgrade error
+      if (data?.plan_required) {
+        // Create custom error with upgrade context
+        const upgradeError = new Error(
+          data.detail ||
+            "Seu plano não permite acesso ao Admin App. Faça upgrade para continuar.",
+        );
+        upgradeError.code = "PLAN_UPGRADE_REQUIRED";
+        upgradeError.planRequired = data.plan_required;
+        upgradeError.currentPlan = data.current_plan;
+        upgradeError.upgradeUrl = data.upgrade_url || "/pricing";
+
+        console.warn("[auth] Plan upgrade required:", {
+          planRequired: data.plan_required,
+          currentPlan: data.current_plan,
+        });
+
+        throw upgradeError;
+      }
+    }
+
+    // Handle plan upgrade required (HTTP 403 from backend)
+    if (error?.response?.status === 403) {
+      const data = error.response.data;
+
+      // Check if it's a plan upgrade error
+      if (data?.plan_required) {
+        // Create custom error with upgrade context
+        const upgradeError = new Error(
+          data.detail ||
+            "Seu plano não permite acesso ao Admin App. Faça upgrade para continuar.",
+        );
+        upgradeError.code = "PLAN_UPGRADE_REQUIRED";
+        upgradeError.planRequired = data.plan_required;
+        upgradeError.currentPlan = data.current_plan;
+        upgradeError.upgradeUrl = data.upgrade_url || "/pricing";
+
+        console.warn("[auth] Plan upgrade required:", {
+          planRequired: data.plan_required,
+          currentPlan: data.current_plan,
+        });
+
+        throw upgradeError;
+      }
+    }
 
     // Re-throw with context for LoginScreen to handle
     throw error;
@@ -207,6 +271,37 @@ export const getClientProfile = async () => {
     });
 
     // Re-throw - tela de profile deve tratar 401 (redirect para login)
+    throw error;
+  }
+};
+
+// ============================================================
+// PASSWORD RESET (Public)
+// ============================================================
+
+/**
+ * Envia email de recuperacao de senha
+ * Endpoint publico - nao requer autenticacao
+ *
+ * @param {string} email
+ * @returns {Promise<void>}
+ * @throws {Error} 400 Invalid email, network error, etc
+ */
+export const forgotPassword = async (email, resetUrl) => {
+  try {
+    const response = await client.post("users/password/reset/", {
+      email,
+      reset_url: resetUrl,
+    });
+    return response.data;
+  } catch (error) {
+    console.warn("[auth] Password reset failed:", {
+      email,
+      status: error?.response?.status,
+      message: error?.message,
+      detail: error?.response?.data?.detail,
+    });
+
     throw error;
   }
 };

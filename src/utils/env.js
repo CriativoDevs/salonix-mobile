@@ -15,4 +15,21 @@ export const getApiBaseUrl = () => {
   return configuredBase.endsWith("/") ? configuredBase : `${configuredBase}/`;
 };
 
+export const getResetUrl = () => {
+  const envResetUrl = getEnvVar("RESET_URL");
+  if (envResetUrl) {
+    return envResetUrl;
+  }
+
+  const apiBase = getApiBaseUrl();
+  if (apiBase.includes("localhost")) {
+    return "http://localhost:5173/reset-password";
+  }
+  if (apiBase.includes("timelyonestaging.pythonanywhere.com")) {
+    return "https://timelyonestaging.pythonanywhere.com/reset-password";
+  }
+
+  return "https://timelyone.com/reset-password";
+};
+
 export const API_BASE_URL = getApiBaseUrl();
