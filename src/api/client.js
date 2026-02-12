@@ -1,10 +1,19 @@
 import axios from "axios";
+import { DeviceEventEmitter } from "react-native";
 import {
   getAccessToken,
   getRefreshToken,
   setAccessToken,
+  setRefreshToken,
   triggerLogout,
 } from "../utils/authStorage";
+import {
+  getClientAccessToken,
+  getClientRefreshToken,
+  setClientAccessToken,
+  setClientRefreshToken,
+  triggerClientLogout,
+} from "../utils/clientAuthStorage";
 import { API_BASE_URL } from "../utils/env";
 
 const client = axios.create({
@@ -12,17 +21,35 @@ const client = axios.create({
   headers: {
     "Content-Type": "application/json",
   },
-  withCredentials: true,
-  xsrfCookieName: "csrftoken",
-  xsrfHeaderName: "X-CSRFToken",
+});
+
+const refreshClient = axios.create({
+  baseURL: API_BASE_URL,
+  headers: {
+    "Content-Type": "application/json",
+  },
 });
 
 client.interceptors.request.use((config) => {
-  const token = getAccessToken();
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+  // Endpoints publicos nao devem enviar token
+  const isPublicEndpoint =
+    config.url?.includes("public/") ||
+    config.url?.includes("users/tenant/meta/");
+
+  if (!isPublicEndpoint) {
+    const clientToken = getClientAccessToken();
+    const staffToken = getAccessToken();
+    const token = clientToken || staffToken;
+
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+      config._isClientToken = Boolean(clientToken);
+    }
   }
-  config.headers["Accept-Language"] = "pt-PT";
+
+  const locale = Intl?.DateTimeFormat?.().resolvedOptions?.().locale || "pt-PT";
+  const lang = locale.toLowerCase().startsWith("pt") ? "pt-PT" : "en";
+  config.headers["Accept-Language"] = lang;
   return config;
 });
 
@@ -46,59 +73,102 @@ client.interceptors.response.use(
       return Promise.reject(error);
     }
 
-    // Handle 401 - Token refresh
-    if (response.status === 401 && !config._retry) {
-      if (isRefreshing) {
-        return new Promise((resolve) => {
-          addPendingRequest((token) => {
-            if (token) {
-              config.headers.Authorization = `Bearer ${token}`;
-              resolve(client(config));
-            } else {
-              resolve(Promise.reject(error));
-            }
-          });
-        });
-      }
-
-      config._retry = true;
-      isRefreshing = true;
-
-      try {
-        const refresh = getRefreshToken();
-        if (!refresh) {
-          await triggerLogout();
-          return Promise.reject(error);
-        }
-
-        const refreshResponse = await axios.post(
-          `${API_BASE_URL}users/token/refresh/`,
-          { refresh }
-        );
-
-        const newAccessToken = refreshResponse.data.access;
-        await setAccessToken(newAccessToken);
-
-        resolvePendingRequests(newAccessToken);
-        config.headers.Authorization = `Bearer ${newAccessToken}`;
-        return client(config);
-      } catch (refreshError) {
-        resolvePendingRequests(null);
-        await triggerLogout();
-        return Promise.reject(refreshError);
-      } finally {
-        isRefreshing = false;
-      }
-    }
-
     // Handle 429 - Rate Limit
     if (response.status === 429) {
-      console.warn("[API] Rate limit triggered (429)");
-      // Emitir evento para UI se necessário
+      const retryAfterHeader = response.headers?.["retry-after"];
+      let seconds = 60;
+
+      if (retryAfterHeader) {
+        seconds = parseInt(retryAfterHeader, 10);
+      } else if (response.data?.detail) {
+        const match = response.data.detail.match(/available in (\d+) seconds/);
+        if (match) {
+          seconds = parseInt(match[1], 10);
+        }
+      }
+
+      DeviceEventEmitter.emit("api-rate-limit", { retryAfter: seconds });
+      return Promise.reject(error);
+    }
+
+    // Handle 401 - Token refresh
+    if (
+      response.status !== 401 ||
+      config._retry ||
+      config.url?.includes("token/")
+    ) {
+      return Promise.reject(error);
+    }
+
+    const isClientToken = config._isClientToken;
+    const refresh = isClientToken ? getClientRefreshToken() : getRefreshToken();
+
+    if (!refresh) {
+      if (isClientToken) {
+        await triggerClientLogout();
+      } else {
+        await triggerLogout();
+      }
+      return Promise.reject(error);
+    }
+
+    if (isRefreshing) {
+      return new Promise((resolve, reject) => {
+        addPendingRequest((token) => {
+          if (!token) {
+            reject(error);
+            return;
+          }
+          config.headers.Authorization = `Bearer ${token}`;
+          resolve(client(config));
+        });
+      });
+    }
+
+    config._retry = true;
+    isRefreshing = true;
+
+    try {
+      const refreshEndpoint = isClientToken
+        ? "clients/token/refresh/"
+        : "users/token/refresh/";
+
+      const { data } = await refreshClient.post(refreshEndpoint, { refresh });
+      const { access, refresh: newRefresh } = data || {};
+
+      if (isClientToken) {
+        if (access) {
+          await setClientAccessToken(access);
+        }
+        if (newRefresh) {
+          await setClientRefreshToken(newRefresh);
+        }
+      } else {
+        if (access) {
+          await setAccessToken(access);
+        }
+        if (newRefresh) {
+          await setRefreshToken(newRefresh);
+        }
+      }
+
+      resolvePendingRequests(access || null);
+      config.headers.Authorization = access ? `Bearer ${access}` : undefined;
+      return client(config);
+    } catch (refreshError) {
+      resolvePendingRequests(null);
+      if (isClientToken) {
+        await triggerClientLogout();
+      } else {
+        await triggerLogout();
+      }
+      return Promise.reject(refreshError);
+    } finally {
+      isRefreshing = false;
     }
 
     return Promise.reject(error);
-  }
+  },
 );
 
 export default client;

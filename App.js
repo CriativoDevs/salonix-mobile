@@ -6,6 +6,8 @@ import { TenantProvider } from "./src/contexts/TenantContext";
 import { RateLimitProvider } from "./src/contexts/RateLimitContext";
 import { ToastProvider } from "./src/contexts/ToastContext";
 import { ThemeProvider } from "./src/contexts/ThemeContext";
+import { initializeTokens } from "./src/utils/authStorage";
+import { initializeClientTokens } from "./src/utils/clientAuthStorage";
 import AppNavigator from "./src/navigation/AppNavigator";
 import { StatusBar } from "expo-status-bar";
 import * as Font from "expo-font";
@@ -41,6 +43,14 @@ export default function App() {
   // Altere para true para ver telas de teste, false para usar o app real
   const [testMode] = useState(false); // ← FALSE para usar app normal
   const [testComponent, setTestComponent] = useState("menu"); // 'toast', 'modal', 'alert', 'theme', 'components' ou 'menu'
+
+  useEffect(() => {
+    const initAuth = async () => {
+      await initializeTokens();
+      await initializeClientTokens();
+    };
+    initAuth();
+  }, []);
 
   if (!fontsLoaded) {
     return (

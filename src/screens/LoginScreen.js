@@ -6,10 +6,13 @@ import {
   KeyboardAvoidingView,
   Platform,
   SafeAreaView,
+  TouchableOpacity,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../hooks/useAuth";
 import { useTenant } from "../hooks/useTenant";
 import { useToast } from "../contexts/ToastContext";
+import { useTheme } from "../hooks/useTheme";
 import { Button, Input, Alert } from "../components/ui";
 
 export default function LoginScreen() {
@@ -18,6 +21,7 @@ export default function LoginScreen() {
   const { login, authError, isLoading, isAuthenticated } = useAuth();
   const { branding } = useTenant();
   const { showToast } = useToast();
+  const { theme, colors, toggleTheme } = useTheme();
 
   // Validação básica de email
   const [emailError, setEmailError] = useState("");
@@ -103,14 +107,36 @@ export default function LoginScreen() {
   }, [isAuthenticated]);
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView
+      style={[styles.safeArea, { backgroundColor: colors.background }]}
+    >
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.container}
       >
+        {/* Toggle de tema no canto superior direito */}
+        <View style={styles.header}>
+          <TouchableOpacity
+            onPress={toggleTheme}
+            style={styles.themeToggle}
+            accessibilityLabel={`Alternar para modo ${theme === "light" ? "escuro" : "claro"}`}
+            accessibilityRole="button"
+          >
+            <Ionicons
+              name={theme === "light" ? "moon-outline" : "sunny-outline"}
+              size={24}
+              color={colors.textSecondary}
+            />
+          </TouchableOpacity>
+        </View>
+
         <View style={styles.content}>
-          <Text style={styles.title}>{branding?.name || "TimelyOne"}</Text>
-          <Text style={styles.subtitle}>Acesse sua conta</Text>
+          <Text style={[styles.title, { color: colors.textPrimary }]}>
+            {branding?.name || "TimelyOne"}
+          </Text>
+          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+            Acesse sua conta
+          </Text>
 
           {/* Alert de boas-vindas (closable) */}
           {showWelcomeAlert && (
@@ -161,10 +187,22 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: "#fff",
+    // backgroundColor removido (dinâmico via colors.background)
   },
   container: {
     flex: 1,
+  },
+  header: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    paddingHorizontal: 24,
+    paddingTop: 8,
+    paddingBottom: 16,
+  },
+  themeToggle: {
+    padding: 8,
+    borderRadius: 8,
+    // Sem background para manter clean (apenas ícone)
   },
   content: {
     flex: 1,
@@ -174,13 +212,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 32,
     fontWeight: "700",
-    color: "#0f172a",
+    // color removido (dinâmico via colors.textPrimary)
     marginBottom: 8,
     textAlign: "center",
   },
   subtitle: {
     fontSize: 16,
-    color: "#64748b",
+    // color removido (dinâmico via colors.textSecondary)
     marginBottom: 32,
     textAlign: "center",
   },

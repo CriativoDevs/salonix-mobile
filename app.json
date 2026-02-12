@@ -42,6 +42,7 @@
       "expo-secure-store"
     ],
     "extra": {
+      "API_BASE_URL": "http://192.168.0.204:8000/api/",
       "eas": {
         "projectId": "your-project-id"
       }
