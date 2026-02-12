@@ -1,4 +1,4 @@
-export const DEFAULT_TENANT_SLUG = "demo";
+export const DEFAULT_TENANT_SLUG = "timelyone";
 
 export const DEFAULT_TENANT_META = {
   slug: DEFAULT_TENANT_SLUG,
@@ -24,7 +24,7 @@ export const DEFAULT_TENANT_META = {
 };
 
 export const sanitizeTenantSlug = (slug) => {
-  if (!slug || typeof slug !== "string") return null;
+  if (!slug || typeof slug !== "string") return "";
   return slug.trim().toLowerCase();
 };
 
