@@ -1,18 +1,15 @@
 import React, { createContext, useCallback, useEffect, useState } from "react";
 import {
-  clearTokens,
+  getRefreshToken,
   initializeTokens,
-  setAccessToken,
   setLogoutHandler,
-  setRefreshToken,
 } from "../utils/authStorage";
 import {
-  fetchCurrentUser,
-  fetchFeatureFlags,
-  fetchTenantBootstrap,
-  login as loginRequest,
-} from "../api/auth";
-import { parseApiError } from "../utils/apiError";
+  loginStaff,
+  logout as logoutService,
+  getStaffProfile,
+  getTenantInfo,
+} from "../services/auth";
 import { useTenant } from "../hooks/useTenant";
 import { DEFAULT_TENANT_META } from "../utils/tenant";
 import { clearStoredTenantSlug, storeTenantSlug } from "../utils/tenantStorage";
@@ -50,87 +47,79 @@ export const AuthProvider = ({ children }) => {
   }, [setTenantSlug]);
 
   const handleLogout = useCallback(async () => {
-    await clearTokens();
-    await resetState();
+    try {
+      // Usa logout() do services/auth.js
+      // Limpa staff + client tokens
+      // Chama logoutHandlers automaticamente
+      await logoutService();
+
+      // Reset state local
+      await resetState();
+    } catch (error) {
+      console.error("[AuthContext] Logout error:", error);
+      // Mesmo com erro, fazer reset
+      await resetState();
+    }
   }, [resetState]);
 
   useEffect(() => {
     setLogoutHandler(handleLogout);
   }, [handleLogout]);
 
-  const loadFeatureFlags = useCallback(async () => {
-    try {
-      const flags = await fetchFeatureFlags();
-      setFeatureFlags(flags);
-    } catch (error) {
-      console.warn("[Auth] Failed to load feature flags:", error);
-    }
-  }, []);
-
-  const loadCurrentUser = useCallback(async () => {
-    try {
-      const profile = await fetchCurrentUser();
-      setUserInfo(profile);
-      return true;
-    } catch (error) {
-      console.warn("[Auth] Failed to load user profile:", error);
-      return false;
-    }
-  }, []);
-
-  const loadTenantBootstrap = useCallback(async () => {
-    try {
-      const tenant = await fetchTenantBootstrap();
-      if (tenant?.slug) {
-        applyTenantBootstrap(tenant);
-        await storeTenantSlug(tenant.slug);
-        setTenantInfo(tenant);
-        return true;
-      }
-    } catch (error) {
-      console.warn("[Auth] Failed to load tenant bootstrap:", error);
-    }
-    return false;
-  }, [applyTenantBootstrap]);
-
   const login = useCallback(
-    async (email, password, options = {}) => {
+    async (email, password) => {
       setIsLoading(true);
       setAuthError(null);
 
       try {
-        const data = await loginRequest(email, password, options);
-
-        await setAccessToken(data.access);
-        await setRefreshToken(data.refresh);
+        // Usa loginStaff() do services/auth.js
+        // Retorna: { user, tenant }
+        // Tokens já são salvos automaticamente pelo loginStaff()
+        const { user, tenant } = await loginStaff(email, password);
 
         setIsAuthenticated(true);
+        setUserInfo(user);
+        setTenantInfo(tenant);
 
-        await Promise.all([
-          loadFeatureFlags(),
-          loadTenantBootstrap(),
-          loadCurrentUser(),
-        ]);
+        // Aplicar tenant no TenantContext
+        if (tenant?.slug) {
+          applyTenantBootstrap(tenant);
+          await storeTenantSlug(tenant.slug);
+        }
 
         return { success: true };
       } catch (error) {
-        const errorMessage = parseApiError(error, "Falha no login");
+        const errorMessage =
+          error?.response?.data?.detail || error?.message || "Falha no login";
         setAuthError(errorMessage);
         return { success: false, error: errorMessage };
       } finally {
         setIsLoading(false);
       }
     },
-    [loadFeatureFlags, loadTenantBootstrap, loadCurrentUser]
+    [applyTenantBootstrap],
   );
 
   const refreshSession = useCallback(async () => {
-    await Promise.all([
-      loadFeatureFlags(),
-      loadTenantBootstrap(),
-      loadCurrentUser(),
-    ]);
-  }, [loadFeatureFlags, loadTenantBootstrap, loadCurrentUser]);
+    try {
+      // Re-fetch user profile
+      const userProfile = await getStaffProfile();
+      setUserInfo(userProfile.user);
+      setTenantInfo(userProfile.tenant);
+
+      // Atualizar TenantContext se tenant mudou
+      if (userProfile.tenant?.slug) {
+        applyTenantBootstrap(userProfile.tenant);
+        await storeTenantSlug(userProfile.tenant.slug);
+      }
+    } catch (error) {
+      console.error("[AuthContext] refreshSession failed:", error);
+      // Se 401, forçar logout
+      if (error?.response?.status === 401) {
+        await handleLogout();
+      }
+    }
+  }, [applyTenantBootstrap, handleLogout]);
 
   useEffect(() => {
     const init = async () => {

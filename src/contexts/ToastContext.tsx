@@ -19,11 +19,15 @@ interface ToastContextValue {
 
 const ToastContext = createContext<ToastContextValue | undefined>(undefined);
 
+// Contador global para garantir IDs únicos
+let toastIdCounter = 0;
+
 export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [toasts, setToasts] = useState<ToastData[]>([]);
 
   const showToast = useCallback((toast: Omit<ToastData, 'id'>) => {
-    const id = Date.now().toString();
+    // ID único: timestamp + contador incremental
+    const id = `${Date.now()}-${++toastIdCounter}`;
     const newToast = { ...toast, id };
     
     // Limitar a 3 toasts simultâneos (remover mais antigos)
