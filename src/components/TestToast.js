@@ -1,5 +1,6 @@
 import React from "react";
-import { View, SafeAreaView, StyleSheet } from "react-native";
+import { View, StyleSheet } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Button } from "./ui/Button";
 import { useToast } from "../contexts/ToastContext";
 

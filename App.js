@@ -18,13 +18,8 @@ import {
   Inter_600SemiBold,
   Inter_700Bold,
 } from "@expo-google-fonts/inter";
-import {
-  ActivityIndicator,
-  View,
-  Text,
-  SafeAreaView,
-  Pressable,
-} from "react-native";
+import { ActivityIndicator, View, Text, Pressable } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import TestToast from "./src/components/TestToast";
 import TestModal from "./src/components/TestModal";
 import TestAlert from "./src/components/TestAlert";
