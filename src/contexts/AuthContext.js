@@ -89,6 +89,20 @@ export const AuthProvider = ({ children }) => {
 
         return { success: true };
       } catch (error) {
+        // Check for plan upgrade required error
+        if (error?.code === "PLAN_UPGRADE_REQUIRED") {
+          const errorMessage = error.message;
+          setAuthError(errorMessage);
+          return {
+            success: false,
+            error: errorMessage,
+            requiresPlanUpgrade: true,
+            planRequired: error.planRequired,
+            currentPlan: error.currentPlan,
+            upgradeUrl: error.upgradeUrl,
+          };
+        }
+
         const errorMessage =
           error?.response?.data?.detail || error?.message || "Falha no login";
         setAuthError(errorMessage);

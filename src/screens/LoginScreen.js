@@ -6,6 +6,8 @@ import {
   KeyboardAvoidingView,
   Platform,
   TouchableOpacity,
+  Alert as NativeAlert,
+  Linking,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -75,6 +77,40 @@ export default function LoginScreen() {
         duration: 3000,
       });
     } else {
+      // Check if plan upgrade is required
+      if (result.requiresPlanUpgrade) {
+        NativeAlert.alert(
+          "Upgrade Necessário",
+          result.error ||
+            "Seu plano não permite acesso ao Admin App. Faça upgrade para continuar.",
+          [
+            {
+              text: "Cancelar",
+              style: "cancel",
+            },
+            {
+              text: "Ver Planos",
+              onPress: () => {
+                const url = result.upgradeUrl
+                  ? `https://timelyone.com${result.upgradeUrl}`
+                  : "https://timelyone.com/pricing";
+                Linking.openURL(url).catch((err) => {
+                  console.error("[LoginScreen] Erro ao abrir URL:", err);
+                  showToast({
+                    type: "error",
+                    message: "Não foi possível abrir o link",
+                    duration: 3000,
+                  });
+                });
+              },
+              style: "default",
+            },
+          ],
+          { cancelable: true },
+        );
+        return;
+      }
+
       showToast({
         type: "error",
         message:

@@ -78,11 +78,19 @@ import {
  */
 export const loginStaff = async (email, password) => {
   try {
-    // Make POST request to /users/token/
-    const response = await client.post("users/token/", {
-      email,
-      password,
-    });
+    // Make POST request to /users/token/ with X-App-Type header
+    const response = await client.post(
+      "users/token/",
+      {
+        email,
+        password,
+      },
+      {
+        headers: {
+          "X-App-Type": "admin", // Identify Admin App for backend plan validation
+        },
+      },
+    );
 
     const { access, refresh, user, tenant } = response.data;
 
@@ -103,6 +111,31 @@ export const loginStaff = async (email, password) => {
       message: error?.message,
       detail: error?.response?.data?.detail,
     });
+
+    // Handle plan upgrade required (HTTP 403 from backend)
+    if (error?.response?.status === 403) {
+      const data = error.response.data;
+
+      // Check if it's a plan upgrade error
+      if (data?.plan_required) {
+        // Create custom error with upgrade context
+        const upgradeError = new Error(
+          data.detail ||
+            "Seu plano não permite acesso ao Admin App. Faça upgrade para continuar.",
+        );
+        upgradeError.code = "PLAN_UPGRADE_REQUIRED";
+        upgradeError.planRequired = data.plan_required;
+        upgradeError.currentPlan = data.current_plan;
+        upgradeError.upgradeUrl = data.upgrade_url || "/pricing";
+
+        console.warn("[auth] Plan upgrade required:", {
+          planRequired: data.plan_required,
+          currentPlan: data.current_plan,
+        });
+
+        throw upgradeError;
+      }
+    }
 
     // Re-throw with context for LoginScreen to handle
     throw error;
