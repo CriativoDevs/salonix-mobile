@@ -6,12 +6,14 @@ interface CardProps extends Omit<ViewProps, 'style'> {
   children: React.ReactNode;
   variant?: 'default' | 'elevated';
   onPress?: () => void;
+  onLongPress?: () => void;
 }
 
 export const Card: React.FC<CardProps> = ({
   children,
   variant = 'default',
   onPress,
+  onLongPress,
   ...props
 }) => {
   const { colors } = useTheme();
@@ -23,10 +25,11 @@ export const Card: React.FC<CardProps> = ({
     borderColor: colors.border,
   };
 
-  if (onPress) {
+  if (onPress || onLongPress) {
     return (
       <Pressable
         onPress={onPress}
+        onLongPress={onLongPress}
         style={({ pressed }) => [
           styles.cardBase,
           dynamicStyles,
@@ -54,7 +57,7 @@ const styles = StyleSheet.create({
     padding: 20, // p-5 (20px)
     borderWidth: 1,
   },
-  
+
   // Shadow default (sombra sutil)
   shadowDefault: {
     // iOS
@@ -65,7 +68,7 @@ const styles = StyleSheet.create({
     // Android
     elevation: 1,
   },
-  
+
   // Shadow elevated (sombra maior - hover effect)
   shadowElevated: {
     // iOS
@@ -76,7 +79,7 @@ const styles = StyleSheet.create({
     // Android
     elevation: 4,
   },
-  
+
   // Estado pressed (quando clicável)
   pressed: {
     opacity: 0.9,
