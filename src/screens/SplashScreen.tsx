@@ -54,15 +54,14 @@ export default function SplashScreen() {
     const timer = setTimeout(async () => {
       try {
         const hasCompletedOnboarding = await hasSeenOnboarding();
-        
-        // Navigation flow:
-        // 1. First time user → Onboarding
-        // 2. Returning user (not authenticated) → Login
-        // 3. Authenticated user → Home
-        if (!hasCompletedOnboarding) {
-          navigation.replace('Onboarding');
-        } else if (!isAuthenticated) {
+        // Fluxo desejado (pós-login):
+        // - Usuário não autenticado → Login (sempre)
+        // - Autenticado e nunca viu onboarding → Onboarding (uma vez)
+        // - Autenticado e já viu → Home
+        if (!isAuthenticated) {
           navigation.replace('Login');
+        } else if (!hasCompletedOnboarding) {
+          navigation.replace('Onboarding');
         } else {
           navigation.replace('Home');
         }

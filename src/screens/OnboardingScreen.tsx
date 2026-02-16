@@ -12,6 +12,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Button } from '../components/ui/Button';
 import { PaginationDots } from '../components/ui/PaginationDots';
 import { setHasSeenOnboarding } from '../utils/onboardingStorage';
+import { useAuth } from '../hooks/useAuth';
 import { Ionicons } from '@expo/vector-icons';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -71,10 +72,11 @@ export default function OnboardingScreen() {
   const navigation = useNavigation<OnboardingNavigationProp>();
   const flatListRef = useRef<FlatList>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const { isAuthenticated } = useAuth();
 
   const handleSkip = async () => {
     await setHasSeenOnboarding();
-    navigation.replace('Login');
+    navigation.replace(isAuthenticated ? 'Home' : 'Login');
   };
 
   const handleNext = () => {
@@ -85,7 +87,7 @@ export default function OnboardingScreen() {
 
   const handleGetStarted = async () => {
     await setHasSeenOnboarding();
-    navigation.replace('Login');
+    navigation.replace(isAuthenticated ? 'Home' : 'Login');
   };
 
   const onViewableItemsChanged = useRef(({ viewableItems }: any) => {

@@ -137,8 +137,31 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     const init = async () => {
-      await initializeTokens();
-      setIsLoading(false);
+      try {
+        setIsLoading(true);
+        await initializeTokens();
+
+        const refresh = await getRefreshToken();
+        if (refresh) {
+          try {
+            const userProfile = await getStaffProfile();
+
+            setUserInfo(userProfile.user);
+            setTenantInfo(userProfile.tenant);
+            setIsAuthenticated(true);
+
+            if (userProfile.tenant?.slug) {
+              applyTenantBootstrap(userProfile.tenant);
+              await storeTenantSlug(userProfile.tenant.slug);
+            }
+          } catch (error) {
+            // Não autentica se perfil falhar; mantém usuário na tela de login
+            console.warn("[AuthContext] Perfil não restaurado no bootstrap:", error?.message || error);
+          }
+        }
+      } finally {
+        setIsLoading(false);
+      }
     };
     init();
   }, []);
