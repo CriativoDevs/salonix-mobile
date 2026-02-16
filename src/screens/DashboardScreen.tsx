@@ -40,33 +40,9 @@ export default function DashboardScreen({ navigation }: any) {
         }
       >
         <View style={{ marginBottom: 24 }}>
-          <View
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              marginBottom: 4,
-            }}
-          >
-            <Text className="text-3xl font-bold" style={{ color: colors.textPrimary }}>
-              Dashboard
-            </Text>
-
-            <TouchableOpacity
-              className="w-10 h-10 rounded-full items-center justify-center border"
-              style={{
-                backgroundColor: colors.surface,
-                borderColor: colors.border,
-              }}
-              onPress={toggleTheme}
-            >
-              <Ionicons
-                name={isDark ? 'sunny' : 'moon'}
-                size={20}
-                color={colors.textSecondary}
-              />
-            </TouchableOpacity>
-          </View>
+          <Text className="text-3xl font-bold" style={{ color: colors.textPrimary, marginBottom: 4 }}>
+            Dashboard
+          </Text>
 
           <Text className="text-sm" style={{ color: colors.textSecondary }}>
             {tenant?.name

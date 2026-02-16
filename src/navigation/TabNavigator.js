@@ -6,6 +6,7 @@ import { useTheme } from "../hooks/useTheme";
 import { useTenant } from "../hooks/useTenant";
 import { ThemeToggle } from "../components/ThemeToggle";
 import DashboardScreen from "../screens/DashboardScreen";
+import BookingsNavigator from "./BookingsNavigator";
 
 const Tab = createBottomTabNavigator();
 
@@ -33,10 +34,6 @@ export default function TabNavigator() {
   const expandedLinks = [
     { key: "customers", label: "Clientes", icon: "people-outline" },
     { key: "team", label: "Equipe", icon: "people-circle-outline" },
-    { key: "reports", label: "Relatórios", icon: "bar-chart-outline" },
-    { key: "feedback", label: "Feedback", icon: "star-outline" },
-    { key: "plans", label: "Planos", icon: "pricetag-outline" },
-    { key: "settings", label: "Configurações", icon: "settings-outline" },
   ];
 
   return (
@@ -93,7 +90,7 @@ export default function TabNavigator() {
         />
         <Tab.Screen
           name="Agendamentos"
-          children={() => <PlaceholderScreen name="Agendamentos" />}
+          component={BookingsNavigator}
           options={{ tabBarLabel: "Agendamentos" }}
         />
         <Tab.Screen
