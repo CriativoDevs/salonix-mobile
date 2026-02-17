@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { View, Text } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "../hooks/useTheme";
 import { useAuth } from "../hooks/useAuth";
 import DashboardScreen from "../screens/DashboardScreen";
@@ -15,6 +16,7 @@ const Tab = createBottomTabNavigator();
 export default function TabNavigator() {
   const { colors } = useTheme();
   const { userInfo } = useAuth();
+  const insets = useSafeAreaInsets();
 
   const isCollaborator = userInfo?.staff_role === "collaborator";
 
@@ -28,8 +30,8 @@ export default function TabNavigator() {
           backgroundColor: colors.surface,
           borderTopColor: colors.border,
           borderTopWidth: 1,
-          height: 80,
-          paddingBottom: 12,
+          height: 60 + insets.bottom,
+          paddingBottom: insets.bottom > 0 ? insets.bottom : 8,
         },
         tabBarLabelStyle: {
           fontSize: 12,

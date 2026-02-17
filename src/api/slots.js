@@ -84,3 +84,32 @@ export async function fetchSlotDetail(id, { slug } = {}) {
     const response = await client.get(`slots/${id}/`, { params, headers });
     return response.data;
 }
+
+export async function fetchAvailableDates({ professional_id, slug } = {}) {
+    const today = new Date();
+    const future = new Date();
+    future.setDate(today.getDate() + 30); // Próximos 30 dias
+
+    const params = {
+        professional_id,
+        date_from: today.toISOString().split('T')[0] + 'T00:00:00Z',
+        date_to: future.toISOString().split('T')[0] + 'T23:59:59Z',
+        limit: 1000,
+        status: 'available'
+    };
+    const headers = {};
+    if (slug) {
+        params.tenant = slug;
+        headers['X-Tenant-Slug'] = slug;
+    }
+
+    const response = await client.get("public/slots/", { params, headers });
+    const slots = Array.isArray(response.data) ? response.data : (response.data.results || []);
+
+    // Extrair datas únicas que possuem pelo menos 1 slot
+    const dates = [...new Set(slots.map(s => {
+        if (!s.start_time) return null;
+        return s.start_time.split('T')[0].split(' ')[0];
+    }).filter(Boolean))].sort();
+    return dates;
+}

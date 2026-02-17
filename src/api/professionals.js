@@ -26,7 +26,7 @@ export async function fetchProfessionals({ limit = 10, offset = 0, search = "", 
         headers['X-Tenant-Slug'] = slug;
     }
 
-    const response = await client.get("professionals/", { params, headers });
+    const response = await client.get("public/professionals/", { params, headers });
     return response.data;
 }
 

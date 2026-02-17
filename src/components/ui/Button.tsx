@@ -100,19 +100,23 @@ export const Button: React.FC<ButtonProps> = ({
               style={styles.spinner}
             />
           )}
-          <Text
-            style={[
-              styles.textMedium,
-              variant === 'primary' && styles.textWhite,
-              variant === 'secondary' && dynamicStyles.textDark,
-              variant === 'link' && dynamicStyles.textPrimary,
-              textSizeStyles[size],
-              pressed && variant === 'link' && !isDisabled && styles.textUnderline,
-              isDisabled && variant === 'link' && { opacity: 0.3 },
-            ]}
-          >
-            {children}
-          </Text>
+          {typeof children === 'string' ? (
+            <Text
+              style={[
+                styles.textMedium,
+                variant === 'primary' && styles.textWhite,
+                variant === 'secondary' && dynamicStyles.textDark,
+                variant === 'link' && dynamicStyles.textPrimary,
+                textSizeStyles[size],
+                pressed && variant === 'link' && !isDisabled && styles.textUnderline,
+                isDisabled && variant === 'link' && { opacity: 0.3 },
+              ]}
+            >
+              {children}
+            </Text>
+          ) : (
+            children
+          )}
         </View>
       )}
     </Pressable>
