@@ -125,7 +125,7 @@ export default function DashboardScreen({ navigation }: any) {
             </Text>
 
             {data.upcoming.length > 0 && (
-              <TouchableOpacity onPress={() => navigation.navigate('Agenda')}>
+              <TouchableOpacity onPress={() => navigation.navigate('Agendamentos')}>
                 <Text
                   style={{
                     color: colors.brandPrimary,
@@ -168,38 +168,11 @@ export default function DashboardScreen({ navigation }: any) {
               title="Sem agendamentos nas próximas horas"
               description="Crie um novo agendamento ou abra horários disponíveis."
               actionLabel="Novo agendamento"
-              onAction={() => navigation.navigate('Agenda')}
+              onAction={() => navigation.navigate('Agendamentos')}
             />
           )}
         </View>
 
-        <View
-          style={{
-            marginTop: 8,
-            marginBottom: 32,
-            borderRadius: 16,
-            borderWidth: 1,
-            borderColor: colors.border,
-            backgroundColor: colors.surface,
-            padding: 24
-          }}
-        >
-          <Text
-            style={{
-              color: colors.textPrimary,
-              fontSize: 18,
-              fontWeight: '600',
-              marginBottom: 16
-            }}
-          >
-            Ações rápidas
-          </Text>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-            <QuickActionBtn label="Abrir horários" onPress={() => { }} />
-            <QuickActionBtn label="Adicionar profissional" onPress={() => { }} />
-            <QuickActionBtn label="Cadastrar serviço" onPress={() => { }} />
-          </View>
-        </View>
       </ScrollView >
     </SafeAreaView >
   );

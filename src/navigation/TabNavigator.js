@@ -8,26 +8,9 @@ import DashboardScreen from "../screens/DashboardScreen";
 import BookingsNavigator from "./BookingsNavigator";
 import CustomersScreen from "../screens/CustomersScreen";
 import TeamScreen from "../screens/TeamScreen";
+import SlotsScreen from "../screens/SlotsScreen";
 
 const Tab = createBottomTabNavigator();
-
-const PlaceholderScreen = ({ name }) => {
-  const { colors } = useTheme();
-  return (
-    <View
-      style={{
-        flex: 1,
-        justifyContent: "center",
-        alignItems: "center",
-        backgroundColor: colors.background,
-      }}
-    >
-      <Text style={{ color: colors.textPrimary }}>{name}</Text>
-    </View>
-  );
-}; // Keep if needed for Horários
-
-const HorariosScreen = () => <PlaceholderScreen name="Horários" />;
 
 export default function TabNavigator() {
   const { colors } = useTheme();
@@ -114,7 +97,7 @@ export default function TabNavigator() {
       */}
       <Tab.Screen
         name="Horários"
-        component={HorariosScreen}
+        component={SlotsScreen}
         options={{ tabBarLabel: "Horários" }}
       />
     </Tab.Navigator>
