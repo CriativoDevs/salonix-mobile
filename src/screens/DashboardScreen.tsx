@@ -4,16 +4,19 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../hooks/useTheme';
 import { useTenant } from '../hooks/useTenant';
 import { Ionicons } from '@expo/vector-icons';
-import { StatCard, AppointmentCard, EmptyAppointmentsState, QuickActionBtn } from '../components/DashboardComponents';
+import { StatCard, AppointmentCard, EmptyAppointmentsState } from '../components/DashboardComponents';
 import useDashboardData from '../hooks/useDashboardData';
-
+import { useAuth } from '../hooks/useAuth';
+import { HeaderMenu } from '../components/HeaderMenu';
 import { ThemeToggle } from '../components/ThemeToggle';
 
 export default function DashboardScreen({ navigation }: any) {
   const { colors, toggleTheme, theme } = useTheme();
   const { tenant } = useTenant();
   const { data, loading, refetch } = useDashboardData();
+  const { logout } = useAuth();
   const [language, setLanguage] = useState("pt");
+  const [menuVisible, setMenuVisible] = useState(false);
 
   const isDark = theme === 'dark';
 
@@ -54,25 +57,27 @@ export default function DashboardScreen({ navigation }: any) {
             </Text>
           </View>
 
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-            <ThemeToggle size={22} />
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             <TouchableOpacity
-              onPress={() => setLanguage(prev => prev === "pt" ? "en" : "pt")}
+              onPress={() => setMenuVisible(true)}
               style={{
-                paddingHorizontal: 10,
-                paddingVertical: 6,
+                padding: 8,
                 borderRadius: 20,
-                borderWidth: 1,
-                borderColor: colors.border,
                 backgroundColor: colors.surfaceVariant,
               }}
             >
-              <Text style={{ fontSize: 12, fontWeight: '600', color: colors.textPrimary }}>
-                {language === "pt" ? "PT" : "EN"}
-              </Text>
+              <Ionicons name="menu-outline" size={26} color={colors.textPrimary} />
             </TouchableOpacity>
           </View>
         </View>
+
+        <HeaderMenu
+          visible={menuVisible}
+          onClose={() => setMenuVisible(false)}
+          onLogout={logout}
+          language={language}
+          onToggleLanguage={() => setLanguage(prev => prev === "pt" ? "en" : "pt")}
+        />
 
         <View className="mb-6">
           <StatCard

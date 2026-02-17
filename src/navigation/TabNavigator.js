@@ -3,7 +3,7 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { View, Text } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../hooks/useTheme";
-import { useTenant } from "../hooks/useTenant";
+import { useAuth } from "../hooks/useAuth";
 import DashboardScreen from "../screens/DashboardScreen";
 import BookingsNavigator from "./BookingsNavigator";
 import CustomersScreen from "../screens/CustomersScreen";
@@ -14,6 +14,9 @@ const Tab = createBottomTabNavigator();
 
 export default function TabNavigator() {
   const { colors } = useTheme();
+  const { userInfo } = useAuth();
+
+  const isCollaborator = userInfo?.staff_role === "collaborator";
 
   return (
     <Tab.Navigator
@@ -78,23 +81,13 @@ export default function TabNavigator() {
         component={CustomersScreen}
         options={{ tabBarLabel: "Clientes" }}
       />
-      <Tab.Screen
-        name="Team"
-        component={TeamScreen}
-        options={{ tabBarLabel: "Equipe" }}
-      />
-      {/* 
-      <Tab.Screen
-        name="Horários"
-        children={() => <PlaceholderScreen name="Horários" />}
-        options={{ tabBarLabel: "Horários" }}
-      />
-      User didn't explicitly ask to remove Horários but said "remove button 'Mais'". 
-      Typically 5 items max. 1.Home, 2.Agenda, 3.Clients, 4.Team, 5.Horarios fits.
-      I will keep Horários as requested implicitly by omission of removal request? 
-      "O botão de clientes e de equipe, pode colocar na barra de navegação e remover o botão de menu Mais".
-      It doesn't say "remove Horários".
-      */}
+      {!isCollaborator && (
+        <Tab.Screen
+          name="Team"
+          component={TeamScreen}
+          options={{ tabBarLabel: "Equipe" }}
+        />
+      )}
       <Tab.Screen
         name="Horários"
         component={SlotsScreen}
