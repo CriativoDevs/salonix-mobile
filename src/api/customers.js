@@ -1,6 +1,6 @@
 import client from "./client";
 
-export async function fetchCustomers({ limit = 10, offset = 0, search = "", ordering = "-created_at", is_active } = {}) {
+export async function fetchCustomers({ limit = 10, offset = 0, search = "", ordering = "-created_at", is_active, slug } = {}) {
   const params = {
     limit,
     offset,
@@ -9,7 +9,6 @@ export async function fetchCustomers({ limit = 10, offset = 0, search = "", orde
 
   if (search) {
     params.search = search;
-    // Attempt standard alternative filter keys since 'search' alone returning full list
     params.name = search;
     params.q = search;
   }
@@ -18,17 +17,37 @@ export async function fetchCustomers({ limit = 10, offset = 0, search = "", orde
     params.is_active = is_active;
   }
 
-  const response = await client.get("salon/customers/", { params });
+  const headers = {};
+  if (slug) {
+    params.tenant = slug;
+    headers['X-Tenant-Slug'] = slug;
+  }
+
+  const response = await client.get("salon/customers/", { params, headers });
   return response.data;
 }
 
 export async function createCustomer(data) {
-  const response = await client.post("salon/customers/", data);
+  const { slug, ...payload } = data;
+  const params = {};
+  const headers = {};
+  if (slug) {
+    params.tenant = slug;
+    headers['X-Tenant-Slug'] = slug;
+  }
+  const response = await client.post("salon/customers/", payload, { params, headers });
   return response.data;
 }
 
 export async function updateCustomer(id, data) {
-  const response = await client.patch(`salon/customers/${id}/`, data);
+  const { slug, ...payload } = data;
+  const params = {};
+  const headers = {};
+  if (slug) {
+    params.tenant = slug;
+    headers['X-Tenant-Slug'] = slug;
+  }
+  const response = await client.patch(`salon/customers/${id}/`, payload, { params, headers });
   return response.data;
 }
 

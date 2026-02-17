@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, Modal, StyleSheet, TouchableOpacity, ScrollView, Alert, KeyboardAvoidingView, Platform, Switch } from 'react-native';
+import { View, Text, Modal, StyleSheet, TouchableOpacity, ScrollView, Alert, KeyboardAvoidingView, Platform, Switch, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../hooks/useTheme';
 import { Input } from './ui/Input';
@@ -7,6 +7,7 @@ import { Button } from './ui/Button';
 import { updateStaffMember, disableStaffMember } from '../api/staff';
 
 import { useTenant } from '../hooks/useTenant';
+import { fetchServices } from '../api/services';
 
 interface ProfessionalData {
     id?: string;
@@ -21,6 +22,7 @@ interface ProfessionalData {
     is_active?: boolean;
     // Normalized staff member data
     staff_member_data?: any;
+    service_ids?: number[];
 }
 
 interface ProfessionalFormModalProps {
@@ -48,12 +50,16 @@ export function ProfessionalFormModal({ visible, onClose, onSubmit, initialData,
         role: 'collaborator',
         is_active: true,
     });
+    const [selectedServiceIds, setSelectedServiceIds] = useState<number[]>([]);
+    const [allServices, setAllServices] = useState<any[]>([]);
+    const [servicesLoading, setServicesLoading] = useState(false);
 
     const [errors, setErrors] = useState<{ [key: string]: string }>({});
     const [permissionLoading, setPermissionLoading] = useState(false);
 
     useEffect(() => {
         if (visible) {
+            loadServices();
             if (initialData) {
                 setForm({
                     id: initialData.id,
@@ -69,6 +75,8 @@ export function ProfessionalFormModal({ visible, onClose, onSubmit, initialData,
                     role: initialData.role || initialData.user?.role || 'collaborator',
                     is_active: initialData.is_active !== false, // Default true
                 });
+
+                setSelectedServiceIds(initialData.service_ids || []);
             } else {
                 setForm({
                     name: '',
@@ -78,11 +86,31 @@ export function ProfessionalFormModal({ visible, onClose, onSubmit, initialData,
                     bio: '',
                 });
                 setPermissionsForm({ role: 'collaborator', is_active: true });
+                setSelectedServiceIds([]);
             }
             setErrors({});
             setActiveTab('details');
         }
     }, [visible, initialData]);
+
+    const loadServices = async () => {
+        if (!slug) return;
+        setServicesLoading(true);
+        try {
+            const data = await fetchServices({ slug } as any);
+            setAllServices(Array.isArray(data) ? data : data.results || []);
+        } catch (error) {
+            console.error('Error loading services for modal:', error);
+        } finally {
+            setServicesLoading(false);
+        }
+    };
+
+    const toggleService = (id: number) => {
+        setSelectedServiceIds(prev =>
+            prev.includes(id) ? prev.filter(sid => sid !== id) : [...prev, id]
+        );
+    };
 
     const validate = () => {
         const newErrors: { [key: string]: string } = {};
@@ -103,7 +131,10 @@ export function ProfessionalFormModal({ visible, onClose, onSubmit, initialData,
         if (!validate()) return;
 
         try {
-            await onSubmit(form);
+            await onSubmit({
+                ...form,
+                service_ids: selectedServiceIds
+            });
         } catch (error) {
             console.error(error);
             Alert.alert('Erro', 'Ocorreu um erro ao salvar o profissional.');
@@ -246,6 +277,41 @@ export function ProfessionalFormModal({ visible, onClose, onSubmit, initialData,
                                         style={{ height: 80, textAlignVertical: 'top' }}
                                     />
                                 </View>
+
+                                <View style={styles.inputGroup}>
+                                    <Text style={[styles.filterLabel, { color: colors.textPrimary }]}>Serviços Prestados</Text>
+                                    <View style={styles.servicesGrid}>
+                                        {allServices.map((service) => (
+                                            <TouchableOpacity
+                                                key={service.id}
+                                                onPress={() => toggleService(service.id)}
+                                                style={[
+                                                    styles.serviceItem,
+                                                    {
+                                                        borderColor: selectedServiceIds.includes(service.id) ? colors.brandPrimary : colors.border,
+                                                        backgroundColor: selectedServiceIds.includes(service.id) ? `${colors.brandPrimary}15` : 'transparent'
+                                                    }
+                                                ]}
+                                            >
+                                                <Text style={[
+                                                    styles.serviceText,
+                                                    { color: selectedServiceIds.includes(service.id) ? colors.brandPrimary : colors.textSecondary }
+                                                ]}>
+                                                    {service.name}
+                                                </Text>
+                                                {selectedServiceIds.includes(service.id) && (
+                                                    <Ionicons name="checkmark-circle" size={16} color={colors.brandPrimary} />
+                                                )}
+                                            </TouchableOpacity>
+                                        ))}
+                                        {allServices.length === 0 && !servicesLoading && (
+                                            <Text style={{ color: colors.textSecondary, fontSize: 12, fontStyle: 'italic' }}>
+                                                Nenhum serviço cadastrado no salão.
+                                            </Text>
+                                        )}
+                                        {servicesLoading && <ActivityIndicator size="small" color={colors.brandPrimary} />}
+                                    </View>
+                                </View>
                             </>
                         ) : (
                             <View style={styles.permissionContainer}>
@@ -344,7 +410,7 @@ export function ProfessionalFormModal({ visible, onClose, onSubmit, initialData,
                     </View>
                 </View>
             </KeyboardAvoidingView>
-        </Modal>
+        </Modal >
     );
 }
 
@@ -450,5 +516,29 @@ const styles = StyleSheet.create({
     statusBox: {
         padding: 16,
         borderRadius: 8,
+    },
+    servicesGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 8,
+        marginTop: 8,
+    },
+    serviceItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderRadius: 20,
+        borderWidth: 1,
+        gap: 6,
+    },
+    serviceText: {
+        fontSize: 13,
+        fontWeight: '500',
+    },
+    filterLabel: {
+        fontSize: 14,
+        fontWeight: '500',
+        marginBottom: 8,
     },
 });

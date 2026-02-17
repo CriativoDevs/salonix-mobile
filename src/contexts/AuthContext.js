@@ -21,9 +21,9 @@ export const AuthContext = createContext({
   authError: null,
   tenantInfo: null,
   userInfo: null,
-  login: async () => {},
-  logout: () => {},
-  refreshSession: async () => {},
+  login: async () => { },
+  logout: () => { },
+  refreshSession: async () => { },
 });
 
 export const AuthProvider = ({ children }) => {
@@ -118,8 +118,13 @@ export const AuthProvider = ({ children }) => {
     try {
       // Re-fetch user profile
       const userProfile = await getStaffProfile();
-      setUserInfo(userProfile.user);
-      setTenantInfo(userProfile.tenant);
+
+      // Handle both formats: { user, tenant } or just user object
+      const user = userProfile.user || userProfile;
+      const tenant = userProfile.tenant || null;
+
+      setUserInfo(user);
+      setTenantInfo(tenant);
 
       // Atualizar TenantContext se tenant mudou
       if (userProfile.tenant?.slug) {
@@ -146,8 +151,12 @@ export const AuthProvider = ({ children }) => {
           try {
             const userProfile = await getStaffProfile();
 
-            setUserInfo(userProfile.user);
-            setTenantInfo(userProfile.tenant);
+            // Handle both formats: { user, tenant } or just user object
+            const user = userProfile.user || userProfile;
+            const tenant = userProfile.tenant || null;
+
+            setUserInfo(user);
+            setTenantInfo(tenant);
             setIsAuthenticated(true);
 
             if (userProfile.tenant?.slug) {

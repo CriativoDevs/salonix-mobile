@@ -325,32 +325,32 @@ export default function useDashboardData() {
         const startDate = item.start || new Date();
         const appt = item.base;
         const endDate = item.end;
-        
+
         // Format date part - capitalize first letter and remove period
         const rawDatePart = dateFormatter.format(startDate);
         const datePart = rawDatePart.replace(/^(\d+)\s+de\s+(.+)\.$/, '$1 de $2.');
-        
+
         const startPart = timeFormatter.format(startDate);
         const endPart = endDate ? timeFormatter.format(endDate) : null;
         const rangeLabel = endPart
           ? `${datePart} • ${startPart} – ${endPart}`
           : `${datePart} • ${startPart}`;
-        
+
         // Extract service name with fallbacks
-        const serviceName = 
+        const serviceName =
           item?.service?.name ||
           item?.service?.title ||
           (typeof appt?.service === 'object' && appt?.service?.name) ||
           appt?.service_name ||
           'Serviço';
-        
+
         // Extract professional name with fallbacks
         const professionalName =
           item?.professional?.name ||
           (typeof appt?.professional === 'object' && appt?.professional?.name) ||
           appt?.professional_name ||
           'Nome Qualquer';
-        
+
         // Extract customer name with fallbacks
         const customerName =
           item?.customer?.name ||
@@ -358,7 +358,7 @@ export default function useDashboardData() {
           appt?.customer_name ||
           appt?.client_name ||
           'Nome de Cliente';
-        
+
         return {
           id: String(appt?.id ?? Math.random()),
           rangeLabel,
