@@ -4,6 +4,7 @@ import SplashScreen from "../screens/SplashScreen";
 import OnboardingScreen from "../screens/OnboardingScreen";
 import LoginScreen from "../screens/LoginScreen";
 import ForgotPasswordScreen from "../screens/ForgotPasswordScreen";
+
 import TabNavigator from "./TabNavigator";
 import { useAuth } from "../hooks/useAuth";
 
@@ -19,10 +20,13 @@ export default function AppNavigator() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       {isAuthenticated ? (
-        <Stack.Screen
-          name="Home"
-          component={TabNavigator}
-        />
+        <>
+          <Stack.Screen
+            name="Home"
+            component={TabNavigator}
+          />
+
+        </>
       ) : (
         <>
           <Stack.Screen

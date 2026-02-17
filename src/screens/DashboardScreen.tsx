@@ -7,15 +7,17 @@ import { Ionicons } from '@expo/vector-icons';
 import { StatCard, AppointmentCard, EmptyAppointmentsState, QuickActionBtn } from '../components/DashboardComponents';
 import useDashboardData from '../hooks/useDashboardData';
 
+import { ThemeToggle } from '../components/ThemeToggle';
+
 export default function DashboardScreen({ navigation }: any) {
   const { colors, toggleTheme, theme } = useTheme();
   const { tenant } = useTenant();
   const { data, loading, refetch } = useDashboardData();
+  const [language, setLanguage] = useState("pt");
 
   const isDark = theme === 'dark';
 
   const [refreshing, setRefreshing] = useState(false);
-
   const onRefresh = React.useCallback(() => {
     setRefreshing(true);
     refetch().finally(() => setRefreshing(false));
@@ -31,68 +33,65 @@ export default function DashboardScreen({ navigation }: any) {
       <ScrollView
         contentContainerStyle={{ flexGrow: 1, padding: 16, paddingBottom: 80 }}
         refreshControl={
-          <RefreshControl 
-            refreshing={refreshing} 
+          <RefreshControl
+            refreshing={refreshing}
             onRefresh={onRefresh}
             tintColor={colors.brandPrimary}
             colors={[colors.brandPrimary]}
           />
         }
       >
-        <View style={{ marginBottom: 24 }}>
-          <View
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              marginBottom: 4,
-            }}
-          >
-            <Text className="text-3xl font-bold" style={{ color: colors.textPrimary }}>
+        <View style={{ marginBottom: 24, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <View>
+            <Text className="text-3xl font-bold" style={{ color: colors.textPrimary, marginBottom: 4 }}>
               Dashboard
             </Text>
 
-            <TouchableOpacity
-              className="w-10 h-10 rounded-full items-center justify-center border"
-              style={{
-                backgroundColor: colors.surface,
-                borderColor: colors.border,
-              }}
-              onPress={toggleTheme}
-            >
-              <Ionicons
-                name={isDark ? 'sunny' : 'moon'}
-                size={20}
-                color={colors.textSecondary}
-              />
-            </TouchableOpacity>
+            <Text className="text-sm" style={{ color: colors.textSecondary }}>
+              {tenant?.name
+                ? `${tenant.name} • Resumo do seu negócio`
+                : 'admin • Resumo do seu negócio'}
+            </Text>
           </View>
 
-          <Text className="text-sm" style={{ color: colors.textSecondary }}>
-            {tenant?.name
-              ? `${tenant.name} • Resumo do seu negócio`
-              : 'admin • Resumo do seu negócio'}
-          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            <ThemeToggle size={22} />
+            <TouchableOpacity
+              onPress={() => setLanguage(prev => prev === "pt" ? "en" : "pt")}
+              style={{
+                paddingHorizontal: 10,
+                paddingVertical: 6,
+                borderRadius: 20,
+                borderWidth: 1,
+                borderColor: colors.border,
+                backgroundColor: colors.surfaceVariant,
+              }}
+            >
+              <Text style={{ fontSize: 12, fontWeight: '600', color: colors.textPrimary }}>
+                {language === "pt" ? "PT" : "EN"}
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         <View className="mb-6">
-          <StatCard 
-            label="Créditos" 
-            value={loading ? '-' : data.stats.credits} 
+          <StatCard
+            label="Créditos"
+            value={loading ? '-' : data.stats.credits}
             icon="wallet-outline"
             actionIcon="refresh"
             onActionPress={handleRefreshCredits}
             hint="Saldo disponível"
             isPrimary
           />
-          <StatCard 
-            label="Agendamentos (hoje)" 
-            value={loading ? '-' : data.stats.bookings} 
+          <StatCard
+            label="Agendamentos (hoje)"
+            value={loading ? '-' : data.stats.bookings}
             hint={`${data.stats.bookingsCompleted} concluídos`}
           />
-          <StatCard 
-            label="Clientes" 
-            value={loading ? '-' : data.stats.clients} 
+          <StatCard
+            label="Clientes"
+            value={loading ? '-' : data.stats.clients}
             hint={`${data.stats.clients} registrados`}
           />
         </View>
@@ -126,7 +125,7 @@ export default function DashboardScreen({ navigation }: any) {
             </Text>
 
             {data.upcoming.length > 0 && (
-              <TouchableOpacity onPress={() => navigation.navigate('Agenda')}>
+              <TouchableOpacity onPress={() => navigation.navigate('Agendamentos')}>
                 <Text
                   style={{
                     color: colors.brandPrimary,
@@ -160,7 +159,7 @@ export default function DashboardScreen({ navigation }: any) {
                 <AppointmentCard
                   key={appt.id}
                   appointment={appt}
-                  onPress={() => {}}
+                  onPress={() => { }}
                 />
               ))}
             </View>
@@ -169,39 +168,12 @@ export default function DashboardScreen({ navigation }: any) {
               title="Sem agendamentos nas próximas horas"
               description="Crie um novo agendamento ou abra horários disponíveis."
               actionLabel="Novo agendamento"
-              onAction={() => navigation.navigate('Agenda')}
+              onAction={() => navigation.navigate('Agendamentos')}
             />
           )}
         </View>
 
-        <View
-          style={{ 
-            marginTop: 8,
-            marginBottom: 32,
-            borderRadius: 16,
-            borderWidth: 1,
-            borderColor: colors.border,
-            backgroundColor: colors.surface,
-            padding: 24
-          }}
-        >
-          <Text 
-            style={{ 
-              color: colors.textPrimary,
-              fontSize: 18,
-              fontWeight: '600',
-              marginBottom: 16
-            }}
-          >
-            Ações rápidas
-          </Text>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-            <QuickActionBtn label="Abrir horários" onPress={() => {}} />
-            <QuickActionBtn label="Adicionar profissional" onPress={() => {}} />
-            <QuickActionBtn label="Cadastrar serviço" onPress={() => {}} />
-          </View>
-        </View>
-      </ScrollView>
-    </SafeAreaView>
+      </ScrollView >
+    </SafeAreaView >
   );
 }

@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, TextInput, TextInputProps, StyleSheet } from 'react-native';
 import { useTheme } from '../../hooks/useTheme';
 
-interface InputProps extends Omit<TextInputProps, 'style'> {
+interface InputProps extends TextInputProps {
   label?: string;
   error?: string;
   description?: string;
@@ -12,10 +12,11 @@ export const Input: React.FC<InputProps> = ({
   label,
   error,
   description,
+  style,
   ...props
 }) => {
   const { colors } = useTheme();
-  
+
   return (
     <View style={styles.container}>
       {label && (
@@ -23,7 +24,7 @@ export const Input: React.FC<InputProps> = ({
           {label}
         </Text>
       )}
-      
+
       <TextInput
         style={[
           styles.input,
@@ -32,13 +33,14 @@ export const Input: React.FC<InputProps> = ({
             color: colors.textPrimary,
             borderColor: error ? colors.error : colors.border,
           },
+          style,
         ]}
         placeholderTextColor={colors.textSecondary}
         accessibilityLabel={label}
         accessibilityHint={description}
         {...props}
       />
-      
+
       {error ? (
         <Text style={[styles.errorText, { color: colors.error }]}>{error}</Text>
       ) : (

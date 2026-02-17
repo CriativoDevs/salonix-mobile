@@ -5,6 +5,8 @@ import {
   ActivityIndicator,
   View,
   StyleSheet,
+  StyleProp,
+  ViewStyle,
 } from 'react-native';
 import { useTheme } from '../../hooks/useTheme';
 
@@ -16,6 +18,7 @@ interface ButtonProps {
   loading?: boolean;
   disabled?: boolean;
   accessibilityLabel?: string;
+  style?: StyleProp<ViewStyle>;
 }
 
 export const Button: React.FC<ButtonProps> = ({
@@ -26,6 +29,7 @@ export const Button: React.FC<ButtonProps> = ({
   loading = false,
   disabled = false,
   accessibilityLabel,
+  style,
 }) => {
   const { colors } = useTheme();
   const isDisabled = disabled || loading;
@@ -84,6 +88,7 @@ export const Button: React.FC<ButtonProps> = ({
         variant === 'secondary' && dynamicStyles.secondaryBorder,
         isDisabled && styles.disabled,
         pressed && variant === 'link' && !isDisabled && styles.linkPressed,
+        style,
       ]}
     >
       {({ pressed }) => (
@@ -125,12 +130,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  
+
   // Backgrounds por variante
   linkBg: {
     backgroundColor: 'transparent',
   },
-  
+
   // Tamanhos (padding)
   sizeSm: {
     paddingHorizontal: 12, // px-3
@@ -144,7 +149,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20, // px-5
     paddingVertical: 10,   // py-2.5
   },
-  
+
   // Border radius
   radiusLg: {
     borderRadius: 8, // rounded-lg
@@ -152,12 +157,12 @@ const styles = StyleSheet.create({
   radiusXl: {
     borderRadius: 12, // rounded-xl
   },
-  
+
   // Text colors
   textWhite: {
     color: '#ffffff',
   },
-  
+
   // Text sizes
   textMedium: {
     fontWeight: '500',
@@ -168,7 +173,7 @@ const styles = StyleSheet.create({
   textBase: {
     fontSize: 16,
   },
-  
+
   // Estados
   disabled: {
     opacity: 0.6,
@@ -179,7 +184,7 @@ const styles = StyleSheet.create({
   textUnderline: {
     textDecorationLine: 'underline',
   },
-  
+
   spinner: {
     marginRight: 8,
   },
