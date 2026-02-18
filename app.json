@@ -30,13 +30,7 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      [
-        "expo-notifications",
-        {
-          "icon": "./assets/notification-icon.png",
-          "color": "#ffffff"
-        }
-      ],
+      "expo-notifications",
       "expo-asset",
       "expo-font",
       "expo-secure-store"
@@ -45,7 +39,7 @@
       "API_BASE_URL": "http://192.168.0.221:8000/api/",
       "RESET_URL": "http://192.168.0.221:5173/reset-password",
       "eas": {
-        "projectId": "your-project-id"
+        "projectId": "6642ca0c-7940-4fd3-b2a9-1af204db242b"
       }
     }
   }

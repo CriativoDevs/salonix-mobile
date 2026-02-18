@@ -19,7 +19,7 @@ export async function fetchAppointmentDetail(id: number, { slug }: { slug?: stri
         headers['X-Tenant-Slug'] = slug;
     }
 
-    const response = await client.get(`salon/appointments/${id}/`, { params, headers });
+    const response = await client.get(`appointments/${id}/`, { params, headers });
     return response.data;
 }
 
