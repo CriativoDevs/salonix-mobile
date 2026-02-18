@@ -58,17 +58,15 @@ export default function SplashScreen() {
         // - Usuário não autenticado → Login (sempre)
         // - Autenticado e nunca viu onboarding → Onboarding (uma vez)
         // - Autenticado e já viu → Home
-        if (!isAuthenticated) {
-          navigation.replace('Login');
-        } else if (!hasCompletedOnboarding) {
-          navigation.replace('Onboarding');
-        } else {
-          navigation.replace('Home');
-        }
+        const canReplace = typeof (navigation as any)?.replace === 'function';
+        if (!canReplace) return;
+        if (!isAuthenticated) navigation.replace('Login');
+        else if (!hasCompletedOnboarding) navigation.replace('Onboarding');
+        else navigation.replace('Home');
       } catch (error) {
         console.error('[SplashScreen] Navigation error:', error);
-        // Fallback to Login on error
-        navigation.replace('Login');
+        const canReplace = typeof (navigation as any)?.replace === 'function';
+        if (canReplace) navigation.replace('Login');
       }
     }, 2500);
 

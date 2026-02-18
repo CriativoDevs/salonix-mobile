@@ -4,8 +4,8 @@ App mobile para TimelyOne - Sistema de agendamento para salões de beleza.
 
 ## Stack
 
-- **Expo SDK 52** (managed workflow)
-- **React Native 0.76**
+- **Expo SDK 54** (managed workflow)
+- **React Native 0.81**
 - **React Navigation 7** (native-stack + bottom-tabs)
 - **Context API** (auth + tenant + rate-limit)
 - **Axios** (cliente HTTP com interceptors)
@@ -65,13 +65,13 @@ npx eas build --platform android
 - ✅ SecureStore para tokens
 - ✅ Rate-limit handling (429)
 - ✅ Context API (Auth, Tenant, RateLimit)
+- ✅ Push notifications (Expo Notifications) para staff/cliente
+- ✅ Deep links para detalhes de agendamento
 
 ### Roadmap
-- ⏳ Push notifications (Expo Notifications)
-- ⏳ Agenda admin (lista, confirmar/cancelar)
+- ⏳ Agenda admin (lista, confirmar/cancelar) completa
 - ⏳ Cliente: agendar (serviço → profissional → slot)
 - ⏳ White-label (branding por tenant)
-- ⏳ Deep links
 
 ## Regras
 

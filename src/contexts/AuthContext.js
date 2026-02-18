@@ -10,6 +10,11 @@ import {
   getStaffProfile,
   getTenantInfo,
 } from "../services/auth";
+import { registerPushToken } from "../api/auth";
+import {
+  registerForPushNotificationsAsync,
+  getPlatformInfo,
+} from "../services/notifications";
 import { useTenant } from "../hooks/useTenant";
 import { DEFAULT_TENANT_META } from "../utils/tenant";
 import { clearStoredTenantSlug, storeTenantSlug } from "../utils/tenantStorage";
@@ -21,9 +26,9 @@ export const AuthContext = createContext({
   authError: null,
   tenantInfo: null,
   userInfo: null,
-  login: async () => { },
-  logout: () => { },
-  refreshSession: async () => { },
+  login: async () => {},
+  logout: () => {},
+  refreshSession: async () => {},
 });
 
 export const AuthProvider = ({ children }) => {
@@ -34,7 +39,7 @@ export const AuthProvider = ({ children }) => {
   const [tenantInfo, setTenantInfo] = useState(null);
   const [userInfo, setUserInfo] = useState(null);
 
-  const { applyTenantBootstrap, setTenantSlug } = useTenant();
+  const { applyTenantBootstrap, setTenantSlug, slug } = useTenant();
 
   const resetState = useCallback(async () => {
     setIsAuthenticated(false);
@@ -72,9 +77,6 @@ export const AuthProvider = ({ children }) => {
       setAuthError(null);
 
       try {
-        // Usa loginStaff() do services/auth.js
-        // Retorna: { user, tenant }
-        // Tokens já são salvos automaticamente pelo loginStaff()
         const { user, tenant } = await loginStaff(email, password);
 
         setIsAuthenticated(true);
@@ -85,6 +87,81 @@ export const AuthProvider = ({ children }) => {
         if (tenant?.slug) {
           applyTenantBootstrap(tenant);
           await storeTenantSlug(tenant.slug);
+        }
+
+        try {
+          await getStaffProfile();
+          console.log(
+            "[AuthContext] Profile check before push registration ok",
+          );
+        } catch (e) {
+          console.warn(
+            "[AuthContext] Profile check before push registration failed:",
+            e?.message || e,
+          );
+        }
+
+        const { token, error } = await registerForPushNotificationsAsync();
+
+        if (token) {
+          const { platform, appVersion } = getPlatformInfo();
+          try {
+            const effectiveSlug = tenant?.slug || slug || null;
+            console.log("[AuthContext] Starting push token registration", {
+              platform,
+              appVersion,
+              slug: effectiveSlug,
+            });
+            let attempt = 0;
+            let lastErr = null;
+            const delays = [200, 600, 1200];
+            while (attempt < delays.length) {
+              try {
+                await registerPushToken(
+                  token,
+                  platform,
+                  appVersion,
+                  effectiveSlug,
+                );
+                console.log("[AuthContext] Push token registration completed", {
+                  attempt,
+                });
+                lastErr = null;
+                break;
+              } catch (pushErr) {
+                const status = pushErr?.response?.status;
+                const body = pushErr?.response?.data;
+                const bodyStr =
+                  typeof body === "string" ? body : JSON.stringify(body || {});
+                const isTenantUserMissing =
+                  status === 400 && bodyStr.includes("tenant_or_user_missing");
+                if (!isTenantUserMissing) {
+                  lastErr = pushErr;
+                  break;
+                }
+                console.log(
+                  "[AuthContext] Push token registration tenant_or_user_missing, retrying",
+                  {
+                    attempt,
+                    status,
+                    body: bodyStr,
+                  },
+                );
+                await getStaffProfile().catch(() => {});
+                await new Promise((res) => setTimeout(res, delays[attempt]));
+                attempt += 1;
+                lastErr = pushErr;
+              }
+            }
+            if (lastErr) throw lastErr;
+          } catch (pushError) {
+            console.warn(
+              "[AuthContext] Failed to register push token:",
+              pushError?.message || pushError,
+            );
+          }
+        } else if (error) {
+          console.warn("[AuthContext] Push registration skipped:", error);
         }
 
         return { success: true };
@@ -165,7 +242,10 @@ export const AuthProvider = ({ children }) => {
             }
           } catch (error) {
             // Não autentica se perfil falhar; mantém usuário na tela de login
-            console.warn("[AuthContext] Perfil não restaurado no bootstrap:", error?.message || error);
+            console.warn(
+              "[AuthContext] Perfil não restaurado no bootstrap:",
+              error?.message || error,
+            );
           }
         }
       } finally {

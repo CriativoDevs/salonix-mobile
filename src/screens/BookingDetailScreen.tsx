@@ -167,102 +167,122 @@ const BookingDetailScreen = ({ navigation, route }: any) => {
         <View style={{ width: 40 }} />
       </View>
 
-      <ScrollView
-        style={{ flex: 1 }}
-        contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.brandPrimary} />}
-      >
-        {/* Status Badge */}
-        <View style={styles.statusSection}>
-          <View style={[styles.badge, { borderColor: badgeStyles.borderColor, backgroundColor: badgeStyles.backgroundColor }]}>
-            <Text style={[styles.badgeText, { color: badgeStyles.textColor }]}>
-              {STATUS_LABELS[statusKey]?.toUpperCase() || statusKey.toUpperCase()}
-            </Text>
-          </View>
-          <Text style={[styles.rangeText, { color: colors.textSecondary }]}>{rangeLabel}</Text>
-        </View>
-
-        {/* Info Cards */}
-        <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <Text style={[styles.cardTitle, { color: colors.textSecondary }]}>CLIENTE</Text>
-          <View style={styles.infoRow}>
-            <View>
-              <Text style={[styles.mainInfo, { color: colors.textPrimary }]}>
-                {appointment.customer?.name || appointment.client_username || 'Cliente'}
-              </Text>
-              {appointment.customer?.phone_number && (
-                <TouchableOpacity onPress={() => handleCall(appointment.customer.phone_number)} style={styles.contactRow}>
-                  <Ionicons name="call-outline" size={16} color={colors.brandPrimary} />
-                  <Text style={[styles.subInfo, { color: colors.brandPrimary, marginLeft: 6 }]}>
-                    {appointment.customer.phone_number}
-                  </Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          </View>
-        </View>
-
-        <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <Text style={[styles.cardTitle, { color: colors.textSecondary }]}>SERVIÇO</Text>
-          <View style={styles.infoRow}>
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.mainInfo, { color: colors.textPrimary }]}>
-                {appointment.service?.name || 'Serviço'}
-              </Text>
-              <Text style={[styles.subInfo, { color: colors.textSecondary }]}>
-                {appointment.service?.duration_minutes || '--'} min • {formatCurrency(appointment.price)}
+      <View style={{ flex: 1 }}>
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={{ padding: 16, paddingBottom: 24 }}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={colors.brandPrimary}
+            />
+          }
+        >
+          {/* Status Badge */}
+          <View style={styles.statusSection}>
+            <View
+              style={[
+                styles.badge,
+                { borderColor: badgeStyles.borderColor, backgroundColor: badgeStyles.backgroundColor },
+              ]}
+            >
+              <Text style={[styles.badgeText, { color: badgeStyles.textColor }]}>
+                {STATUS_LABELS[statusKey]?.toUpperCase() || statusKey.toUpperCase()}
               </Text>
             </View>
-            <Ionicons name="cut-outline" size={24} color={colors.textSecondary} />
+            <Text style={[styles.rangeText, { color: colors.textSecondary }]}>{rangeLabel}</Text>
           </View>
-        </View>
 
-        <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <Text style={[styles.cardTitle, { color: colors.textSecondary }]}>PROFISSIONAL</Text>
-          <View style={styles.infoRow}>
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.mainInfo, { color: colors.textPrimary }]}>
-                {appointment.professional?.name || 'Profissional'}
-              </Text>
-            </View>
-            <Ionicons name="person-outline" size={24} color={colors.textSecondary} />
-          </View>
-        </View>
-
-        {appointment.notes && (
+          {/* Info Cards */}
           <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <Text style={[styles.cardTitle, { color: colors.textSecondary }]}>NOTAS</Text>
-            <Text style={[styles.notesText, { color: colors.textPrimary }]}>{appointment.notes}</Text>
+            <Text style={[styles.cardTitle, { color: colors.textSecondary }]}>CLIENTE</Text>
+            <View style={styles.infoRow}>
+              <View>
+                <Text style={[styles.mainInfo, { color: colors.textPrimary }]}>
+                  {appointment.customer?.name || appointment.client_username || 'Cliente'}
+                </Text>
+                {appointment.customer?.phone_number && (
+                  <TouchableOpacity
+                    onPress={() => handleCall(appointment.customer.phone_number)}
+                    style={styles.contactRow}
+                  >
+                    <Ionicons name="call-outline" size={16} color={colors.brandPrimary} />
+                    <Text style={[styles.subInfo, { color: colors.brandPrimary, marginLeft: 6 }]}>
+                      {appointment.customer.phone_number}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            </View>
           </View>
-        )}
 
-        {/* Actions */}
+          <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <Text style={[styles.cardTitle, { color: colors.textSecondary }]}>SERVIÇO</Text>
+            <View style={styles.infoRow}>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.mainInfo, { color: colors.textPrimary }]}>
+                  {appointment.service?.name || 'Serviço'}
+                </Text>
+                <Text style={[styles.subInfo, { color: colors.textSecondary }]}>
+                  {appointment.service?.duration_minutes || '--'} min •{' '}
+                  {formatCurrency(appointment.service?.price_eur ?? 0)}
+                </Text>
+              </View>
+              <Ionicons name="cut-outline" size={24} color={colors.textSecondary} />
+            </View>
+          </View>
+
+          <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <Text style={[styles.cardTitle, { color: colors.textSecondary }]}>PROFISSIONAL</Text>
+            <View style={styles.infoRow}>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.mainInfo, { color: colors.textPrimary }]}>
+                  {appointment.professional?.name || 'Profissional'}
+                </Text>
+              </View>
+              <Ionicons name="person-outline" size={24} color={colors.textSecondary} />
+            </View>
+          </View>
+
+          {appointment.notes && (
+            <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              <Text style={[styles.cardTitle, { color: colors.textSecondary }]}>NOTAS</Text>
+              <Text style={[styles.notesText, { color: colors.textPrimary }]}>{appointment.notes}</Text>
+            </View>
+          )}
+        </ScrollView>
+
         <View style={styles.actionsSection}>
           {statusKey === 'scheduled' && (
             <>
               <TouchableOpacity
-                style={[styles.primaryButton, { backgroundColor: colors.brandPrimary }]}
                 onPress={handleMarkAsCompleted}
                 disabled={actionLoading}
+                style={styles.linkAction}
               >
                 {actionLoading ? (
-                  <ActivityIndicator color="white" />
+                  <ActivityIndicator color={colors.brandPrimary} />
                 ) : (
-                  <Text style={styles.primaryButtonText}>Marcar como Concluído</Text>
+                  <Text style={[styles.linkTextPrimary, { color: colors.brandPrimary }]}>
+                    Marcar como Concluído
+                  </Text>
                 )}
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={[styles.secondaryButton, { borderColor: colors.error }]}
                 onPress={handleCancel}
                 disabled={actionLoading}
+                style={styles.linkAction}
               >
-                <Text style={[styles.secondaryButtonText, { color: colors.error }]}>Cancelar Agendamento</Text>
+                <Text style={[styles.linkTextSecondary, { color: colors.error }]}>
+                  Cancelar Agendamento
+                </Text>
               </TouchableOpacity>
             </>
           )}
         </View>
-      </ScrollView>
+      </View>
     </SafeAreaView>
   );
 };
@@ -343,30 +363,21 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   actionsSection: {
-    marginTop: 24,
-    gap: 12,
-  },
-  primaryButton: {
-    height: 52,
-    borderRadius: 12,
-    justifyContent: 'center',
+    marginTop: 16,
+    marginBottom: 12,
+    gap: 8,
     alignItems: 'center',
   },
-  primaryButtonText: {
-    color: 'white',
-    fontSize: 16,
+  linkAction: {
+    paddingVertical: 6,
+  },
+  linkTextPrimary: {
+    fontSize: 15,
     fontWeight: '600',
   },
-  secondaryButton: {
-    height: 52,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-  },
-  secondaryButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
+  linkTextSecondary: {
+    fontSize: 15,
+    fontWeight: '500',
   },
 });
 
