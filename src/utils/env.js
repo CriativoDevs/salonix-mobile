@@ -1,6 +1,11 @@
 import Constants from "expo-constants";
 
 export const getEnvVar = (key, defaultValue = undefined) => {
+  // 1. Try process.env (EAS Build injects variables here)
+  if (process.env[key] !== undefined) {
+    return process.env[key];
+  }
+  // 2. Try Constants.expoConfig.extra (Fallback for local dev)
   const value = Constants.expoConfig?.extra?.[key];
   return value !== undefined ? value : defaultValue;
 };
