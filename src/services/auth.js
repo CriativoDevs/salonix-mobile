@@ -169,6 +169,14 @@ export const loginStaff = async (email, password) => {
     }
 
     // Re-throw with context for LoginScreen to handle
+    if (!error.response) {
+      // Network error (no response from server)
+      const networkError = new Error("Sem conexão com o servidor. Verifique sua internet.");
+      networkError.code = "NETWORK_ERROR";
+      networkError.originalError = error.message;
+      networkError.url = error.config?.url;
+      throw networkError;
+    }
     throw error;
   }
 };

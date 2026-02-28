@@ -83,6 +83,15 @@ export default function LoginScreen({ navigation }) {
         duration: 3000,
       });
     } else {
+      // Diagnóstico de erro de rede em produção
+      if (result.code === "NETWORK_ERROR" || !result.response) {
+        NativeAlert.alert(
+          "Erro de Conexão",
+          `Não foi possível conectar ao servidor.\n\nURL: ${result.url || "Desconhecida"}\nErro: ${result.originalError || result.message || "Sem resposta"}\n\nIsso pode ser um problema de DNS, SSL ou bloqueio de rede no Android.`,
+          [{ text: "OK" }]
+        );
+      }
+
       // Check if plan upgrade is required
       if (result.requiresPlanUpgrade) {
         NativeAlert.alert(
