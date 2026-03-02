@@ -2,7 +2,7 @@
   "expo": {
     "name": "TimelyOne",
     "slug": "salonix-mobile",
-    "version": "1.0.4",
+    "version": "1.0.5",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
@@ -21,7 +21,6 @@
         "backgroundColor": "#3b82f6"
       },
       "package": "com.timelyone.app",
-      "networkSecurityConfig": "./android/app/src/main/res/xml/network_security_config.xml",
       "permissions": [
         "NOTIFICATIONS",
         "VIBRATE"
@@ -34,11 +33,19 @@
       "expo-notifications",
       "expo-asset",
       "expo-font",
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": false
+          }
+        }
+      ]
     ],
     "extra": {
-      "API_BASE_URL": "http://localhost:8000/api/",
-      "RESET_URL": "http://localhost:5173/reset-password",
+      "API_BASE_URL": "https://salonix-backend-production.up.railway.app/api/",
+      "RESET_URL": "https://salonix-backend-production.up.railway.app/reset-password",
       "eas": {
         "projectId": "6642ca0c-7940-4fd3-b2a9-1af204db242b"
       }
