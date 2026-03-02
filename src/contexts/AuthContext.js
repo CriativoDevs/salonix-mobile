@@ -18,6 +18,7 @@ import {
 import { useTenant } from "../hooks/useTenant";
 import { DEFAULT_TENANT_META } from "../utils/tenant";
 import { clearStoredTenantSlug, storeTenantSlug } from "../utils/tenantStorage";
+import { API_BASE_URL } from "../utils/env";
 
 export const AuthContext = createContext({
   isAuthenticated: false,
@@ -183,7 +184,30 @@ export const AuthProvider = ({ children }) => {
         const errorMessage =
           error?.response?.data?.detail || error?.message || "Falha no login";
         setAuthError(errorMessage);
-        return { success: false, error: errorMessage };
+
+        // Diagnóstico detalhado para erros de rede (sem response)
+        if (!error.response) {
+          console.error("[AuthContext] Network Error detected:", {
+            message: error.message,
+            url: API_BASE_URL,
+          });
+
+          return {
+            success: false,
+            error: errorMessage,
+            code: "NETWORK_ERROR",
+            url: API_BASE_URL,
+            originalError: error.message,
+            message: error.message,
+          };
+        }
+
+        return {
+          success: false,
+          error: errorMessage,
+          response: error.response,
+          message: errorMessage,
+        };
       } finally {
         setIsLoading(false);
       }

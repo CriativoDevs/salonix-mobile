@@ -12,12 +12,24 @@ export const getEnvVar = (key, defaultValue = undefined) => {
 
 export const getApiBaseUrl = () => {
   const envBase = getEnvVar("API_BASE_URL");
-  const defaultBase = __DEV__
-    ? "http://localhost:8000/api/"
-    : "https://salonix-backend-production.up.railway.app/api/";
 
-  const configuredBase = envBase || defaultBase;
-  return configuredBase.endsWith("/") ? configuredBase : `${configuredBase}/`;
+  // Se não houver variável, usar fallback baseado no ambiente
+  if (!envBase) {
+    return __DEV__
+      ? "http://localhost:8000/api/"
+      : "https://salonix-backend-production.up.railway.app/api/";
+  }
+
+  // Se houver variável, mas for localhost e não estivermos em DEV,
+  // usar o fallback de produção (prevenção contra builds mal configurados)
+  if (!__DEV__ && envBase.includes("localhost")) {
+    console.warn(
+      "[ENV] Localhost detectado em build de produção! Usando fallback do Railway.",
+    );
+    return "https://salonix-backend-production.up.railway.app/api/";
+  }
+
+  return envBase.endsWith("/") ? envBase : `${envBase}/`;
 };
 
 export const getResetUrl = () => {
