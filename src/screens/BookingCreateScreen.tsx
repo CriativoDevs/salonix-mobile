@@ -23,10 +23,12 @@ import TimeSlotPicker from '../components/TimeSlotPicker';
 import { formatCurrency, parseSlotDate } from '../utils/date';
 import { createAppointment } from '../api/bookings';
 import { Button } from '../components/ui/Button';
+import { useAuth } from '../hooks/useAuth';
 
 const BookingCreateScreen = ({ navigation }: any) => {
   const { colors } = useTheme();
   const { slug } = useTenant();
+  const { userInfo } = useAuth();
 
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -67,7 +69,19 @@ const BookingCreateScreen = ({ navigation }: any) => {
         headers: { 'X-Tenant-Slug': slug }
       });
       const data = response.data;
-      setProfessionals(Array.isArray(data) ? data : data.results || []);
+      let results = Array.isArray(data) ? data : data.results || [];
+
+      // Filtragem de segurança para Colaboradores
+      // Se o usuário não for Admin/Manager, ele só pode ver/agendar para si mesmo
+      if (userInfo && userInfo.role !== 'owner' && userInfo.role !== 'manager' && !userInfo.is_superuser) {
+        results = results.filter((p: any) => 
+          (p.user === userInfo.id) || 
+          (p.email === userInfo.email) ||
+          (p.staff_member === userInfo.id)
+        );
+      }
+
+      setProfessionals(results);
     } catch (error) {
       console.error('Error loading professionals:', error);
     } finally {

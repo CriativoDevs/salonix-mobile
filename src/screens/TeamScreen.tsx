@@ -6,8 +6,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../hooks/useTheme';
 import { Input } from '../components/ui/Input';
 import { Card } from '../components/ui/Card';
-import { fetchProfessionals, createProfessional, updateProfessional, deleteProfessional, resendProfessionalInvite } from '../api/professionals';
-import { fetchStaffMembers } from '../api/staff';
+import { fetchProfessionals, updateProfessional, deleteProfessional } from '../api/professionals';
+import { fetchStaffMembers, inviteStaffMember } from '../api/staff';
 import { ProfessionalFormModal } from '../components/ProfessionalFormModal';
 import { useTenant } from '../hooks/useTenant';
 
@@ -166,16 +166,22 @@ export default function TeamScreen() {
                     loadData(true);
                 }
             } else {
-                const newProfessional = await createProfessional({ ...data, slug });
-                // Prepend to list
-                setProfessionals(prev => [newProfessional, ...prev]);
-                setTotalCount(prev => prev + 1);
-                loadData(true); // Refresh to ensure staff link is correct
+                // Modo Criação: Usa inviteStaffMember (backend cria Professional automaticamente)
+                await inviteStaffMember({
+                    name: data.name,
+                    email: data.email,
+                    role: data.role || 'collaborator',
+                }, { slug });
+
+                // Refresh completo para pegar o novo Staff e o novo Professional criado
+                loadData(true);
+                Alert.alert('Sucesso', 'Convite enviado com sucesso!');
             }
             setModalVisible(false);
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error saving professional:', error);
-            Alert.alert('Erro', 'Não foi possível salvar o profissional.');
+            const msg = error.response?.data?.detail || error.message || 'Não foi possível salvar.';
+            Alert.alert('Erro', msg);
         } finally {
             setActionLoading(false);
         }
@@ -206,13 +212,9 @@ export default function TeamScreen() {
     };
 
     const handleResendInvite = async (professional: any) => {
-        try {
-            await resendProfessionalInvite(professional.id);
-            Alert.alert('Sucesso', 'Convite reenviado com sucesso.');
-        } catch (error) {
-            console.error('Error resending invite:', error);
-            Alert.alert('Erro', 'Não foi possível reenviar o convite.');
-        }
+        // Placeholder se a funcionalidade de reenviar convite for necessária
+        // Para implementar corretamente, precisamos de um endpoint específico de staff
+        Alert.alert("Aviso", "Funcionalidade de reenviar convite em manutenção.");
     };
 
     const showOptions = (professional: any) => {

@@ -13,19 +13,32 @@ export const getEnvVar = (key, defaultValue = undefined) => {
 export const getApiBaseUrl = () => {
   const envBase = getEnvVar("API_BASE_URL");
 
-  // Se não houver variável, usar fallback baseado no ambiente
-  if (!envBase) {
-    return __DEV__
-      ? "http://localhost:8000/api/"
-      : "https://salonix-backend-production.up.railway.app/api/";
+  // Se estivermos em DEV (Expo GO), precisamos de lógica para Android e iOS
+  if (__DEV__) {
+    // Se houver uma variável de ambiente definida (ex: via .env local), usamos ela
+    if (envBase) return envBase.endsWith("/") ? envBase : `${envBase}/`;
+
+    // IMPORTANTE:
+    // Android Emulator usa 10.0.2.2 para acessar localhost da máquina host
+    // Dispositivo Físico Android precisa do IP da sua máquina na rede local (ex: 192.168.x.x)
+    // iOS Simulator usa localhost normalmente
+
+    // Tenta detectar se está rodando no Android
+    const { Platform } = require("react-native");
+    if (Platform.OS === "android") {
+      // Se estiver usando dispositivo físico Android via Expo GO,
+      // o ideal é colocar o IP da sua máquina aqui.
+      // Tentativa automática: usar 10.0.2.2 (emulador) ou tentar um IP comum de rede local se necessário.
+      // Para garantir que funcione no seu celular físico, use o IP da sua máquina:
+      return "http://192.168.0.203:8000/api/";
+    }
+
+    // Fallback padrão para iOS Simulator / Web
+    return "http://0.0.0.0:8000/api/";
   }
 
-  // Se houver variável, mas for localhost e não estivermos em DEV,
-  // usar o fallback de produção (prevenção contra builds mal configurados)
-  if (!__DEV__ && envBase.includes("localhost")) {
-    console.warn(
-      "[ENV] Localhost detectado em build de produção! Usando fallback do Railway.",
-    );
+  // Lógica de Produção (Builds oficiais)
+  if (!envBase || envBase.includes("localhost")) {
     return "https://salonix-backend-production.up.railway.app/api/";
   }
 
@@ -43,10 +56,10 @@ export const getResetUrl = () => {
     return "http://localhost:5173/reset-password";
   }
   if (apiBase.includes("timelyonestaging.pythonanywhere.com")) {
-    return "https://timelyonestaging.pythonanywhere.com/reset-password";
+    return "https://salonix-backend-production.up.railway.app/reset-password";
   }
 
-  return "https://timelyone.com/reset-password";
+  return "https://salonix-backend-production.up.railway.app/reset-password";
 };
 
 export const API_BASE_URL = getApiBaseUrl();

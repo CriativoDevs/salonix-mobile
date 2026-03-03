@@ -37,6 +37,9 @@ export function ProfessionalFormModal({ visible, onClose, onSubmit, initialData,
     const { colors } = useTheme();
     const { slug } = useTenant();
     const [activeTab, setActiveTab] = useState<'details' | 'permissions'>('details');
+    
+    // Determina se é criação ou edição
+    const isEditing = !!initialData;
 
     const [form, setForm] = useState<ProfessionalData>({
         name: '',
@@ -232,15 +235,6 @@ export function ProfessionalFormModal({ visible, onClose, onSubmit, initialData,
 
                                 <View style={styles.inputGroup}>
                                     <Input
-                                        label="Cargo / Função"
-                                        placeholder="Ex: Cabeleireiro Senior"
-                                        value={form.job_title}
-                                        onChangeText={(text) => setForm({ ...form, job_title: text })}
-                                    />
-                                </View>
-
-                                <View style={styles.inputGroup}>
-                                    <Input
                                         label="E-mail"
                                         placeholder="profissional@email.com"
                                         value={form.email}
@@ -250,68 +244,81 @@ export function ProfessionalFormModal({ visible, onClose, onSubmit, initialData,
                                     />
                                 </View>
 
-                                <View style={styles.inputGroup}>
-                                    <Input
-                                        label="Telefone"
-                                        placeholder="+351 912 345 678"
-                                        value={form.phone_number}
-                                        onChangeText={(text) => setForm({ ...form, phone_number: text })}
-                                        keyboardType="phone-pad"
-                                    />
-                                </View>
+                                {isEditing && (
+                                    <>
+                                        <View style={styles.inputGroup}>
+                                            <Input
+                                                label="Telefone"
+                                                placeholder="+351 912 345 678"
+                                                value={form.phone_number}
+                                                onChangeText={(text) => setForm({ ...form, phone_number: text })}
+                                                keyboardType="phone-pad"
+                                            />
+                                        </View>
 
-                                {errors.contact && (
-                                    <Text style={{ color: colors.error, fontSize: 12, marginTop: -8, marginBottom: 12, marginLeft: 4 }}>
-                                        {errors.contact}
-                                    </Text>
-                                )}
-
-                                <View style={styles.inputGroup}>
-                                    <Input
-                                        label="Bio / Observações"
-                                        placeholder="Breve descrição..."
-                                        value={form.bio}
-                                        onChangeText={(text) => setForm({ ...form, bio: text })}
-                                        multiline
-                                        numberOfLines={3}
-                                        style={{ height: 80, textAlignVertical: 'top' }}
-                                    />
-                                </View>
-
-                                <View style={styles.inputGroup}>
-                                    <Text style={[styles.filterLabel, { color: colors.textPrimary }]}>Serviços Prestados</Text>
-                                    <View style={styles.servicesGrid}>
-                                        {allServices.map((service) => (
-                                            <TouchableOpacity
-                                                key={service.id}
-                                                onPress={() => toggleService(service.id)}
-                                                style={[
-                                                    styles.serviceItem,
-                                                    {
-                                                        borderColor: selectedServiceIds.includes(service.id) ? colors.brandPrimary : colors.border,
-                                                        backgroundColor: selectedServiceIds.includes(service.id) ? `${colors.brandPrimary}15` : 'transparent'
-                                                    }
-                                                ]}
-                                            >
-                                                <Text style={[
-                                                    styles.serviceText,
-                                                    { color: selectedServiceIds.includes(service.id) ? colors.brandPrimary : colors.textSecondary }
-                                                ]}>
-                                                    {service.name}
-                                                </Text>
-                                                {selectedServiceIds.includes(service.id) && (
-                                                    <Ionicons name="checkmark-circle" size={16} color={colors.brandPrimary} />
-                                                )}
-                                            </TouchableOpacity>
-                                        ))}
-                                        {allServices.length === 0 && !servicesLoading && (
-                                            <Text style={{ color: colors.textSecondary, fontSize: 12, fontStyle: 'italic' }}>
-                                                Nenhum serviço cadastrado no salão.
+                                        {errors.contact && (
+                                            <Text style={{ color: colors.error, fontSize: 12, marginTop: -8, marginBottom: 12, marginLeft: 4 }}>
+                                                {errors.contact}
                                             </Text>
                                         )}
-                                        {servicesLoading && <ActivityIndicator size="small" color={colors.brandPrimary} />}
-                                    </View>
-                                </View>
+
+                                        <View style={styles.inputGroup}>
+                                            <Input
+                                                label="Especialidade"
+                                                placeholder="Ex: Cabeleireiro Senior"
+                                                value={form.job_title}
+                                                onChangeText={(text) => setForm({ ...form, job_title: text })}
+                                            />
+                                        </View>
+
+                                        <View style={styles.inputGroup}>
+                                            <Input
+                                                label="Bio / Observações"
+                                                placeholder="Breve descrição..."
+                                                value={form.bio}
+                                                onChangeText={(text) => setForm({ ...form, bio: text })}
+                                                multiline
+                                                numberOfLines={3}
+                                                style={{ height: 80, textAlignVertical: 'top' }}
+                                            />
+                                        </View>
+
+                                        <View style={styles.inputGroup}>
+                                            <Text style={[styles.filterLabel, { color: colors.textPrimary }]}>Serviços Prestados</Text>
+                                            <View style={styles.servicesGrid}>
+                                                {allServices.map((service) => (
+                                                    <TouchableOpacity
+                                                        key={service.id}
+                                                        onPress={() => toggleService(service.id)}
+                                                        style={[
+                                                            styles.serviceItem,
+                                                            {
+                                                                borderColor: selectedServiceIds.includes(service.id) ? colors.brandPrimary : colors.border,
+                                                                backgroundColor: selectedServiceIds.includes(service.id) ? `${colors.brandPrimary}15` : 'transparent'
+                                                            }
+                                                        ]}
+                                                    >
+                                                        <Text style={[
+                                                            styles.serviceText,
+                                                            { color: selectedServiceIds.includes(service.id) ? colors.brandPrimary : colors.textSecondary }
+                                                        ]}>
+                                                            {service.name}
+                                                        </Text>
+                                                        {selectedServiceIds.includes(service.id) && (
+                                                            <Ionicons name="checkmark-circle" size={16} color={colors.brandPrimary} />
+                                                        )}
+                                                    </TouchableOpacity>
+                                                ))}
+                                                {allServices.length === 0 && !servicesLoading && (
+                                                    <Text style={{ color: colors.textSecondary, fontSize: 12, fontStyle: 'italic' }}>
+                                                        Nenhum serviço cadastrado no salão.
+                                                    </Text>
+                                                )}
+                                                {servicesLoading && <ActivityIndicator size="small" color={colors.brandPrimary} />}
+                                            </View>
+                                        </View>
+                                    </>
+                                )}
                             </>
                         ) : (
                             <View style={styles.permissionContainer}>

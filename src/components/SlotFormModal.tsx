@@ -5,6 +5,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { Picker } from '@react-native-picker/picker';
 import { useTheme } from '../hooks/useTheme';
 import { Button } from './ui/Button';
+import { useAuth } from '../hooks/useAuth';
 
 interface SlotFormModalProps {
     visible: boolean;
@@ -16,6 +17,7 @@ interface SlotFormModalProps {
 
 export function SlotFormModal({ visible, onClose, onSubmit, professionals, busy = false }: SlotFormModalProps) {
     const { colors } = useTheme();
+    const { userInfo } = useAuth();
 
     const [form, setForm] = useState({
         professional_id: '',
@@ -23,6 +25,28 @@ export function SlotFormModal({ visible, onClose, onSubmit, professionals, busy 
         start_time: new Date(),
         end_time: new Date(),
     });
+
+    // Filtrar profissionais com base no papel do usuário
+    const availableProfessionals = React.useMemo(() => {
+        if (!userInfo) return [];
+        
+        // Se for admin/manager/owner, vê todos
+        // Ajuste conforme a estrutura do seu objeto de usuário (role, is_staff, is_superuser)
+        const isAdmin = userInfo.is_superuser || userInfo.role === 'owner' || userInfo.role === 'manager';
+        
+        if (isAdmin) {
+            return professionals;
+        }
+
+        // Se for colaborador, só vê a si mesmo
+        // Tenta encontrar o profissional vinculado ao usuário logado
+        // Comparando professional.user (id) com userInfo.id ou professional.email com userInfo.email
+        return professionals.filter(p => 
+            (p.user === userInfo.id) || 
+            (p.email === userInfo.email) ||
+            (p.staff_member === userInfo.id) // Fallback se houver link direto
+        );
+    }, [professionals, userInfo]);
 
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [showStartTimePicker, setShowStartTimePicker] = useState(false);
@@ -38,15 +62,16 @@ export function SlotFormModal({ visible, onClose, onSubmit, professionals, busy 
             const endTime = new Date(now);
             endTime.setHours(10, 0, 0, 0);
 
+            // Tenta selecionar automaticamente o primeiro disponível (que será o próprio usuário se for colaborador)
             setForm({
-                professional_id: professionals.length > 0 ? String(professionals[0].id) : '',
+                professional_id: availableProfessionals.length > 0 ? String(availableProfessionals[0].id) : '',
                 date: now,
                 start_time: startTime,
                 end_time: endTime,
             });
             setErrors({});
         }
-    }, [visible, professionals]);
+    }, [visible, availableProfessionals]);
 
     const validate = () => {
         const newErrors: { [key: string]: string } = {};
@@ -122,9 +147,10 @@ export function SlotFormModal({ visible, onClose, onSubmit, professionals, busy 
                                     selectedValue={form.professional_id}
                                     onValueChange={(value) => setForm({ ...form, professional_id: String(value) })}
                                     style={{ color: colors.textPrimary }}
+                                    enabled={availableProfessionals.length > 1} // Desabilita se só tiver 1 opção (colaborador)
                                 >
                                     <Picker.Item label="Selecione..." value="" />
-                                    {professionals.map((prof) => (
+                                    {availableProfessionals.map((prof) => (
                                         <Picker.Item key={prof.id} label={prof.name} value={String(prof.id)} />
                                     ))}
                                 </Picker>
