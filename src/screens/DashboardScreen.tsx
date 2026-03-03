@@ -3,6 +3,7 @@ import { View, Text, ScrollView, RefreshControl, TouchableOpacity } from 'react-
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../hooks/useTheme';
 import { useTenant } from '../hooks/useTenant';
+import { useLanguage } from '../contexts/LanguageContext';
 import { Ionicons } from '@expo/vector-icons';
 import { StatCard, AppointmentCard, EmptyAppointmentsState } from '../components/DashboardComponents';
 import useDashboardData from '../hooks/useDashboardData';
@@ -15,7 +16,7 @@ export default function DashboardScreen({ navigation }: any) {
   const { tenant } = useTenant();
   const { data, loading, refetch } = useDashboardData();
   const { logout } = useAuth();
-  const [language, setLanguage] = useState("pt");
+  const { language, setLanguage } = useLanguage();
   const [menuVisible, setMenuVisible] = useState(false);
 
   const isDark = theme === 'dark';
@@ -76,7 +77,10 @@ export default function DashboardScreen({ navigation }: any) {
           onClose={() => setMenuVisible(false)}
           onLogout={logout}
           language={language}
-          onToggleLanguage={() => setLanguage(prev => prev === "pt" ? "en" : "pt")}
+          onToggleLanguage={() => {
+            const nextLang = language === "pt" ? "en" : "pt";
+            setLanguage(nextLang);
+          }}
         />
 
         <View className="mb-6">

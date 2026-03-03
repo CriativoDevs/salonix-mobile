@@ -16,6 +16,8 @@ import {
 } from "../utils/clientAuthStorage";
 import { API_BASE_URL } from "../utils/env";
 
+console.log("[API] Client initialized with Base URL:", API_BASE_URL);
+
 const client = axios.create({
   baseURL: API_BASE_URL,
   headers: {

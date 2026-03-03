@@ -6,6 +6,7 @@ import { TenantProvider } from "./src/contexts/TenantContext";
 import { RateLimitProvider } from "./src/contexts/RateLimitContext";
 import { ToastProvider } from "./src/contexts/ToastContext";
 import { ThemeProvider } from "./src/contexts/ThemeContext";
+import { LanguageProvider } from "./src/contexts/LanguageContext";
 import { initializeTokens } from "./src/utils/authStorage";
 import { initializeClientTokens } from "./src/utils/clientAuthStorage";
 import AppNavigator from "./src/navigation/AppNavigator";
@@ -209,21 +210,23 @@ export default function App() {
   }
 
   return (
-    <SafeAreaProvider>
-      <ThemeProvider>
-        <ToastProvider>
-          <TenantProvider>
-            <RateLimitProvider>
+    <ThemeProvider>
+      <LanguageProvider>
+        <SafeAreaProvider>
+          <ToastProvider>
+            <TenantProvider>
               <AuthProvider>
-                <NavigationContainer>
-                  <StatusBar style="auto" />
-                  <AppNavigator />
-                </NavigationContainer>
+                <RateLimitProvider>
+                  <NavigationContainer>
+                    <StatusBar style="auto" />
+                    <AppNavigator />
+                  </NavigationContainer>
+                </RateLimitProvider>
               </AuthProvider>
-            </RateLimitProvider>
-          </TenantProvider>
-        </ToastProvider>
-      </ThemeProvider>
-    </SafeAreaProvider>
+            </TenantProvider>
+          </ToastProvider>
+        </SafeAreaProvider>
+      </LanguageProvider>
+    </ThemeProvider>
   );
 }

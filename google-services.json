@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "624453934132",
+    "project_id": "timelyone-ff9f4",
+    "storage_bucket": "timelyone-ff9f4.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:624453934132:android:25c64301637509b98e7e61",
+        "android_client_info": {
+          "package_name": "com.timelyone.app"
+        }
+      },
+      "oauth_client": [ ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBJAYzcwJCvT4tv4P-VuuybEUWzCCV2hUQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [ ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

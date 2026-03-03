@@ -9,6 +9,7 @@ import {
   TouchableWithoutFeedback,
   StyleSheet,
   Dimensions,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
@@ -90,6 +91,9 @@ export const Modal: React.FC<ModalProps> = ({
       justifyContent: 'center',
       alignItems: 'center',
       backgroundColor: 'rgba(0, 0, 0, 0.5)', // 50% opacity
+      // Adiciona padding bottom para garantir que a navegação do Android não cubra o modal
+      // Especialmente útil em builds de produção onde o layout é full-screen
+      paddingBottom: Platform.OS === 'android' ? 24 : 0, 
     },
     modalContainer: {
       backgroundColor: colors.surface,

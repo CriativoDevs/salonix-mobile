@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, Modal, StyleSheet, TouchableOpacity, Platform } from 'react-native';
+import { View, Text, Modal, StyleSheet, TouchableOpacity, Platform, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../hooks/useTheme';
 import { ThemeToggle } from './ThemeToggle';
@@ -8,12 +8,30 @@ interface HeaderMenuProps {
     visible: boolean;
     onClose: () => void;
     onLogout: () => void;
-    language: string;
-    onToggleLanguage: () => void;
+    language?: string; // Mantido como opcional para não quebrar compatibilidade
+    onToggleLanguage?: () => void; // Mantido como opcional
 }
 
-export function HeaderMenu({ visible, onClose, onLogout, language, onToggleLanguage }: HeaderMenuProps) {
+export function HeaderMenu({ visible, onClose, onLogout }: HeaderMenuProps) {
     const { colors } = useTheme();
+
+    const handleLogout = () => {
+        Alert.alert(
+            "Sair",
+            "Tem certeza que deseja sair?",
+            [
+                { text: "Cancelar", style: "cancel" },
+                { 
+                    text: "Sair", 
+                    style: "destructive", 
+                    onPress: () => {
+                        onClose();
+                        onLogout();
+                    }
+                }
+            ]
+        );
+    };
 
     return (
         <Modal
@@ -22,9 +40,9 @@ export function HeaderMenu({ visible, onClose, onLogout, language, onToggleLangu
             animationType="fade"
             onRequestClose={onClose}
         >
-            <TouchableOpacity
-                style={styles.overlay}
-                activeOpacity={1}
+            <TouchableOpacity 
+                style={styles.overlay} 
+                activeOpacity={1} 
                 onPress={onClose}
             >
                 <View style={[styles.menuContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
@@ -45,23 +63,12 @@ export function HeaderMenu({ visible, onClose, onLogout, language, onToggleLangu
                             <ThemeToggle size={24} />
                         </View>
 
-                        {/* Language Toggle */}
-                        <TouchableOpacity style={styles.menuItem} onPress={onToggleLanguage}>
-                            <View style={styles.itemInfo}>
-                                <Ionicons name="language-outline" size={20} color={colors.textPrimary} />
-                                <Text style={[styles.itemText, { color: colors.textPrimary }]}>Idioma</Text>
-                            </View>
-                            <View style={[styles.badge, { backgroundColor: colors.surfaceVariant }]}>
-                                <Text style={{ fontSize: 12, fontWeight: '700', color: colors.textPrimary }}>
-                                    {language.toUpperCase()}
-                                </Text>
-                            </View>
-                        </TouchableOpacity>
-
+                        {/* Language Toggle Removido conforme solicitação */}
+                        
                         <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
-                        {/* Logout */}
-                        <TouchableOpacity style={styles.menuItem} onPress={onLogout}>
+                        {/* Logout com Confirmação */}
+                        <TouchableOpacity style={styles.menuItem} onPress={handleLogout}>
                             <View style={styles.itemInfo}>
                                 <Ionicons name="log-out-outline" size={20} color={colors.error} />
                                 <Text style={[styles.itemText, { color: colors.error }]}>Sair</Text>
