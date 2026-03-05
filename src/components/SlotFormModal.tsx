@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, Modal, StyleSheet, TouchableOpacity, ScrollView, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Picker } from '@react-native-picker/picker';
 import { useTheme } from '../hooks/useTheme';
 import { Button } from './ui/Button';
+import { Modal } from './ui/Modal';
 import { useAuth } from '../hooks/useAuth';
 
 interface SlotFormModalProps {
@@ -31,7 +32,6 @@ export function SlotFormModal({ visible, onClose, onSubmit, professionals, busy 
         if (!userInfo) return [];
         
         // Se for admin/manager/owner, vê todos
-        // Ajuste conforme a estrutura do seu objeto de usuário (role, is_staff, is_superuser)
         const isAdmin = userInfo.is_superuser || userInfo.role === 'owner' || userInfo.role === 'manager';
         
         if (isAdmin) {
@@ -39,12 +39,10 @@ export function SlotFormModal({ visible, onClose, onSubmit, professionals, busy 
         }
 
         // Se for colaborador, só vê a si mesmo
-        // Tenta encontrar o profissional vinculado ao usuário logado
-        // Comparando professional.user (id) com userInfo.id ou professional.email com userInfo.email
         return professionals.filter(p => 
             (p.user === userInfo.id) || 
             (p.email === userInfo.email) ||
-            (p.staff_member === userInfo.id) // Fallback se houver link direto
+            (p.staff_member === userInfo.id)
         );
     }, [professionals, userInfo]);
 
@@ -62,7 +60,6 @@ export function SlotFormModal({ visible, onClose, onSubmit, professionals, busy 
             const endTime = new Date(now);
             endTime.setHours(10, 0, 0, 0);
 
-            // Tenta selecionar automaticamente o primeiro disponível (que será o próprio usuário se for colaborador)
             setForm({
                 professional_id: availableProfessionals.length > 0 ? String(availableProfessionals[0].id) : '',
                 date: now,
@@ -92,7 +89,6 @@ export function SlotFormModal({ visible, onClose, onSubmit, professionals, busy 
         if (!validate()) return;
 
         try {
-            // Combine date with times
             const startDateTime = new Date(form.date);
             startDateTime.setHours(form.start_time.getHours(), form.start_time.getMinutes(), 0, 0);
 
@@ -121,183 +117,138 @@ export function SlotFormModal({ visible, onClose, onSubmit, professionals, busy 
     return (
         <Modal
             visible={visible}
-            animationType="slide"
-            transparent={true}
-            onRequestClose={onClose}
+            onClose={onClose}
+            title="Criar Horário Disponível"
+            footer={
+                <>
+                    <Button
+                        variant="secondary"
+                        onPress={onClose}
+                        style={{ flex: 1 }}
+                    >
+                        Cancelar
+                    </Button>
+                    <Button
+                        onPress={handleSubmit}
+                        loading={busy}
+                        disabled={busy}
+                        style={{ flex: 1 }}
+                    >
+                        Criar
+                    </Button>
+                </>
+            }
         >
-            <KeyboardAvoidingView
-                behavior={Platform.OS === "ios" ? "padding" : "height"}
-                style={styles.modalOverlay}
-            >
-                <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
-                    <View style={[styles.header, { borderBottomColor: colors.border }]}>
-                        <Text style={[styles.title, { color: colors.textPrimary }]}>
-                            Criar Horário Disponível
+            <View style={styles.formContent}>
+                <View style={styles.inputGroup}>
+                    <Text style={[styles.label, { color: colors.textPrimary }]}>Profissional</Text>
+                    <View style={[styles.pickerContainer, { backgroundColor: colors.background, borderColor: colors.border }]}>
+                        <Picker
+                            selectedValue={form.professional_id}
+                            onValueChange={(value) => setForm({ ...form, professional_id: String(value) })}
+                            style={{ color: colors.textPrimary }}
+                            enabled={availableProfessionals.length > 1}
+                        >
+                            <Picker.Item label="Selecione..." value="" />
+                            {availableProfessionals.map((prof) => (
+                                <Picker.Item key={prof.id} label={prof.name} value={String(prof.id)} />
+                            ))}
+                        </Picker>
+                    </View>
+                    {errors.professional && (
+                        <Text style={{ color: colors.error, fontSize: 12, marginTop: 4 }}>
+                            {errors.professional}
                         </Text>
-                        <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-                            <Ionicons name="close" size={24} color={colors.textSecondary} />
-                        </TouchableOpacity>
-                    </View>
-
-                    <ScrollView style={styles.formContainer} contentContainerStyle={styles.formContent}>
-                        <View style={styles.inputGroup}>
-                            <Text style={[styles.label, { color: colors.textPrimary }]}>Profissional</Text>
-                            <View style={[styles.pickerContainer, { backgroundColor: colors.background, borderColor: colors.border }]}>
-                                <Picker
-                                    selectedValue={form.professional_id}
-                                    onValueChange={(value) => setForm({ ...form, professional_id: String(value) })}
-                                    style={{ color: colors.textPrimary }}
-                                    enabled={availableProfessionals.length > 1} // Desabilita se só tiver 1 opção (colaborador)
-                                >
-                                    <Picker.Item label="Selecione..." value="" />
-                                    {availableProfessionals.map((prof) => (
-                                        <Picker.Item key={prof.id} label={prof.name} value={String(prof.id)} />
-                                    ))}
-                                </Picker>
-                            </View>
-                            {errors.professional && (
-                                <Text style={{ color: colors.error, fontSize: 12, marginTop: 4 }}>
-                                    {errors.professional}
-                                </Text>
-                            )}
-                        </View>
-
-                        {/* Date Picker */}
-                        <View style={styles.inputGroup}>
-                            <Text style={[styles.label, { color: colors.textPrimary }]}>Data</Text>
-                            <TouchableOpacity
-                                style={[styles.dateButton, { backgroundColor: colors.background, borderColor: colors.border }]}
-                                onPress={() => setShowDatePicker(true)}
-                            >
-                                <Text style={{ color: colors.textPrimary }}>{formatDate(form.date)}</Text>
-                                <Ionicons name="calendar-outline" size={20} color={colors.textSecondary} />
-                            </TouchableOpacity>
-                            {showDatePicker && (
-                                <DateTimePicker
-                                    value={form.date}
-                                    mode="date"
-                                    display="default"
-                                    onChange={(event, selectedDate) => {
-                                        setShowDatePicker(false);
-                                        if (selectedDate) {
-                                            setForm({ ...form, date: selectedDate });
-                                        }
-                                    }}
-                                />
-                            )}
-                        </View>
-
-                        {/* Start Time */}
-                        <View style={styles.inputGroup}>
-                            <Text style={[styles.label, { color: colors.textPrimary }]}>Horário de Início</Text>
-                            <TouchableOpacity
-                                style={[styles.dateButton, { backgroundColor: colors.background, borderColor: colors.border }]}
-                                onPress={() => setShowStartTimePicker(true)}
-                            >
-                                <Text style={{ color: colors.textPrimary }}>{formatTime(form.start_time)}</Text>
-                                <Ionicons name="time-outline" size={20} color={colors.textSecondary} />
-                            </TouchableOpacity>
-                            {showStartTimePicker && (
-                                <DateTimePicker
-                                    value={form.start_time}
-                                    mode="time"
-                                    display="default"
-                                    onChange={(event, selectedTime) => {
-                                        setShowStartTimePicker(false);
-                                        if (selectedTime) {
-                                            setForm({ ...form, start_time: selectedTime });
-                                        }
-                                    }}
-                                />
-                            )}
-                        </View>
-
-                        {/* End Time */}
-                        <View style={styles.inputGroup}>
-                            <Text style={[styles.label, { color: colors.textPrimary }]}>Horário de Término</Text>
-                            <TouchableOpacity
-                                style={[styles.dateButton, { backgroundColor: colors.background, borderColor: colors.border }]}
-                                onPress={() => setShowEndTimePicker(true)}
-                            >
-                                <Text style={{ color: colors.textPrimary }}>{formatTime(form.end_time)}</Text>
-                                <Ionicons name="time-outline" size={20} color={colors.textSecondary} />
-                            </TouchableOpacity>
-                            {showEndTimePicker && (
-                                <DateTimePicker
-                                    value={form.end_time}
-                                    mode="time"
-                                    display="default"
-                                    onChange={(event, selectedTime) => {
-                                        setShowEndTimePicker(false);
-                                        if (selectedTime) {
-                                            setForm({ ...form, end_time: selectedTime });
-                                        }
-                                    }}
-                                />
-                            )}
-                            {errors.time && (
-                                <Text style={{ color: colors.error, fontSize: 12, marginTop: 4 }}>
-                                    {errors.time}
-                                </Text>
-                            )}
-                        </View>
-                    </ScrollView>
-
-                    <View style={[styles.footer, { borderTopColor: colors.border }]}>
-                        <Button
-                            variant="link"
-                            onPress={onClose}
-                            style={{ flex: 1, marginRight: 8 }}
-                        >
-                            Cancelar
-                        </Button>
-                        <Button
-                            variant="link"
-                            onPress={handleSubmit}
-                            loading={busy}
-                            disabled={busy}
-                            style={{ flex: 1, marginLeft: 8 }}
-                        >
-                            Criar
-                        </Button>
-                    </View>
+                    )}
                 </View>
-            </KeyboardAvoidingView>
+
+                {/* Date Picker */}
+                <View style={styles.inputGroup}>
+                    <Text style={[styles.label, { color: colors.textPrimary }]}>Data</Text>
+                    <TouchableOpacity
+                        style={[styles.dateButton, { backgroundColor: colors.background, borderColor: colors.border }]}
+                        onPress={() => setShowDatePicker(true)}
+                    >
+                        <Text style={{ color: colors.textPrimary }}>{formatDate(form.date)}</Text>
+                        <Ionicons name="calendar-outline" size={20} color={colors.textSecondary} />
+                    </TouchableOpacity>
+                    {showDatePicker && (
+                        <DateTimePicker
+                            value={form.date}
+                            mode="date"
+                            display="default"
+                            onChange={(event, selectedDate) => {
+                                setShowDatePicker(false);
+                                if (selectedDate) {
+                                    setForm({ ...form, date: selectedDate });
+                                }
+                            }}
+                        />
+                    )}
+                </View>
+
+                {/* Start Time */}
+                <View style={styles.inputGroup}>
+                    <Text style={[styles.label, { color: colors.textPrimary }]}>Horário de Início</Text>
+                    <TouchableOpacity
+                        style={[styles.dateButton, { backgroundColor: colors.background, borderColor: colors.border }]}
+                        onPress={() => setShowStartTimePicker(true)}
+                    >
+                        <Text style={{ color: colors.textPrimary }}>{formatTime(form.start_time)}</Text>
+                        <Ionicons name="time-outline" size={20} color={colors.textSecondary} />
+                    </TouchableOpacity>
+                    {showStartTimePicker && (
+                        <DateTimePicker
+                            value={form.start_time}
+                            mode="time"
+                            display="default"
+                            onChange={(event, selectedTime) => {
+                                setShowStartTimePicker(false);
+                                if (selectedTime) {
+                                    setForm({ ...form, start_time: selectedTime });
+                                }
+                            }}
+                        />
+                    )}
+                </View>
+
+                {/* End Time */}
+                <View style={styles.inputGroup}>
+                    <Text style={[styles.label, { color: colors.textPrimary }]}>Horário de Término</Text>
+                    <TouchableOpacity
+                        style={[styles.dateButton, { backgroundColor: colors.background, borderColor: colors.border }]}
+                        onPress={() => setShowEndTimePicker(true)}
+                    >
+                        <Text style={{ color: colors.textPrimary }}>{formatTime(form.end_time)}</Text>
+                        <Ionicons name="time-outline" size={20} color={colors.textSecondary} />
+                    </TouchableOpacity>
+                    {showEndTimePicker && (
+                        <DateTimePicker
+                            value={form.end_time}
+                            mode="time"
+                            display="default"
+                            onChange={(event, selectedTime) => {
+                                setShowEndTimePicker(false);
+                                if (selectedTime) {
+                                    setForm({ ...form, end_time: selectedTime });
+                                }
+                            }}
+                        />
+                    )}
+                    {errors.time && (
+                        <Text style={{ color: colors.error, fontSize: 12, marginTop: 4 }}>
+                            {errors.time}
+                        </Text>
+                    )}
+                </View>
+            </View>
         </Modal>
     );
 }
 
 const styles = StyleSheet.create({
-    modalOverlay: {
-        flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.5)',
-        justifyContent: 'flex-end',
-    },
-    modalContent: {
-        borderTopLeftRadius: 20,
-        borderTopRightRadius: 20,
-        maxHeight: '90%',
-        width: '100%',
-    },
-    header: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: 16,
-        borderBottomWidth: 1,
-    },
-    title: {
-        fontSize: 18,
-        fontWeight: '600',
-    },
-    closeButton: {
-        padding: 4,
-    },
-    formContainer: {
-        maxHeight: 500,
-    },
     formContent: {
-        padding: 16,
+        // Padding is handled by Modal
     },
     inputGroup: {
         marginBottom: 16,
@@ -319,11 +270,5 @@ const styles = StyleSheet.create({
         padding: 12,
         borderWidth: 1,
         borderRadius: 8,
-    },
-    footer: {
-        flexDirection: 'row',
-        padding: 16,
-        borderTopWidth: 1,
-        paddingBottom: Platform.OS === 'ios' ? 32 : 16,
     },
 });

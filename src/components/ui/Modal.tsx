@@ -88,29 +88,33 @@ export const Modal: React.FC<ModalProps> = ({
   const styles = StyleSheet.create({
     overlay: {
       flex: 1,
-      justifyContent: 'center',
-      alignItems: 'center',
+      justifyContent: 'center', // Centraliza verticalmente
+      alignItems: 'center', // Centraliza horizontalmente
       backgroundColor: 'rgba(0, 0, 0, 0.5)', // 50% opacity
-      // Adiciona padding bottom para garantir que a navegação do Android não cubra o modal
-      // Especialmente útil em builds de produção onde o layout é full-screen
-      paddingBottom: Platform.OS === 'android' ? 24 : 0, 
+      padding: 24, // Margem segura ao redor do modal
     },
     modalContainer: {
       backgroundColor: colors.surface,
       borderRadius: 16, // rounded-2xl
-      padding: 24, // p-6
-      maxHeight: Dimensions.get('window').height * 0.8, // Max 80% da tela
+      width: '100%', // Ocupa a largura disponível (controlada pelo maxWidth abaixo)
+      maxWidth: 500, // Limite para tablets
+      maxHeight: Dimensions.get('window').height * 0.85, // Max 85% da tela
       shadowColor: '#000',
       shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.3,
-      shadowRadius: 8,
+      shadowOpacity: 0.25,
+      shadowRadius: 12,
       elevation: 10, // Android shadow
+      display: 'flex',
+      flexDirection: 'column',
     },
     header: {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'flex-start',
-      marginBottom: 16,
+      padding: 24, // Padding interno do header
+      paddingBottom: 16,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
     },
     headerContent: {
       flex: 1,
@@ -130,14 +134,17 @@ export const Modal: React.FC<ModalProps> = ({
     closeButton: {
       padding: 4,
     },
-    content: {
-      marginBottom: 16,
+    scrollContent: {
+      padding: 24, // Padding interno do conteúdo scrollável
     },
     footer: {
       flexDirection: 'row',
       justifyContent: 'flex-end',
       gap: 12,
-      marginTop: 8,
+      padding: 24, // Padding interno do footer
+      paddingTop: 16,
+      borderTopWidth: 1,
+      borderTopColor: colors.border,
     },
   });
 
@@ -156,13 +163,13 @@ export const Modal: React.FC<ModalProps> = ({
               style={[
                 styles.modalContainer,
                 {
-                  width: widthPercentages[size],
                   transform: [{ scale: scaleAnim }],
-                  opacity: fadeAnim,
+                  // Ajuste de largura responsiva
+                  width: widthPercentages[size],
                 },
               ]}
             >
-              {/* Header: Title + Close Button */}
+              {/* Header Fixo */}
               <View style={styles.header}>
                 <View style={styles.headerContent}>
                   {title && <Text style={styles.title}>{title}</Text>}
@@ -172,25 +179,31 @@ export const Modal: React.FC<ModalProps> = ({
                 </View>
                 <Pressable
                   onPress={onClose}
-                  style={styles.closeButton}
-                  accessibilityLabel="Fechar modal"
-                  accessibilityRole="button"
+                  style={({ pressed }) => [
+                    styles.closeButton,
+                    { opacity: pressed ? 0.7 : 1 },
+                  ]}
+                  hitSlop={8}
                 >
                   <Ionicons name="close" size={24} color={colors.textSecondary} />
                 </Pressable>
               </View>
 
-              {/* Content (scrollable) */}
-              <ScrollView
-                style={styles.content}
+              {/* Conteúdo Scrollável */}
+              <ScrollView 
+                contentContainerStyle={styles.scrollContent}
                 showsVerticalScrollIndicator={false}
-                bounces={false}
+                keyboardShouldPersistTaps="handled"
               >
                 {children}
               </ScrollView>
 
-              {/* Footer (optional actions) */}
-              {footer && <View style={styles.footer}>{footer}</View>}
+              {/* Footer Fixo (se houver) */}
+              {footer && (
+                <View style={styles.footer}>
+                  {footer}
+                </View>
+              )}
             </Animated.View>
           </TouchableWithoutFeedback>
         </Animated.View>

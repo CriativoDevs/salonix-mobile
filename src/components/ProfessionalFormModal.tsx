@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, Modal, StyleSheet, TouchableOpacity, ScrollView, Alert, KeyboardAvoidingView, Platform, Switch, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Switch, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../hooks/useTheme';
 import { Input } from './ui/Input';
 import { Button } from './ui/Button';
+import { Modal } from './ui/Modal'; // Importando o Modal genérico flutuante
 import { updateStaffMember, disableStaffMember } from '../api/staff';
 
 import { useTenant } from '../hooks/useTenant';
@@ -180,276 +181,214 @@ export function ProfessionalFormModal({ visible, onClose, onSubmit, initialData,
     return (
         <Modal
             visible={visible}
-            animationType="slide"
-            transparent={true}
-            onRequestClose={onClose}
+            onClose={onClose}
+            title={initialData ? 'Editar Profissional' : 'Novo Profissional'}
+            size="lg"
+            footer={
+                <>
+                    <Button
+                        variant="secondary"
+                        onPress={onClose}
+                        style={{ flex: 1 }}
+                    >
+                        Cancelar
+                    </Button>
+                    <Button
+                        onPress={activeTab === 'details' ? handleSubmit : handleUpdatePermissions}
+                        loading={activeTab === 'details' ? busy : permissionLoading}
+                        style={{ flex: 1 }}
+                    >
+                        {activeTab === 'details' ? (initialData ? 'Salvar' : 'Convidar') : 'Salvar Permissões'}
+                    </Button>
+                </>
+            }
         >
-            <KeyboardAvoidingView
-                behavior={Platform.OS === "ios" ? "padding" : "height"}
-                style={styles.modalOverlay}
-            >
-                <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
-                    <View style={[styles.header, { borderBottomColor: colors.border }]}>
-                        <Text style={[styles.title, { color: colors.textPrimary }]}>
-                            {initialData ? 'Gerenciar membro da equipe' : 'Novo Profissional'}
-                        </Text>
-                        <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-                            <Ionicons name="close" size={24} color={colors.textSecondary} />
+            <View>
+                {/* Tabs */}
+                {initialData && (
+                    <View style={styles.tabContainer}>
+                        <TouchableOpacity
+                            style={[styles.tab, activeTab === 'details' && { borderBottomColor: colors.brandPrimary, borderBottomWidth: 2 }]}
+                            onPress={() => setActiveTab('details')}
+                        >
+                            <Text style={[styles.tabText, { color: activeTab === 'details' ? colors.brandPrimary : colors.textSecondary }]}>
+                                Dados Profissionais
+                            </Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={[styles.tab, activeTab === 'permissions' && { borderBottomColor: colors.brandPrimary, borderBottomWidth: 2 }]}
+                            onPress={() => setActiveTab('permissions')}
+                        >
+                            <Text style={[styles.tabText, { color: activeTab === 'permissions' ? colors.brandPrimary : colors.textSecondary }]}>
+                                Permissões
+                            </Text>
                         </TouchableOpacity>
                     </View>
+                )}
 
-                    {/* Tabs */}
-                    {initialData && (
-                        <View style={[styles.tabContainer, { borderBottomColor: colors.border }]}>
-                            <TouchableOpacity
-                                style={[styles.tab, activeTab === 'details' && { borderBottomColor: colors.brandPrimary, borderBottomWidth: 2 }]}
-                                onPress={() => setActiveTab('details')}
-                            >
-                                <Text style={[styles.tabText, { color: activeTab === 'details' ? colors.brandPrimary : colors.textSecondary }]}>
-                                    Dados Profissionais
-                                </Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                style={[styles.tab, activeTab === 'permissions' && { borderBottomColor: colors.brandPrimary, borderBottomWidth: 2 }]}
-                                onPress={() => setActiveTab('permissions')}
-                            >
-                                <Text style={[styles.tabText, { color: activeTab === 'permissions' ? colors.brandPrimary : colors.textSecondary }]}>
-                                    Permissões
-                                </Text>
-                            </TouchableOpacity>
-                        </View>
-                    )}
+                <View style={styles.formContent}>
+                    {activeTab === 'details' ? (
+                        <>
+                            <View style={styles.inputGroup}>
+                                <Input
+                                    label="Nome"
+                                    placeholder="Nome completo"
+                                    value={form.name}
+                                    onChangeText={(text) => setForm({ ...form, name: text })}
+                                    error={errors.name}
+                                />
+                            </View>
 
-                    <ScrollView style={styles.formContainer} contentContainerStyle={styles.formContent}>
-                        {activeTab === 'details' ? (
-                            <>
-                                <View style={styles.inputGroup}>
-                                    <Input
-                                        label="Nome"
-                                        placeholder="Nome completo"
-                                        value={form.name}
-                                        onChangeText={(text) => setForm({ ...form, name: text })}
-                                        error={errors.name}
-                                    />
-                                </View>
+                            <View style={styles.inputGroup}>
+                                <Input
+                                    label="E-mail"
+                                    placeholder="profissional@email.com"
+                                    value={form.email}
+                                    onChangeText={(text) => setForm({ ...form, email: text })}
+                                    keyboardType="email-address"
+                                    autoCapitalize="none"
+                                />
+                            </View>
 
-                                <View style={styles.inputGroup}>
-                                    <Input
-                                        label="E-mail"
-                                        placeholder="profissional@email.com"
-                                        value={form.email}
-                                        onChangeText={(text) => setForm({ ...form, email: text })}
-                                        keyboardType="email-address"
-                                        autoCapitalize="none"
-                                    />
-                                </View>
-
-                                {isEditing && (
-                                    <>
-                                        <View style={styles.inputGroup}>
-                                            <Input
-                                                label="Telefone"
-                                                placeholder="+351 912 345 678"
-                                                value={form.phone_number}
-                                                onChangeText={(text) => setForm({ ...form, phone_number: text })}
-                                                keyboardType="phone-pad"
-                                            />
-                                        </View>
-
-                                        {errors.contact && (
-                                            <Text style={{ color: colors.error, fontSize: 12, marginTop: -8, marginBottom: 12, marginLeft: 4 }}>
-                                                {errors.contact}
-                                            </Text>
-                                        )}
-
-                                        <View style={styles.inputGroup}>
-                                            <Input
-                                                label="Especialidade"
-                                                placeholder="Ex: Cabeleireiro Senior"
-                                                value={form.job_title}
-                                                onChangeText={(text) => setForm({ ...form, job_title: text })}
-                                            />
-                                        </View>
-
-                                        <View style={styles.inputGroup}>
-                                            <Input
-                                                label="Bio / Observações"
-                                                placeholder="Breve descrição..."
-                                                value={form.bio}
-                                                onChangeText={(text) => setForm({ ...form, bio: text })}
-                                                multiline
-                                                numberOfLines={3}
-                                                style={{ height: 80, textAlignVertical: 'top' }}
-                                            />
-                                        </View>
-
-                                        <View style={styles.inputGroup}>
-                                            <Text style={[styles.filterLabel, { color: colors.textPrimary }]}>Serviços Prestados</Text>
-                                            <View style={styles.servicesGrid}>
-                                                {allServices.map((service) => (
-                                                    <TouchableOpacity
-                                                        key={service.id}
-                                                        onPress={() => toggleService(service.id)}
-                                                        style={[
-                                                            styles.serviceItem,
-                                                            {
-                                                                borderColor: selectedServiceIds.includes(service.id) ? colors.brandPrimary : colors.border,
-                                                                backgroundColor: selectedServiceIds.includes(service.id) ? `${colors.brandPrimary}15` : 'transparent'
-                                                            }
-                                                        ]}
-                                                    >
-                                                        <Text style={[
-                                                            styles.serviceText,
-                                                            { color: selectedServiceIds.includes(service.id) ? colors.brandPrimary : colors.textSecondary }
-                                                        ]}>
-                                                            {service.name}
-                                                        </Text>
-                                                        {selectedServiceIds.includes(service.id) && (
-                                                            <Ionicons name="checkmark-circle" size={16} color={colors.brandPrimary} />
-                                                        )}
-                                                    </TouchableOpacity>
-                                                ))}
-                                                {allServices.length === 0 && !servicesLoading && (
-                                                    <Text style={{ color: colors.textSecondary, fontSize: 12, fontStyle: 'italic' }}>
-                                                        Nenhum serviço cadastrado no salão.
-                                                    </Text>
-                                                )}
-                                                {servicesLoading && <ActivityIndicator size="small" color={colors.brandPrimary} />}
-                                            </View>
-                                        </View>
-                                    </>
-                                )}
-                            </>
-                        ) : (
-                            <View style={styles.permissionContainer}>
-                                <View style={[styles.infoBox, { backgroundColor: colors.surfaceVariant }]}>
-                                    <Text style={[styles.infoTitle, { color: colors.textPrimary }]}>Informações Profissionais</Text>
-                                    <Text style={{ color: colors.textSecondary, marginTop: 4 }}>
-                                        <Text style={{ fontWeight: '600' }}>Nome:</Text> {form.name}
-                                    </Text>
-                                    <Text style={{ color: colors.textSecondary, marginTop: 2 }}>
-                                        <Text style={{ fontWeight: '600' }}>E-mail:</Text> {form.email || '—'}
-                                    </Text>
-                                </View>
-
-                                <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Papel</Text>
-
-                                <TouchableOpacity
-                                    style={[styles.radioOption, { borderColor: permissionsForm.role === 'collaborator' ? colors.brandPrimary : colors.border }]}
-                                    onPress={() => setPermissionsForm({ ...permissionsForm, role: 'collaborator' })}
-                                >
-                                    <View style={[styles.radioCircle, { borderColor: permissionsForm.role === 'collaborator' ? colors.brandPrimary : colors.textSecondary }]}>
-                                        {permissionsForm.role === 'collaborator' && <View style={[styles.radioDot, { backgroundColor: colors.brandPrimary }]} />}
+                            {isEditing && (
+                                <>
+                                    <View style={styles.inputGroup}>
+                                        <Input
+                                            label="Telefone"
+                                            placeholder="+351 912 345 678"
+                                            value={form.phone_number}
+                                            onChangeText={(text) => setForm({ ...form, phone_number: text })}
+                                            keyboardType="phone-pad"
+                                        />
                                     </View>
-                                    <Text style={[styles.radioText, { color: colors.textPrimary }]}>Colaborador</Text>
-                                </TouchableOpacity>
 
-                                <TouchableOpacity
-                                    style={[styles.radioOption, { borderColor: permissionsForm.role === 'manager' ? colors.brandPrimary : colors.border }]}
-                                    onPress={() => setPermissionsForm({ ...permissionsForm, role: 'manager' })}
-                                >
-                                    <View style={[styles.radioCircle, { borderColor: permissionsForm.role === 'manager' ? colors.brandPrimary : colors.textSecondary }]}>
-                                        {permissionsForm.role === 'manager' && <View style={[styles.radioDot, { backgroundColor: colors.brandPrimary }]} />}
-                                    </View>
-                                    <Text style={[styles.radioText, { color: colors.textPrimary }]}>Gerente (Manager)</Text>
-                                </TouchableOpacity>
-
-                                <View style={[styles.statusBox, { backgroundColor: colors.surfaceVariant, marginTop: 24 }]}>
-                                    <View>
-                                        <Text style={[styles.infoTitle, { color: colors.textPrimary }]}>Status e acesso</Text>
-                                        <Text style={{ color: colors.textSecondary, fontSize: 12, marginTop: 2 }}>
-                                            Alterar o status ajusta o acesso deste membro ao painel.
+                                    {errors.contact && (
+                                        <Text style={{ color: colors.error, fontSize: 12, marginTop: -8, marginBottom: 12, marginLeft: 4 }}>
+                                            {errors.contact}
                                         </Text>
+                                    )}
+
+                                    <View style={styles.inputGroup}>
+                                        <Input
+                                            label="Especialidade"
+                                            placeholder="Ex: Cabeleireiro Senior"
+                                            value={form.job_title}
+                                            onChangeText={(text) => setForm({ ...form, job_title: text })}
+                                        />
                                     </View>
-                                    <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 12, gap: 12 }}>
-                                        <TouchableOpacity onPress={() => setPermissionsForm({ ...permissionsForm, is_active: true })}>
-                                            <Text style={{ color: permissionsForm.is_active ? colors.success : colors.textSecondary, fontWeight: '600' }}>Ativar</Text>
-                                        </TouchableOpacity>
-                                        <TouchableOpacity onPress={() => setPermissionsForm({ ...permissionsForm, is_active: false })}>
-                                            <Text style={{ color: !permissionsForm.is_active ? colors.error : colors.textSecondary, fontWeight: '600' }}>Desativar</Text>
-                                        </TouchableOpacity>
+
+                                    <View style={styles.inputGroup}>
+                                        <Input
+                                            label="Bio / Observações"
+                                            placeholder="Breve descrição..."
+                                            value={form.bio}
+                                            onChangeText={(text) => setForm({ ...form, bio: text })}
+                                            multiline
+                                            numberOfLines={3}
+                                            style={{ height: 80, textAlignVertical: 'top' }}
+                                        />
                                     </View>
+
+                                    <View style={styles.inputGroup}>
+                                        <Text style={[styles.filterLabel, { color: colors.textPrimary }]}>Serviços Prestados</Text>
+                                        <View style={styles.servicesGrid}>
+                                            {allServices.map((service) => (
+                                                <TouchableOpacity
+                                                    key={service.id}
+                                                    onPress={() => toggleService(service.id)}
+                                                    style={[
+                                                        styles.serviceItem,
+                                                        {
+                                                            borderColor: selectedServiceIds.includes(service.id) ? colors.brandPrimary : colors.border,
+                                                            backgroundColor: selectedServiceIds.includes(service.id) ? `${colors.brandPrimary}15` : 'transparent'
+                                                        }
+                                                    ]}
+                                                >
+                                                    <Text style={[
+                                                        styles.serviceText,
+                                                        { color: selectedServiceIds.includes(service.id) ? colors.brandPrimary : colors.textSecondary }
+                                                    ]}>
+                                                        {service.name}
+                                                    </Text>
+                                                    {selectedServiceIds.includes(service.id) && (
+                                                        <Ionicons name="checkmark-circle" size={16} color={colors.brandPrimary} />
+                                                    )}
+                                                </TouchableOpacity>
+                                            ))}
+                                            {allServices.length === 0 && !servicesLoading && (
+                                                <Text style={{ color: colors.textSecondary, fontSize: 12, fontStyle: 'italic' }}>
+                                                    Nenhum serviço cadastrado no salão.
+                                                </Text>
+                                            )}
+                                            {servicesLoading && <ActivityIndicator size="small" color={colors.brandPrimary} />}
+                                        </View>
+                                    </View>
+                                </>
+                            )}
+                        </>
+                    ) : (
+                        <View style={styles.permissionContainer}>
+                            <View style={[styles.infoBox, { backgroundColor: colors.surfaceVariant }]}>
+                                <Text style={[styles.infoTitle, { color: colors.textPrimary }]}>Informações Profissionais</Text>
+                                <Text style={{ color: colors.textSecondary, marginTop: 4 }}>
+                                    <Text style={{ fontWeight: '600' }}>Nome:</Text> {form.name}
+                                </Text>
+                                <Text style={{ color: colors.textSecondary, marginTop: 2 }}>
+                                    <Text style={{ fontWeight: '600' }}>E-mail:</Text> {form.email || '—'}
+                                </Text>
+                            </View>
+
+                            <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Papel</Text>
+
+                            <TouchableOpacity
+                                style={[styles.radioOption, { borderColor: permissionsForm.role === 'collaborator' ? colors.brandPrimary : colors.border }]}
+                                onPress={() => setPermissionsForm({ ...permissionsForm, role: 'collaborator' })}
+                            >
+                                <View style={[styles.radioCircle, { borderColor: permissionsForm.role === 'collaborator' ? colors.brandPrimary : colors.textSecondary }]}>
+                                    {permissionsForm.role === 'collaborator' && <View style={[styles.radioDot, { backgroundColor: colors.brandPrimary }]} />}
+                                </View>
+                                <Text style={[styles.radioText, { color: colors.textPrimary }]}>Colaborador</Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                style={[styles.radioOption, { borderColor: permissionsForm.role === 'manager' ? colors.brandPrimary : colors.border }]}
+                                onPress={() => setPermissionsForm({ ...permissionsForm, role: 'manager' })}
+                            >
+                                <View style={[styles.radioCircle, { borderColor: permissionsForm.role === 'manager' ? colors.brandPrimary : colors.textSecondary }]}>
+                                    {permissionsForm.role === 'manager' && <View style={[styles.radioDot, { backgroundColor: colors.brandPrimary }]} />}
+                                </View>
+                                <Text style={[styles.radioText, { color: colors.textPrimary }]}>Gerente (Manager)</Text>
+                            </TouchableOpacity>
+
+                            <View style={[styles.statusBox, { backgroundColor: colors.surfaceVariant, marginTop: 24 }]}>
+                                <View>
+                                    <Text style={[styles.infoTitle, { color: colors.textPrimary }]}>Status e acesso</Text>
+                                    <Text style={{ color: colors.textSecondary, fontSize: 12, marginTop: 2 }}>
+                                        Alterar o status ajusta o acesso deste membro ao painel.
+                                    </Text>
+                                </View>
+                                <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 12, gap: 12 }}>
+                                    <TouchableOpacity onPress={() => setPermissionsForm({ ...permissionsForm, is_active: true })}>
+                                        <Text style={{ color: permissionsForm.is_active ? colors.success : colors.textSecondary, fontWeight: '600' }}>Ativar</Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity onPress={() => setPermissionsForm({ ...permissionsForm, is_active: false })}>
+                                        <Text style={{ color: !permissionsForm.is_active ? colors.error : colors.textSecondary, fontWeight: '600' }}>Desativar</Text>
+                                    </TouchableOpacity>
                                 </View>
                             </View>
-                        )}
-                    </ScrollView>
-
-                    <View style={[styles.footer, { borderTopColor: colors.border }]}>
-                        {activeTab === 'details' ? (
-                            <>
-                                <Button
-                                    variant="link"
-                                    onPress={onClose}
-                                    style={{ flex: 1, marginRight: 8 }}
-                                >
-                                    Cancelar
-                                </Button>
-                                <Button
-                                    variant="link"
-                                    onPress={handleSubmit}
-                                    loading={busy}
-                                    disabled={busy}
-                                    style={{ flex: 1, marginLeft: 8 }}
-                                >
-                                    Salvar
-                                </Button>
-                            </>
-                        ) : (
-                            <>
-                                <Button
-                                    variant="link"
-                                    onPress={onClose}
-                                    style={{ flex: 1, marginRight: 8 }}
-                                >
-                                    Fechar
-                                </Button>
-                                <Button
-                                    variant="link"
-                                    onPress={handleUpdatePermissions}
-                                    loading={permissionLoading}
-                                    disabled={permissionLoading}
-                                    style={{ flex: 1, marginLeft: 8 }}
-                                >
-                                    Salvar permissões
-                                </Button>
-                            </>
-                        )}
-                    </View>
+                        </View>
+                    )}
                 </View>
-            </KeyboardAvoidingView>
-        </Modal >
+            </View>
+        </Modal>
     );
 }
 
 const styles = StyleSheet.create({
-    modalOverlay: {
-        flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.5)',
-        justifyContent: 'flex-end',
-    },
-    modalContent: {
-        borderTopLeftRadius: 20,
-        borderTopRightRadius: 20,
-        maxHeight: '90%',
-        width: '100%',
-    },
-    header: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: 16,
-        borderBottomWidth: 1,
-    },
-    title: {
-        fontSize: 18,
-        fontWeight: '600',
-    },
-    closeButton: {
-        padding: 4,
-    },
     tabContainer: {
         flexDirection: 'row',
         borderBottomWidth: 1,
+        marginBottom: 16,
     },
     tab: {
         flex: 1,
@@ -461,20 +400,11 @@ const styles = StyleSheet.create({
         fontSize: 14,
         fontWeight: '600',
     },
-    formContainer: {
-        maxHeight: 500,
-    },
     formContent: {
-        padding: 16,
+        // Padding removido pois o Modal já tem padding interno
     },
     inputGroup: {
         marginBottom: 16,
-    },
-    footer: {
-        flexDirection: 'row',
-        padding: 16,
-        borderTopWidth: 1,
-        paddingBottom: Platform.OS === 'ios' ? 32 : 16,
     },
     permissionContainer: {
         paddingVertical: 8,
