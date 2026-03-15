@@ -6,6 +6,7 @@ import LoginScreen from "../screens/LoginScreen";
 import ForgotPasswordScreen from "../screens/ForgotPasswordScreen";
 
 import TabNavigator from "./TabNavigator";
+import AccountScreen from "../screens/AccountScreen";
 import { useAuth } from "../hooks/useAuth";
 import { hasSeenOnboarding } from "../utils/onboardingStorage";
 
@@ -53,6 +54,10 @@ export default function AppNavigator() {
           <Stack.Screen
             name="Home"
             component={TabNavigator}
+          />
+          <Stack.Screen
+            name="Account"
+            component={AccountScreen}
           />
         </>
       ) : hasSeen ? (

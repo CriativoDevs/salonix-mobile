@@ -8,11 +8,12 @@ interface HeaderMenuProps {
     visible: boolean;
     onClose: () => void;
     onLogout: () => void;
+    onNavigateToAccount?: () => void;
     language?: string; // Mantido como opcional para não quebrar compatibilidade
     onToggleLanguage?: () => void; // Mantido como opcional
 }
 
-export function HeaderMenu({ visible, onClose, onLogout }: HeaderMenuProps) {
+export function HeaderMenu({ visible, onClose, onLogout, onNavigateToAccount }: HeaderMenuProps) {
     const { colors } = useTheme();
 
     const handleLogout = () => {
@@ -64,7 +65,22 @@ export function HeaderMenu({ visible, onClose, onLogout }: HeaderMenuProps) {
                         </View>
 
                         {/* Language Toggle Removido conforme solicitação */}
-                        
+
+                        {/* Conta */}
+                        <TouchableOpacity
+                            style={styles.menuItem}
+                            onPress={() => {
+                                onClose();
+                                onNavigateToAccount?.();
+                            }}
+                        >
+                            <View style={styles.itemInfo}>
+                                <Ionicons name="person-outline" size={20} color={colors.textPrimary} />
+                                <Text style={[styles.itemText, { color: colors.textPrimary }]}>Conta</Text>
+                            </View>
+                            <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
+                        </TouchableOpacity>
+
                         <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
                         {/* Logout com Confirmação */}
