@@ -9,7 +9,7 @@
     "splash": {
       "image": "./assets/splash-native.png",
       "resizeMode": "contain",
-      "backgroundColor": "#3b82f6"
+      "backgroundColor": "#0D1B2A"
     },
     "ios": {
       "supportsTablet": true,
@@ -21,7 +21,7 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#3b82f6"
+        "backgroundColor": "#0D1B2A"
       },
       "package": "com.timelyone.app",
       "googleServicesFile": "./google-services.json",
@@ -34,7 +34,13 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-notifications",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#2563EB"
+        }
+      ],
       "expo-asset",
       "expo-font",
       "expo-secure-store",

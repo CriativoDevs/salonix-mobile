@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 390 844" fill="none" style="background:#0D1B2A;display:block;">
+  <!--
+    TimelyOne — Splash Screen
+    Plataforma: iOS e Android (app nativo)
+    ViewBox: 390×844 (iPhone 14 logical pixels — escala proporcionalmente)
+
+    Para exportar PNG nas resoluções exigidas pelas lojas:
+    iOS:
+      1170×2532 px — iPhone 12/13/14 Pro (@3x)
+      1284×2778 px — iPhone 12/13/14 Pro Max (@3x)
+      2048×2732 px — iPad Pro 12.9"
+    Android:
+      1080×1920 px — HDPI/XHDPI universal
+      Adaptive Icon: 108×108 dp (foreground layer)
+
+    Exporta este SVG para PNG com qualquer ferramenta vetorial (Figma, Inkscape, Adobe Illustrator).
+    No Figma: File → Export → PNG → define a resolução em 3x ou insere as dimensões manualmente.
+  -->
+
+  <defs>
+    <radialGradient id="glow" cx="50%" cy="48%" r="45%" gradientUnits="objectBoundingBox">
+      <stop offset="0%" stop-color="#1A3558" stop-opacity="0.7"/>
+      <stop offset="100%" stop-color="#0D1B2A" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="390" height="844" fill="#0D1B2A"/>
+
+  <!-- Subtle radial glow behind o logo -->
+  <rect width="390" height="844" fill="url(#glow)"/>
+
+  <!-- Ícone centrado, ligeiramente acima do centro vertical -->
+  <!-- Ícone base: viewBox 100×100 · scale(1.4) = 140×140px · centrado em x=195 -->
+  <g transform="translate(125, 282) scale(1.4)">
+    <circle cx="50" cy="50" r="42" stroke="#2563EB" stroke-width="3"/>
+    <g stroke="#3B82F6" stroke-width="3" stroke-linecap="round">
+      <line x1="50" y1="10" x2="50" y2="18"/>
+      <line x1="50" y1="82" x2="50" y2="90"/>
+      <line x1="10" y1="50" x2="18" y2="50"/>
+      <line x1="82" y1="50" x2="90" y2="50"/>
+    </g>
+    <path d="M 50 50 L 38 60 L 68 32" stroke="#10B981" stroke-width="6" stroke-linecap="square" stroke-linejoin="miter" fill="none"/>
+    <circle cx="50" cy="50" r="3.5" fill="#10B981"/>
+  </g>
+
+  <!-- Wordmark: baseline a ~30px abaixo do ícone -->
+  <text
+    x="195" y="466"
+    text-anchor="middle"
+    font-family="Inter, -apple-system, 'Segoe UI', sans-serif"
+    font-size="38" font-weight="800" letter-spacing="-0.5"
+    fill="#FFFFFF">Timely<tspan fill="#10B981">One</tspan></text>
+
+  <!-- Tagline -->
+  <text
+    x="195" y="500"
+    text-anchor="middle"
+    font-family="Inter, -apple-system, 'Segoe UI', sans-serif"
+    font-size="14" font-weight="400" letter-spacing="0.04em"
+    fill="#94A3B8">Gestão e Agendamento Inteligente</text>
+</svg>

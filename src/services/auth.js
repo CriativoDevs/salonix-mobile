@@ -50,7 +50,6 @@ import {
   setRefreshToken,
   getRefreshToken,
   clearTokens,
-  triggerLogout,
   setLogoutHandler,
 } from "../utils/authStorage";
 import {
@@ -59,7 +58,6 @@ import {
   setClientRefreshToken,
   getClientRefreshToken,
   clearClientTokens,
-  triggerClientLogout,
   setClientLogoutHandler,
 } from "../utils/clientAuthStorage";
 
@@ -320,7 +318,13 @@ export const forgotPassword = async (email, resetUrl) => {
 
 /**
  * Logout - Limpa todos os tokens (staff + client)
- * Chama logout handlers para atualizar UI (AuthContext, etc)
+ *
+ * MOB-FIX-01: este service apenas LIMPA tokens. NAO chama triggerLogout/
+ * triggerClientLogout, senao cria re-entrancia: o interceptor (api/client.js)
+ * chama triggerLogout() -> handleLogout (AuthContext) -> este logout() ->
+ * triggerLogout()/triggerClientLogout() -> handleLogout() de novo -> ciclo
+ * descontrolado de limpezas + resetState. A notificacao da UI e responsabilidade
+ * do caller (handleLogout faz resetState diretamente).
  *
  * @returns {Promise<void>}
  */
@@ -328,8 +332,6 @@ export const logout = async () => {
   try {
     await clearTokens();
     await clearClientTokens();
-    triggerLogout();
-    triggerClientLogout();
   } catch (error) {
     console.error("[auth] ❌ Erro ao fazer logout:", error);
   }
