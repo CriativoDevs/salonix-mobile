@@ -1,4 +1,10 @@
-import React, { createContext, useCallback, useEffect, useState } from "react";
+import React, {
+  createContext,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import {
   getRefreshToken,
   initializeTokens,
@@ -42,6 +48,12 @@ export const AuthProvider = ({ children }) => {
 
   const { applyTenantBootstrap, setTenantSlug, slug } = useTenant();
 
+  // MOB-FIX-01: contador de "epoca" de login. Incrementa a cada login
+  // bem-sucedido. Um logout em voo so reverte o estado se nenhum login mais
+  // recente ocorreu entretanto — evita que um logout obsoleto (ex.: do arranque,
+  // por token velho) atropele um login feito durante o seu round-trip.
+  const loginEpochRef = useRef(0);
+
   const resetState = useCallback(async () => {
     setIsAuthenticated(false);
     setFeatureFlags(null);
@@ -53,19 +65,23 @@ export const AuthProvider = ({ children }) => {
   }, [setTenantSlug]);
 
   const handleLogout = useCallback(async () => {
-    try {
-      // Usa logout() do services/auth.js
-      // Limpa staff + client tokens
-      // Chama logoutHandlers automaticamente
-      await logoutService();
+    // Captura a epoca no inicio; se um login bem-sucedido acontecer durante o
+    // logout, a epoca muda e abortamos o reset (nao atropelar o login).
+    const epochAtStart = loginEpochRef.current;
 
-      // Reset state local
-      await resetState();
+    // Limpa staff + client tokens (services/auth.js logout() apenas limpa)
+    try {
+      await logoutService();
     } catch (error) {
       console.error("[AuthContext] Logout error:", error);
-      // Mesmo com erro, fazer reset
-      await resetState();
     }
+
+    if (loginEpochRef.current !== epochAtStart) {
+      // Um login mais recente ocorreu durante este logout — nao reverter.
+      return;
+    }
+
+    await resetState();
   }, [resetState]);
 
   useEffect(() => {
@@ -79,6 +95,10 @@ export const AuthProvider = ({ children }) => {
 
       try {
         const { user, tenant } = await loginStaff(email, password);
+
+        // MOB-FIX-01: marca uma nova epoca de sessao ANTES de ativar o estado,
+        // para que qualquer logout em voo (do arranque) nao reverta este login.
+        loginEpochRef.current += 1;
 
         setIsAuthenticated(true);
         setUserInfo(user);

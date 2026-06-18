@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <!-- Versão monocromática: usa currentColor, herda a cor do contexto (CSS color / fill no elemento pai). Por defeito renderiza a preto. -->
+  <circle cx="50" cy="50" r="42" stroke="currentColor" stroke-width="3"/>
+  <g stroke="currentColor" stroke-width="3" stroke-linecap="round">
+    <line x1="50" y1="10" x2="50" y2="18"/>
+    <line x1="50" y1="82" x2="50" y2="90"/>
+    <line x1="10" y1="50" x2="18" y2="50"/>
+    <line x1="82" y1="50" x2="90" y2="50"/>
+  </g>
+  <path d="M 50 50 L 38 60 L 68 32" stroke="currentColor" stroke-width="6" stroke-linecap="square" stroke-linejoin="miter" fill="none"/>
+  <circle cx="50" cy="50" r="3.5" fill="currentColor"/>
+</svg>
