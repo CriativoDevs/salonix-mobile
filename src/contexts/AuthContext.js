@@ -88,6 +88,76 @@ export const AuthProvider = ({ children }) => {
     setLogoutHandler(handleLogout);
   }, [handleLogout]);
 
+  // MOB-PUSH-REREGISTER: registo (re)tentativo do push token junto do backend.
+  // Extraido do login() para ser reutilizado tambem no bootstrap de sessao
+  // restaurada (utilizador ja autenticado ao abrir a app, sem passar por
+  // login() de novo). Idempotente do lado do backend (upsert por token).
+  const registerDevicePushToken = useCallback(
+    async (tenant) => {
+      const { token, error } = await registerForPushNotificationsAsync();
+
+      if (!token) {
+        if (error) {
+          console.warn("[AuthContext] Push registration skipped:", error);
+        }
+        return;
+      }
+
+      const { platform, appVersion } = getPlatformInfo();
+      try {
+        const effectiveSlug = tenant?.slug || slug || null;
+        console.log("[AuthContext] Starting push token registration", {
+          platform,
+          appVersion,
+          slug: effectiveSlug,
+        });
+        let attempt = 0;
+        let lastErr = null;
+        const delays = [200, 600, 1200];
+        while (attempt < delays.length) {
+          try {
+            await registerPushToken(token, platform, appVersion, effectiveSlug);
+            console.log("[AuthContext] Push token registration completed", {
+              attempt,
+            });
+            lastErr = null;
+            break;
+          } catch (pushErr) {
+            const status = pushErr?.response?.status;
+            const body = pushErr?.response?.data;
+            const bodyStr =
+              typeof body === "string" ? body : JSON.stringify(body || {});
+            const isTenantUserMissing =
+              status === 400 && bodyStr.includes("tenant_or_user_missing");
+            if (!isTenantUserMissing) {
+              lastErr = pushErr;
+              break;
+            }
+            console.log(
+              "[AuthContext] Push token registration tenant_or_user_missing, retrying",
+              {
+                attempt,
+                status,
+                body: bodyStr,
+              },
+            );
+            await getStaffProfile().catch(() => {});
+            await new Promise((res) => setTimeout(res, delays[attempt]));
+            attempt += 1;
+            lastErr = pushErr;
+          }
+        }
+        if (lastErr) throw lastErr;
+      } catch (pushError) {
+        console.warn(
+          "[AuthContext] Failed to register push token:",
+          pushError?.message || pushError,
+        );
+      }
+    },
+    [slug],
+  );
+
   const login = useCallback(
     async (email, password) => {
       setIsLoading(true);
@@ -122,68 +192,7 @@ export const AuthProvider = ({ children }) => {
           );
         }
 
-        const { token, error } = await registerForPushNotificationsAsync();
-
-        if (token) {
-          const { platform, appVersion } = getPlatformInfo();
-          try {
-            const effectiveSlug = tenant?.slug || slug || null;
-            console.log("[AuthContext] Starting push token registration", {
-              platform,
-              appVersion,
-              slug: effectiveSlug,
-            });
-            let attempt = 0;
-            let lastErr = null;
-            const delays = [200, 600, 1200];
-            while (attempt < delays.length) {
-              try {
-                await registerPushToken(
-                  token,
-                  platform,
-                  appVersion,
-                  effectiveSlug,
-                );
-                console.log("[AuthContext] Push token registration completed", {
-                  attempt,
-                });
-                lastErr = null;
-                break;
-              } catch (pushErr) {
-                const status = pushErr?.response?.status;
-                const body = pushErr?.response?.data;
-                const bodyStr =
-                  typeof body === "string" ? body : JSON.stringify(body || {});
-                const isTenantUserMissing =
-                  status === 400 && bodyStr.includes("tenant_or_user_missing");
-                if (!isTenantUserMissing) {
-                  lastErr = pushErr;
-                  break;
-                }
-                console.log(
-                  "[AuthContext] Push token registration tenant_or_user_missing, retrying",
-                  {
-                    attempt,
-                    status,
-                    body: bodyStr,
-                  },
-                );
-                await getStaffProfile().catch(() => {});
-                await new Promise((res) => setTimeout(res, delays[attempt]));
-                attempt += 1;
-                lastErr = pushErr;
-              }
-            }
-            if (lastErr) throw lastErr;
-          } catch (pushError) {
-            console.warn(
-              "[AuthContext] Failed to register push token:",
-              pushError?.message || pushError,
-            );
-          }
-        } else if (error) {
-          console.warn("[AuthContext] Push registration skipped:", error);
-        }
+        await registerDevicePushToken(tenant);
 
         return { success: true };
       } catch (error) {
@@ -232,7 +241,7 @@ export const AuthProvider = ({ children }) => {
         setIsLoading(false);
       }
     },
-    [applyTenantBootstrap],
+    [applyTenantBootstrap, registerDevicePushToken],
   );
 
   const refreshSession = useCallback(async () => {
@@ -284,6 +293,13 @@ export const AuthProvider = ({ children }) => {
               applyTenantBootstrap(userProfile.tenant);
               await storeTenantSlug(userProfile.tenant.slug);
             }
+
+            // MOB-PUSH-REREGISTER: sessao restaurada (sem login() explicito)
+            // tambem deve (re)registar o push token — caso contrario um
+            // device que reinstalou a app (ex.: build nativo novo) mas
+            // mantem sessao valida via refresh token nunca envia o token
+            // novo ao backend.
+            await registerDevicePushToken(tenant);
           } catch (error) {
             // Não autentica se perfil falhar; mantém usuário na tela de login
             console.warn(
@@ -297,6 +313,7 @@ export const AuthProvider = ({ children }) => {
       }
     };
     init();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const value = {
