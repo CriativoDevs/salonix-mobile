@@ -20,8 +20,14 @@ jest.mock('../../hooks/useTheme', () => ({
   }),
 }));
 
+const mockGoBack = jest.fn();
 jest.mock('@react-navigation/native', () => ({
-  useNavigation: () => ({ goBack: jest.fn() }),
+  useNavigation: () => ({ goBack: mockGoBack }),
+}));
+
+let mockUseAuthReturn: any = { userInfo: { id: 1, role: 'owner' } };
+jest.mock('../../hooks/useAuth', () => ({
+  useAuth: () => mockUseAuthReturn,
 }));
 
 jest.mock('../../hooks/useTenant', () => ({
@@ -107,12 +113,31 @@ const PACKAGES = {
 
 describe('CreditsPlanScreen', () => {
   beforeEach(() => {
+    mockUseAuthReturn = { userInfo: { id: 1, role: 'owner' } };
+    mockGoBack.mockClear();
     mockFetchBillingOverview.mockResolvedValue(OVERVIEW);
     mockFetchCreditBalance.mockResolvedValue(BALANCE);
     mockFetchCreditHistory.mockResolvedValue(HISTORY);
     mockFetchCreditPackages.mockResolvedValue(PACKAGES);
   });
   afterEach(() => jest.clearAllMocks());
+
+  it('redirects back immediately when the user is not an owner', async () => {
+    mockUseAuthReturn = { userInfo: { id: 2, role: 'manager' } };
+
+    await render(<CreditsPlanScreen />);
+
+    await waitFor(() => expect(mockGoBack).toHaveBeenCalled());
+  });
+
+  it('does not redirect when the user is an owner', async () => {
+    mockUseAuthReturn = { userInfo: { id: 1, role: 'owner' } };
+
+    await render(<CreditsPlanScreen />);
+
+    await waitFor(() => expect(mockFetchBillingOverview).toHaveBeenCalled());
+    expect(mockGoBack).not.toHaveBeenCalled();
+  });
 
   it('loads and shows the current plan and credit balance', async () => {
     const { getByText } = await render(<CreditsPlanScreen />);
@@ -128,6 +153,33 @@ describe('CreditsPlanScreen', () => {
     await waitFor(() => expect(getByText('Founder')).toBeTruthy());
     const buttons = getAllByText('Mudar para este plano');
     expect(buttons.length).toBe(2);
+  });
+
+  it('shows only the current plan when the backend returns a single available plan', async () => {
+    mockFetchBillingOverview.mockResolvedValue({
+      ...OVERVIEW,
+      current_subscription: {
+        ...OVERVIEW.current_subscription,
+        plan_name: 'TimelyOne Founder',
+      },
+      available_plans: [
+        {
+          plan_code: 'founder',
+          name: 'TimelyOne Founder',
+          price_monthly: 15,
+          features: ['Preço Vitalício'],
+          credits_included: 2,
+          is_current: true,
+          can_upgrade: false,
+          is_available: true,
+        },
+      ],
+    });
+
+    const { getByText, queryByText } = await render(<CreditsPlanScreen />);
+
+    await waitFor(() => expect(getByText('TimelyOne Founder (Atual)')).toBeTruthy());
+    expect(queryByText('Founder')).toBeNull();
   });
 
   it('toggles renovação automática and calls updateSubscriptionAction with "cancel"', async () => {

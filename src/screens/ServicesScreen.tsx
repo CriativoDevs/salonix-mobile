@@ -27,6 +27,7 @@ export default function ServicesScreen() {
   const { colors } = useTheme();
   const { slug } = useTenant();
   const { userInfo } = useAuth();
+  const isAdmin = userInfo?.is_superuser || userInfo?.role === 'owner' || userInfo?.role === 'manager';
 
   const [services, setServices] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -191,15 +192,17 @@ export default function ServicesScreen() {
             {services.length} serviços
           </Text>
           <View style={{ flexDirection: 'row', marginTop: 12, gap: 16 }}>
-            <TouchableOpacity
-              onPress={handleCreate}
-              style={{ flexDirection: 'row', alignItems: 'center' }}
-            >
-              <Ionicons name="add" size={18} color={colors.brandPrimary} />
-              <Text style={{ color: colors.brandPrimary, fontSize: 13, fontWeight: '600', marginLeft: 6 }}>
-                Novo serviço
-              </Text>
-            </TouchableOpacity>
+            {isAdmin && (
+              <TouchableOpacity
+                onPress={handleCreate}
+                style={{ flexDirection: 'row', alignItems: 'center' }}
+              >
+                <Ionicons name="add" size={18} color={colors.brandPrimary} />
+                <Text style={{ color: colors.brandPrimary, fontSize: 13, fontWeight: '600', marginLeft: 6 }}>
+                  Novo serviço
+                </Text>
+              </TouchableOpacity>
+            )}
 
             {isOwner(userInfo) && (
               <TouchableOpacity

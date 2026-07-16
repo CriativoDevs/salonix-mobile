@@ -6,6 +6,8 @@ import { Ionicons } from '@expo/vector-icons';
 import * as WebBrowser from 'expo-web-browser';
 import { useTheme } from '../hooks/useTheme';
 import { useTenant } from '../hooks/useTenant';
+import { useAuth } from '../hooks/useAuth';
+import { isOwner } from '../utils/permissions';
 import { fetchBillingOverview, updateSubscriptionAction, createCheckoutSession, createBillingPortalSession } from '../api/tenant';
 import { fetchCreditBalance, fetchCreditHistory, fetchCreditPackages, createCreditCheckoutSession } from '../api/credits';
 import { Button } from '../components/ui/Button';
@@ -36,6 +38,13 @@ export default function CreditsPlanScreen() {
   const navigation = useNavigation();
   const { colors } = useTheme();
   const { slug } = useTenant();
+  const { userInfo } = useAuth();
+
+  useEffect(() => {
+    if (!isOwner(userInfo)) {
+      navigation.goBack();
+    }
+  }, [userInfo, navigation]);
 
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
@@ -142,6 +151,10 @@ export default function CreditsPlanScreen() {
       setBuyingPackage(null);
     }
   };
+
+  if (!isOwner(userInfo)) {
+    return null;
+  }
 
   if (loading) {
     return (

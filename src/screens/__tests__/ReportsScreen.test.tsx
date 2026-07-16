@@ -20,8 +20,14 @@ jest.mock('../../hooks/useTheme', () => ({
   }),
 }));
 
+const mockGoBack = jest.fn();
 jest.mock('@react-navigation/native', () => ({
-  useNavigation: () => ({ goBack: jest.fn() }),
+  useNavigation: () => ({ goBack: mockGoBack }),
+}));
+
+let mockUseAuthReturn: any = { userInfo: { id: 1, role: 'owner' } };
+jest.mock('../../hooks/useAuth', () => ({
+  useAuth: () => mockUseAuthReturn,
 }));
 
 jest.mock('../../hooks/useTenant', () => ({
@@ -70,12 +76,31 @@ const RETENTION = {
 
 describe('ReportsScreen', () => {
   beforeEach(() => {
+    mockUseAuthReturn = { userInfo: { id: 1, role: 'owner' } };
+    mockGoBack.mockClear();
     mockFetchBasicReports.mockResolvedValue(BASIC);
     mockFetchTopServices.mockResolvedValue(TOP_SERVICES);
     mockFetchRevenue.mockResolvedValue(REVENUE);
     mockFetchRetention.mockResolvedValue(RETENTION);
   });
   afterEach(() => jest.clearAllMocks());
+
+  it('redirects back immediately when the user is not an owner', async () => {
+    mockUseAuthReturn = { userInfo: { id: 2, role: 'manager' } };
+
+    render(<ReportsScreen />);
+
+    await waitFor(() => expect(mockGoBack).toHaveBeenCalled());
+  });
+
+  it('does not redirect when the user is an owner', async () => {
+    mockUseAuthReturn = { userInfo: { id: 1, role: 'owner' } };
+
+    render(<ReportsScreen />);
+
+    await waitFor(() => expect(mockFetchBasicReports).toHaveBeenCalled());
+    expect(mockGoBack).not.toHaveBeenCalled();
+  });
 
   it('loads the Básicos tab by default and shows the 4 KPIs', async () => {
     const { getByText } = await render(<ReportsScreen />);

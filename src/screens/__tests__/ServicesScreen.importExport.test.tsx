@@ -114,4 +114,29 @@ describe('ServicesScreen - import/export', () => {
       expect(mockFetchAdminServices).toHaveBeenCalled();
     });
   });
+
+  it('shows "Novo serviço" for an owner', async () => {
+    mockUseAuthReturn = { userInfo: { id: 1, role: 'owner' } };
+
+    const { findByText } = await render(<ServicesScreen />);
+
+    expect(await findByText('Novo serviço')).toBeTruthy();
+  });
+
+  it('shows "Novo serviço" for a manager', async () => {
+    mockUseAuthReturn = { userInfo: { id: 2, role: 'manager' } };
+
+    const { findByText } = await render(<ServicesScreen />);
+
+    expect(await findByText('Novo serviço')).toBeTruthy();
+  });
+
+  it('hides "Novo serviço" for a collaborator', async () => {
+    mockUseAuthReturn = { userInfo: { id: 3, role: 'collaborator' } };
+
+    const { queryByText, findByText } = await render(<ServicesScreen />);
+
+    await findByText('Serviços');
+    expect(queryByText('Novo serviço')).toBeNull();
+  });
 });

@@ -125,4 +125,29 @@ describe('TeamScreen - import/export', () => {
       expect(mockFetchProfessionals).toHaveBeenCalled();
     });
   });
+
+  it('shows "Novo profissional" for an owner', async () => {
+    mockUseAuthReturn = { userInfo: { id: 1, role: 'owner' } };
+
+    const { findByText } = await render(<TeamScreen />);
+
+    expect(await findByText('Novo profissional')).toBeTruthy();
+  });
+
+  it('shows "Novo profissional" for a manager', async () => {
+    mockUseAuthReturn = { userInfo: { id: 2, role: 'manager' } };
+
+    const { findByText } = await render(<TeamScreen />);
+
+    expect(await findByText('Novo profissional')).toBeTruthy();
+  });
+
+  it('hides "Novo profissional" for a collaborator', async () => {
+    mockUseAuthReturn = { userInfo: { id: 3, role: 'collaborator' } };
+
+    const { queryByText, findByText } = await render(<TeamScreen />);
+
+    await findByText('Equipe');
+    expect(queryByText('Novo profissional')).toBeNull();
+  });
 });

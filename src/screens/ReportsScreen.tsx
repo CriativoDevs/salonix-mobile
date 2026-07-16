@@ -5,6 +5,8 @@ import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../hooks/useTheme';
 import { useTenant } from '../hooks/useTenant';
+import { useAuth } from '../hooks/useAuth';
+import { isOwner } from '../utils/permissions';
 import { StatCard } from '../components/DashboardComponents';
 import { fetchBasicReports, fetchTopServices, fetchRevenue, fetchRetention, exportBasicReportsCSV } from '../api/reports';
 import { saveAndShareCSV } from '../utils/csvFileSharing';
@@ -32,6 +34,13 @@ export default function ReportsScreen() {
   const navigation = useNavigation();
   const { colors } = useTheme();
   const { slug } = useTenant();
+  const { userInfo } = useAuth();
+
+  useEffect(() => {
+    if (!isOwner(userInfo)) {
+      navigation.goBack();
+    }
+  }, [userInfo, navigation]);
 
   const { from, to } = useMemo(() => {
     const toDate = new Date();
@@ -114,6 +123,10 @@ export default function ReportsScreen() {
       setExporting(false);
     }
   };
+
+  if (!isOwner(userInfo)) {
+    return null;
+  }
 
   if (loading) {
     return (

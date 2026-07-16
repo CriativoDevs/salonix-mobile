@@ -20,6 +20,7 @@ export default function TeamScreen() {
     const navigation = useNavigation();
     const { slug } = useTenant();
     const { userInfo } = useAuth();
+    const isAdmin = userInfo?.is_superuser || userInfo?.role === 'owner' || userInfo?.role === 'manager';
 
     const [professionals, setProfessionals] = useState<any[]>([]);
     const [staff, setStaff] = useState<any[]>([]);
@@ -416,20 +417,22 @@ export default function TeamScreen() {
                             </Text>
                         </TouchableOpacity>
 
-                        <TouchableOpacity
-                            onPress={handleCreate}
-                            style={{ flexDirection: 'row', alignItems: 'center' }}
-                        >
-                            <Ionicons name="add" size={18} color={colors.brandPrimary} />
-                            <Text style={{
-                                color: colors.brandPrimary,
-                                fontSize: 13,
-                                fontWeight: '600',
-                                marginLeft: 6
-                            }}>
-                                Novo profissional
-                            </Text>
-                        </TouchableOpacity>
+                        {isAdmin && (
+                            <TouchableOpacity
+                                onPress={handleCreate}
+                                style={{ flexDirection: 'row', alignItems: 'center' }}
+                            >
+                                <Ionicons name="add" size={18} color={colors.brandPrimary} />
+                                <Text style={{
+                                    color: colors.brandPrimary,
+                                    fontSize: 13,
+                                    fontWeight: '600',
+                                    marginLeft: 6
+                                }}>
+                                    Novo profissional
+                                </Text>
+                            </TouchableOpacity>
+                        )}
 
                         {isOwner(userInfo) && (
                             <TouchableOpacity
