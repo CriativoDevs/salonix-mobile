@@ -63,3 +63,16 @@ export const getResetUrl = () => {
 };
 
 export const API_BASE_URL = getApiBaseUrl();
+
+// O backend não tem storage em S3/CDN configurado — `logo_url`/`favicon_url`
+// (e outros campos de ficheiro servidos por Django MEDIA_URL) vêm como paths
+// relativos ("/media/logos/xyz.png"), sem protocolo nem domínio. O browser
+// resolve isso automaticamente contra o domínio da página, mas o `Image` do
+// React Native exige sempre uma URI absoluta — sem isto, o logo nunca aparece.
+export function resolveMediaUrl(url, base = API_BASE_URL) {
+  if (!url) return null;
+  if (/^https?:\/\//i.test(url)) return url;
+  const origin = base.replace(/\/?api\/?$/, "");
+  const path = url.startsWith("/") ? url : `/${url}`;
+  return `${origin}${path}`;
+}

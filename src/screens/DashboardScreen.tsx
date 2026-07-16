@@ -8,6 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { StatCard, AppointmentCard, EmptyAppointmentsState } from '../components/DashboardComponents';
 import useDashboardData from '../hooks/useDashboardData';
 import { useAuth } from '../hooks/useAuth';
+import { isOwner } from '../utils/permissions';
 import { HeaderMenu } from '../components/HeaderMenu';
 import { ThemeToggle } from '../components/ThemeToggle';
 
@@ -15,7 +16,7 @@ export default function DashboardScreen({ navigation }: any) {
   const { colors, toggleTheme, theme } = useTheme();
   const { tenant } = useTenant();
   const { data, loading, refetch } = useDashboardData();
-  const { logout } = useAuth();
+  const { logout, userInfo } = useAuth();
   const { language, setLanguage } = useLanguage();
   const [menuVisible, setMenuVisible] = useState(false);
 
@@ -77,6 +78,7 @@ export default function DashboardScreen({ navigation }: any) {
           onClose={() => setMenuVisible(false)}
           onLogout={logout}
           onNavigateToAccount={() => navigation.navigate('Account' as never)}
+          onNavigateToSettings={() => navigation.navigate('Settings' as never)}
           language={language}
           onToggleLanguage={() => {
             const nextLang = language === "pt" ? "en" : "pt";
@@ -85,15 +87,17 @@ export default function DashboardScreen({ navigation }: any) {
         />
 
         <View className="mb-6">
-          <StatCard
-            label="Créditos"
-            value={loading ? '-' : data.stats.credits}
-            icon="wallet-outline"
-            actionIcon="refresh"
-            onActionPress={handleRefreshCredits}
-            hint="Saldo disponível"
-            isPrimary
-          />
+          {isOwner(userInfo) && (
+            <StatCard
+              label="Créditos"
+              value={loading ? '-' : data.stats.credits}
+              icon="wallet-outline"
+              actionIcon="refresh"
+              onActionPress={handleRefreshCredits}
+              hint="Saldo disponível"
+              isPrimary
+            />
+          )}
           <StatCard
             label="Agendamentos (hoje)"
             value={loading ? '-' : data.stats.bookings}

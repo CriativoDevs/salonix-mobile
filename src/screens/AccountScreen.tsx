@@ -10,6 +10,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -19,6 +20,14 @@ import { useAuth } from '../hooks/useAuth';
 import { useTenant } from '../hooks/useTenant';
 import { useLanguage } from '../contexts/LanguageContext';
 import { cancelTenantAccount, fetchBillingOverview } from '../api/tenant';
+import JSZip from 'jszip';
+import { BulkImportExportModal } from '../components/BulkImportExportModal';
+import { exportCustomersCSV } from '../api/customers';
+import { exportAppointmentsCSV } from '../api/bookings';
+import { exportServicesCSV } from '../api/services';
+import { exportStaffCSV } from '../api/staff';
+import { saveAndShareZip } from '../utils/zipFileSharing';
+import { isOwner } from '../utils/permissions';
 
 const CONFIRM_WORD = 'CANCELAR CONTA';
 
@@ -27,6 +36,14 @@ const COPY = {
     title: 'Conta',
     accountDataTitle: 'Dados da Conta',
     accountDataSubtitle: 'Plano atual, proprietário e informações básicas',
+    dataTitle: 'Dados',
+    dataSubtitle: 'Exportar ou importar todos os dados do salão (clientes, agendamentos, serviços e colaboradores) num único ficheiro ZIP',
+    dataCta: 'Importar/Exportar Tudo',
+    dataExportOption: 'Exportar Tudo (ZIP)',
+    dataImportOption: 'Importar Tudo (ZIP)',
+    cancel: 'Cancelar',
+    errorTitle: 'Erro',
+    exportAllError: 'Não foi possível exportar os dados.',
     planLabel: 'PLANO ATUAL DO SALÃO',
     ownerLabel: 'OWNER (PROPRIETÁRIO DA CONTA)',
     ownerUnknown: 'Nome não disponível',
@@ -59,6 +76,14 @@ const COPY = {
     title: 'Account',
     accountDataTitle: 'Account Data',
     accountDataSubtitle: 'Current plan, owner and basic account information',
+    dataTitle: 'Data',
+    dataSubtitle: 'Export or import all salon data (customers, appointments, services and staff) in a single ZIP file',
+    dataCta: 'Import/Export All',
+    dataExportOption: 'Export All (ZIP)',
+    dataImportOption: 'Import All (ZIP)',
+    cancel: 'Cancel',
+    errorTitle: 'Error',
+    exportAllError: 'Could not export the data.',
     planLabel: 'CURRENT SALON PLAN',
     ownerLabel: 'OWNER (ACCOUNT OWNER)',
     ownerUnknown: 'Name not available',
@@ -132,6 +157,53 @@ export default function AccountScreen() {
   const [comment, setComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [cancelError, setCancelError] = useState<string | null>(null);
+
+  const [bulkModalVisible, setBulkModalVisible] = useState(false);
+
+  const handleExportAll = async () => {
+    const entities: [string, () => Promise<string>][] = [
+      ['customers.csv', () => exportCustomersCSV({ slug })],
+      ['appointments.csv', () => exportAppointmentsCSV({ slug })],
+      ['services.csv', () => exportServicesCSV({ slug })],
+      ['staff.csv', () => exportStaffCSV({ slug })],
+    ];
+
+    try {
+      const results = await Promise.allSettled(entities.map(([, fetchFn]) => fetchFn()));
+
+      const failed = entities
+        .map(([fileName], index) => ({ fileName, result: results[index] }))
+        .filter(({ result }) => result.status === 'rejected');
+
+      if (failed.length > 0) {
+        console.error(
+          'Error exporting all data, failed entities:',
+          failed.map((f) => f.fileName)
+        );
+        Alert.alert(t.errorTitle, t.exportAllError);
+        return;
+      }
+
+      const zip = new JSZip();
+      entities.forEach(([fileName], index) => {
+        const result = results[index] as PromiseFulfilledResult<string>;
+        zip.file(fileName, result.value);
+      });
+      const base64 = await zip.generateAsync({ type: 'base64' });
+      await saveAndShareZip(base64, 'dados.zip');
+    } catch (err) {
+      console.error('Error building or sharing the export zip:', err);
+      Alert.alert(t.errorTitle, t.exportAllError);
+    }
+  };
+
+  const handleBulkDataAction = () => {
+    Alert.alert(t.dataCta, undefined, [
+      { text: t.dataImportOption, onPress: () => setBulkModalVisible(true) },
+      { text: t.dataExportOption, onPress: handleExportAll },
+      { text: t.cancel, style: 'cancel' },
+    ]);
+  };
 
   useEffect(() => {
     let active = true;
@@ -286,6 +358,21 @@ export default function AccountScreen() {
             </View>
           </View>
         </View>
+
+        {isOwner(userInfo) && (
+          <View style={s.card}>
+            <Text style={s.sectionTitle}>{t.dataTitle}</Text>
+            <Text style={s.sectionSubtitle}>{t.dataSubtitle}</Text>
+
+            <View style={s.dangerRow}>
+              <TouchableOpacity onPress={handleBulkDataAction}>
+                <Text style={[s.dangerCtaText, { color: colors.brandPrimary }]}>
+                  {t.dataCta}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
 
         <View style={s.dangerCard}>
           <View style={s.dangerCardHeader}>
@@ -554,6 +641,13 @@ export default function AccountScreen() {
           </TouchableOpacity>
         </KeyboardAvoidingView>
       </Modal>
+
+      <BulkImportExportModal
+        visible={bulkModalVisible}
+        onClose={() => setBulkModalVisible(false)}
+        onSuccess={() => setBulkModalVisible(false)}
+        slug={slug}
+      />
     </SafeAreaView>
   );
 }

@@ -38,6 +38,18 @@ export const AuthContext = createContext({
   refreshSession: async () => {},
 });
 
+// O backend devolve o papel do utilizador em `staff_role`
+// ("owner"|"manager"|"collaborator"), mas vários ecrãs do app leem
+// `userInfo.role` para decidir permissões de escrita (isAdmin). Sem este
+// mapeamento, isAdmin fica sempre falso mesmo para um owner real.
+function mapUserInfo(user) {
+  if (!user) return user;
+  return {
+    ...user,
+    role: user.role || user.staff_role,
+  };
+}
+
 export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -171,7 +183,7 @@ export const AuthProvider = ({ children }) => {
         loginEpochRef.current += 1;
 
         setIsAuthenticated(true);
-        setUserInfo(user);
+        setUserInfo(mapUserInfo(user));
         setTenantInfo(tenant);
 
         // Aplicar tenant no TenantContext
@@ -253,7 +265,7 @@ export const AuthProvider = ({ children }) => {
       const user = userProfile.user || userProfile;
       const tenant = userProfile.tenant || null;
 
-      setUserInfo(user);
+      setUserInfo(mapUserInfo(user));
       setTenantInfo(tenant);
 
       // Atualizar TenantContext se tenant mudou
@@ -285,7 +297,7 @@ export const AuthProvider = ({ children }) => {
             const user = userProfile.user || userProfile;
             const tenant = userProfile.tenant || null;
 
-            setUserInfo(user);
+            setUserInfo(mapUserInfo(user));
             setTenantInfo(tenant);
             setIsAuthenticated(true);
 

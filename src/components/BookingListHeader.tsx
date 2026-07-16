@@ -7,14 +7,18 @@ type BookingListHeaderProps = {
   totalCount: number;
   onToggleFilters?: () => void;
   onAdd?: () => void;
+  onImportExport?: () => void;
   filtersActive?: boolean;
+  showImportExport: boolean;
 };
 
 export const BookingListHeader: React.FC<BookingListHeaderProps> = ({
   totalCount,
   onToggleFilters,
   onAdd,
+  onImportExport,
   filtersActive = false,
+  showImportExport,
 }) => {
   const { colors } = useTheme();
 
@@ -67,6 +71,26 @@ export const BookingListHeader: React.FC<BookingListHeaderProps> = ({
             Novo agendamento
           </Text>
         </TouchableOpacity>
+
+        {showImportExport && (
+          <TouchableOpacity
+            onPress={onImportExport}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+            }}
+          >
+            <Ionicons name="swap-vertical-outline" size={18} color={colors.textSecondary} />
+            <Text style={{
+              color: colors.textSecondary,
+              fontSize: 13,
+              fontWeight: '600',
+              marginLeft: 6
+            }}>
+              Importar/Exportar
+            </Text>
+          </TouchableOpacity>
+        )}
       </View>
     </View>
   );

@@ -46,3 +46,57 @@ export async function disableStaffMember(id, { slug } = {}) {
     });
     return response.data;
 }
+
+export async function importStaffCSV(file, { dryRun = false, slug } = {}) {
+    const headers = { 'Content-Type': 'multipart/form-data' };
+    const params = { dry_run: dryRun ? 'true' : 'false' };
+
+    if (slug) {
+        headers['X-Tenant-Slug'] = slug;
+        params.tenant = slug;
+    }
+
+    const formData = new FormData();
+    formData.append('file', {
+        uri: file.uri,
+        name: file.name,
+        type: file.mimeType || 'text/csv',
+    });
+
+    const response = await client.post('import/staff/', formData, { headers, params });
+    return response.data;
+}
+
+export async function fetchStaffImportTemplate({ slug } = {}) {
+    const headers = {};
+    const params = {};
+
+    if (slug) {
+        headers['X-Tenant-Slug'] = slug;
+        params.tenant = slug;
+    }
+
+    const response = await client.get('import/templates/staff.csv', {
+        headers,
+        params,
+        responseType: 'text',
+    });
+    return response.data;
+}
+
+export async function exportStaffCSV({ slug } = {}) {
+    const headers = {};
+    const params = {};
+
+    if (slug) {
+        headers['X-Tenant-Slug'] = slug;
+        params.tenant = slug;
+    }
+
+    const response = await client.get('export/staff.csv', {
+        headers,
+        params,
+        responseType: 'text',
+    });
+    return response.data;
+}

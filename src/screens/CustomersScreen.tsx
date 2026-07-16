@@ -6,12 +6,19 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../hooks/useTheme';
 import { Input } from '../components/ui/Input';
 import { Card } from '../components/ui/Card';
-import { fetchCustomers, createCustomer, updateCustomer, deleteCustomer, resendCustomerInvite } from '../api/customers';
+import { fetchCustomers, createCustomer, updateCustomer, deleteCustomer, resendCustomerInvite, exportCustomersCSV } from '../api/customers';
 import { CustomerFormModal } from '../components/CustomerFormModal';
+import { ImportCustomersModal } from '../components/ImportCustomersModal';
+import { saveAndShareCSV } from '../utils/csvFileSharing';
+import { useTenant } from '../hooks/useTenant';
+import { useAuth } from '../hooks/useAuth';
+import { isOwner } from '../utils/permissions';
 
 export default function CustomersScreen() {
     const { colors } = useTheme();
     const navigation = useNavigation();
+    const { slug } = useTenant();
+    const { userInfo } = useAuth();
 
     const [customers, setCustomers] = useState<any[]>([]);
     const [totalCount, setTotalCount] = useState(0);
@@ -30,6 +37,29 @@ export default function CustomersScreen() {
     const [modalVisible, setModalVisible] = useState(false);
     const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
     const [actionLoading, setActionLoading] = useState(false);
+    const [importModalVisible, setImportModalVisible] = useState(false);
+
+    const handleExportCSV = async () => {
+        try {
+            const content = await exportCustomersCSV({ slug } as any);
+            await saveAndShareCSV(content, 'clientes.csv');
+        } catch (error) {
+            console.error('Error exporting customers:', error);
+            Alert.alert('Erro', 'Não foi possível exportar os clientes.');
+        }
+    };
+
+    const handleImportExport = () => {
+        Alert.alert('Importar/Exportar', 'Escolha uma opção', [
+            { text: 'Importar CSV', onPress: () => setImportModalVisible(true) },
+            { text: 'Exportar CSV', onPress: handleExportCSV },
+            { text: 'Cancelar', style: 'cancel' },
+        ]);
+    };
+
+    const handleImportSuccess = () => {
+        loadCustomers(true);
+    };
 
     const LIMIT = 20;
 
@@ -281,6 +311,23 @@ export default function CustomersScreen() {
                                 Novo cliente
                             </Text>
                         </TouchableOpacity>
+
+                        {isOwner(userInfo) && (
+                          <TouchableOpacity
+                              onPress={handleImportExport}
+                              style={{ flexDirection: 'row', alignItems: 'center' }}
+                          >
+                              <Ionicons name="swap-vertical-outline" size={18} color={colors.textSecondary} />
+                              <Text style={{
+                                  color: colors.textSecondary,
+                                  fontSize: 13,
+                                  fontWeight: '600',
+                                  marginLeft: 6
+                              }}>
+                                  Importar/Exportar
+                              </Text>
+                          </TouchableOpacity>
+                        )}
                     </View>
                 </View>
             </View>
@@ -349,6 +396,13 @@ export default function CustomersScreen() {
                 onSubmit={handleSave}
                 initialData={selectedCustomer}
                 busy={actionLoading}
+            />
+
+            <ImportCustomersModal
+                visible={importModalVisible}
+                onClose={() => setImportModalVisible(false)}
+                onSuccess={handleImportSuccess}
+                slug={slug}
             />
         </SafeAreaView>
     );

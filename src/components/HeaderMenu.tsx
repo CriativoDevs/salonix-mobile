@@ -9,11 +9,12 @@ interface HeaderMenuProps {
     onClose: () => void;
     onLogout: () => void;
     onNavigateToAccount?: () => void;
+    onNavigateToSettings?: () => void;
     language?: string; // Mantido como opcional para não quebrar compatibilidade
     onToggleLanguage?: () => void; // Mantido como opcional
 }
 
-export function HeaderMenu({ visible, onClose, onLogout, onNavigateToAccount }: HeaderMenuProps) {
+export function HeaderMenu({ visible, onClose, onLogout, onNavigateToAccount, onNavigateToSettings }: HeaderMenuProps) {
     const { colors } = useTheme();
 
     const handleLogout = () => {
@@ -77,6 +78,21 @@ export function HeaderMenu({ visible, onClose, onLogout, onNavigateToAccount }: 
                             <View style={styles.itemInfo}>
                                 <Ionicons name="person-outline" size={20} color={colors.textPrimary} />
                                 <Text style={[styles.itemText, { color: colors.textPrimary }]}>Conta</Text>
+                            </View>
+                            <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
+                        </TouchableOpacity>
+
+                        {/* Definições */}
+                        <TouchableOpacity
+                            style={styles.menuItem}
+                            onPress={() => {
+                                onClose();
+                                onNavigateToSettings?.();
+                            }}
+                        >
+                            <View style={styles.itemInfo}>
+                                <Ionicons name="settings-outline" size={20} color={colors.textPrimary} />
+                                <Text style={[styles.itemText, { color: colors.textPrimary }]}>Definições</Text>
                             </View>
                             <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
                         </TouchableOpacity>

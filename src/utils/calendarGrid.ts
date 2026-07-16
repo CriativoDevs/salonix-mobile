@@ -1,0 +1,144 @@
+const FALLBACK_RANGE = { startMinutes: 9 * 60, endMinutes: 18 * 60 };
+
+export type BusinessHoursRange = { startMinutes: number; endMinutes: number };
+
+export type BusinessHourEntry = {
+  is_active?: boolean;
+  start_time?: string;
+  end_time?: string;
+};
+
+export function parseTimeToMinutes(value: unknown): number | null {
+  if (typeof value !== 'string') return null;
+  const match = value.match(/^(\d{2}):(\d{2})/);
+  if (!match) return null;
+  const hours = Number(match[1]);
+  const minutes = Number(match[2]);
+  if (Number.isNaN(hours) || Number.isNaN(minutes)) return null;
+  return hours * 60 + minutes;
+}
+
+export function getBusinessHoursRangeMinutes(
+  businessHours: BusinessHourEntry[] | null | undefined
+): BusinessHoursRange {
+  if (!Array.isArray(businessHours) || businessHours.length === 0) {
+    return { ...FALLBACK_RANGE };
+  }
+
+  let startMinutes: number | null = null;
+  let endMinutes: number | null = null;
+
+  businessHours
+    .filter((item) => item?.is_active)
+    .forEach((item) => {
+      const start = parseTimeToMinutes(item.start_time);
+      const end = parseTimeToMinutes(item.end_time);
+      if (start == null || end == null) return;
+      if (startMinutes == null || start < startMinutes) startMinutes = start;
+      if (endMinutes == null || end > endMinutes) endMinutes = end;
+    });
+
+  if (startMinutes == null || endMinutes == null || startMinutes >= endMinutes) {
+    return { ...FALLBACK_RANGE };
+  }
+
+  return { startMinutes, endMinutes };
+}
+
+export function minutesSinceMidnight(date: Date): number {
+  return date.getHours() * 60 + date.getMinutes();
+}
+
+export type CalendarEvent = {
+  id: string;
+  startMinutes: number;
+  endMinutes: number;
+  raw?: unknown;
+};
+
+export type PositionedCalendarEvent = CalendarEvent & {
+  column: number;
+  columnCount: number;
+};
+
+export function layoutOverlappingEvents(
+  events: CalendarEvent[]
+): PositionedCalendarEvent[] {
+  const sorted = [...events].sort(
+    (a, b) => a.startMinutes - b.startMinutes || a.endMinutes - b.endMinutes
+  );
+
+  const results: PositionedCalendarEvent[] = [];
+  let cluster: CalendarEvent[] = [];
+  let clusterEnd = -Infinity;
+
+  const flushCluster = () => {
+    if (cluster.length === 0) return;
+    const columnEnds: number[] = [];
+    const startIndex = results.length;
+
+    cluster.forEach((event) => {
+      let columnIndex = columnEnds.findIndex((end) => end <= event.startMinutes);
+      if (columnIndex === -1) {
+        columnIndex = columnEnds.length;
+        columnEnds.push(event.endMinutes);
+      } else {
+        columnEnds[columnIndex] = event.endMinutes;
+      }
+      results.push({ ...event, column: columnIndex, columnCount: 0 });
+    });
+
+    const columnCount = columnEnds.length;
+    for (let i = startIndex; i < results.length; i += 1) {
+      results[i] = { ...results[i], columnCount };
+    }
+
+    cluster = [];
+  };
+
+  sorted.forEach((event) => {
+    if (cluster.length > 0 && event.startMinutes >= clusterEnd) {
+      flushCluster();
+      clusterEnd = -Infinity;
+    }
+    cluster.push(event);
+    clusterEnd = Math.max(clusterEnd, event.endMinutes);
+  });
+  flushCluster();
+
+  return results;
+}
+
+export type BlockRect = { top: string; height: string; left: string; width: string };
+
+export function computeBlockRect(params: {
+  startMinutes: number;
+  endMinutes: number;
+  rangeStartMinutes: number;
+  rangeEndMinutes: number;
+  column: number;
+  columnCount: number;
+}): BlockRect {
+  const {
+    startMinutes,
+    endMinutes,
+    rangeStartMinutes,
+    rangeEndMinutes,
+    column,
+    columnCount,
+  } = params;
+  const totalRange = rangeEndMinutes - rangeStartMinutes;
+  const clampedStart = Math.max(startMinutes, rangeStartMinutes);
+  const clampedEnd = Math.min(endMinutes, rangeEndMinutes);
+  const top = ((clampedStart - rangeStartMinutes) / totalRange) * 100;
+  const height = Math.max(((clampedEnd - clampedStart) / totalRange) * 100, 0);
+  const width = 100 / columnCount;
+  const left = width * column;
+
+  return {
+    top: `${top}%`,
+    height: `${height}%`,
+    left: `${left}%`,
+    width: `${width}%`,
+  };
+}

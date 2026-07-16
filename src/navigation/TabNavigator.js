@@ -11,6 +11,7 @@ import BookingsNavigator from "./BookingsNavigator";
 import CustomersScreen from "../screens/CustomersScreen";
 import TeamScreen from "../screens/TeamScreen";
 import SlotsScreen from "../screens/SlotsScreen";
+import ServicesScreen from "../screens/ServicesScreen";
 import {
   addNotificationListeners,
   handleInitialNotificationNavigation,
@@ -111,6 +112,8 @@ export default function TabNavigator() {
             iconName = focused ? "calendar" : "calendar-outline";
           } else if (route.name === "Customers") {
             iconName = focused ? "people" : "people-outline";
+          } else if (route.name === "Services") {
+            iconName = focused ? "cut" : "cut-outline";
           } else if (route.name === "Team") {
             iconName = focused ? "people-circle" : "people-circle-outline";
           } else if (route.name === "Horários") {
@@ -145,6 +148,11 @@ export default function TabNavigator() {
         name="Customers"
         component={CustomersScreen}
         options={{ tabBarLabel: "Clientes" }}
+      />
+      <Tab.Screen
+        name="Services"
+        component={ServicesScreen}
+        options={{ tabBarLabel: "Serviços" }}
       />
       {!isCollaborator && (
         <Tab.Screen
