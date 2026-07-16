@@ -60,3 +60,57 @@ export async function resendCustomerInvite(id) {
   const response = await client.post(`salon/customers/${id}/resend-invite/`);
   return response.data;
 }
+
+export async function importCustomersCSV(file, { dryRun = false, slug } = {}) {
+  const headers = { 'Content-Type': 'multipart/form-data' };
+  const params = { dry_run: dryRun ? 'true' : 'false' };
+
+  if (slug) {
+    headers['X-Tenant-Slug'] = slug;
+    params.tenant = slug;
+  }
+
+  const formData = new FormData();
+  formData.append('file', {
+    uri: file.uri,
+    name: file.name,
+    type: file.mimeType || 'text/csv',
+  });
+
+  const response = await client.post('import/customers/', formData, { headers, params });
+  return response.data;
+}
+
+export async function fetchCustomersImportTemplate({ slug } = {}) {
+  const headers = {};
+  const params = {};
+
+  if (slug) {
+    headers['X-Tenant-Slug'] = slug;
+    params.tenant = slug;
+  }
+
+  const response = await client.get('import/templates/customers.csv', {
+    headers,
+    params,
+    responseType: 'text',
+  });
+  return response.data;
+}
+
+export async function exportCustomersCSV({ slug } = {}) {
+  const headers = {};
+  const params = {};
+
+  if (slug) {
+    headers['X-Tenant-Slug'] = slug;
+    params.tenant = slug;
+  }
+
+  const response = await client.get('export/customers.csv', {
+    headers,
+    params,
+    responseType: 'text',
+  });
+  return response.data;
+}

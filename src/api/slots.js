@@ -113,3 +113,26 @@ export async function fetchAvailableDates({ professional_id, slug } = {}) {
     }).filter(Boolean))].sort();
     return dates;
 }
+
+export async function bulkGenerateSlots({ professional_id, period, interval_minutes, date, slug } = {}) {
+    const payload = { professional_id: Number(professional_id), period };
+
+    if (interval_minutes !== undefined) {
+        payload.interval_minutes = interval_minutes;
+    }
+
+    if (date) {
+        payload.date = date;
+    }
+
+    const params = {};
+    const headers = {};
+
+    if (slug) {
+        params.tenant = slug;
+        headers['X-Tenant-Slug'] = slug;
+    }
+
+    const response = await client.post('slots/bulk-generate/', payload, { params, headers });
+    return response.data;
+}

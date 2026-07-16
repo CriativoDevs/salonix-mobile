@@ -7,14 +7,19 @@ import { useTheme } from '../hooks/useTheme';
 import { Input } from '../components/ui/Input';
 import { Card } from '../components/ui/Card';
 import { fetchProfessionals, updateProfessional, deleteProfessional } from '../api/professionals';
-import { fetchStaffMembers, inviteStaffMember } from '../api/staff';
+import { fetchStaffMembers, inviteStaffMember, exportStaffCSV } from '../api/staff';
 import { ProfessionalFormModal } from '../components/ProfessionalFormModal';
+import { ImportStaffModal } from '../components/ImportStaffModal';
 import { useTenant } from '../hooks/useTenant';
+import { useAuth } from '../hooks/useAuth';
+import { isOwner } from '../utils/permissions';
+import { saveAndShareCSV } from '../utils/csvFileSharing';
 
 export default function TeamScreen() {
     const { colors } = useTheme();
     const navigation = useNavigation();
     const { slug } = useTenant();
+    const { userInfo } = useAuth();
 
     const [professionals, setProfessionals] = useState<any[]>([]);
     const [staff, setStaff] = useState<any[]>([]);
@@ -34,6 +39,7 @@ export default function TeamScreen() {
     const [modalVisible, setModalVisible] = useState(false);
     const [selectedProfessional, setSelectedProfessional] = useState<any>(null);
     const [actionLoading, setActionLoading] = useState(false);
+    const [importModalVisible, setImportModalVisible] = useState(false);
 
     const LIMIT = 20;
 
@@ -141,6 +147,28 @@ export default function TeamScreen() {
         if (!loading && !refreshing && hasMore) {
             loadData(false);
         }
+    };
+
+    const handleExportStaffCSV = async () => {
+        try {
+            const content = await exportStaffCSV({ slug } as any);
+            await saveAndShareCSV(content, 'staff.csv');
+        } catch (error) {
+            console.error('Error exporting staff:', error);
+            Alert.alert('Erro', 'Não foi possível exportar a equipe.');
+        }
+    };
+
+    const handleImportExport = () => {
+        Alert.alert('Importar/Exportar', 'Escolha uma opção', [
+            { text: 'Importar CSV', onPress: () => setImportModalVisible(true) },
+            { text: 'Exportar CSV', onPress: handleExportStaffCSV },
+            { text: 'Cancelar', style: 'cancel' },
+        ]);
+    };
+
+    const handleImportSuccess = () => {
+        loadData(true);
     };
 
     const handleCreate = () => {
@@ -402,6 +430,23 @@ export default function TeamScreen() {
                                 Novo profissional
                             </Text>
                         </TouchableOpacity>
+
+                        {isOwner(userInfo) && (
+                            <TouchableOpacity
+                                onPress={handleImportExport}
+                                style={{ flexDirection: 'row', alignItems: 'center' }}
+                            >
+                                <Ionicons name="swap-vertical-outline" size={18} color={colors.textSecondary} />
+                                <Text style={{
+                                    color: colors.textSecondary,
+                                    fontSize: 13,
+                                    fontWeight: '600',
+                                    marginLeft: 6
+                                }}>
+                                    Importar/Exportar
+                                </Text>
+                            </TouchableOpacity>
+                        )}
                     </View>
                 </View>
             </View>
@@ -470,6 +515,13 @@ export default function TeamScreen() {
                 onSubmit={handleSave}
                 initialData={selectedProfessional}
                 busy={actionLoading}
+            />
+
+            <ImportStaffModal
+                visible={importModalVisible}
+                onClose={() => setImportModalVisible(false)}
+                onSuccess={handleImportSuccess}
+                slug={slug}
             />
         </SafeAreaView>
     );

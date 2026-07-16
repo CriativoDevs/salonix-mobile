@@ -7,6 +7,13 @@ import ForgotPasswordScreen from "../screens/ForgotPasswordScreen";
 
 import TabNavigator from "./TabNavigator";
 import AccountScreen from "../screens/AccountScreen";
+import BusinessHoursScreen from "../screens/BusinessHoursScreen";
+import BrandingScreen from "../screens/BrandingScreen";
+import NotificationsScreen from "../screens/NotificationsScreen";
+import GeneralScreen from "../screens/GeneralScreen";
+import ReportsScreen from "../screens/ReportsScreen";
+import CreditsPlanScreen from "../screens/CreditsPlanScreen";
+import SettingsScreen from "../screens/SettingsScreen";
 import { useAuth } from "../hooks/useAuth";
 import { hasSeenOnboarding } from "../utils/onboardingStorage";
 
@@ -58,6 +65,34 @@ export default function AppNavigator() {
           <Stack.Screen
             name="Account"
             component={AccountScreen}
+          />
+          <Stack.Screen
+            name="BusinessHours"
+            component={BusinessHoursScreen}
+          />
+          <Stack.Screen
+            name="Branding"
+            component={BrandingScreen}
+          />
+          <Stack.Screen
+            name="Notifications"
+            component={NotificationsScreen}
+          />
+          <Stack.Screen
+            name="General"
+            component={GeneralScreen}
+          />
+          <Stack.Screen
+            name="Reports"
+            component={ReportsScreen}
+          />
+          <Stack.Screen
+            name="CreditsPlan"
+            component={CreditsPlanScreen}
+          />
+          <Stack.Screen
+            name="Settings"
+            component={SettingsScreen}
           />
         </>
       ) : hasSeen ? (

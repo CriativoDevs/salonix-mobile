@@ -10,10 +10,14 @@ import { Card } from '../components/ui/Card';
 import { fetchSlots, createSlot, deleteSlot } from '../api/slots';
 import { fetchProfessionals } from '../api/professionals';
 import { SlotFormModal } from '../components/SlotFormModal';
+import { SlotBulkGenerateModal } from '../components/SlotBulkGenerateModal';
+import { useAuth } from '../hooks/useAuth';
 
 export default function SlotsScreen() {
     const { colors } = useTheme();
     const { slug } = useTenant();
+    const { userInfo } = useAuth();
+    const isAdmin = userInfo?.is_superuser || userInfo?.role === 'owner' || userInfo?.role === 'manager';
 
     const [slots, setSlots] = useState<any[]>([]);
     const [professionals, setProfessionals] = useState<any[]>([]);
@@ -33,6 +37,7 @@ export default function SlotsScreen() {
 
     // Modal & Actions State
     const [modalVisible, setModalVisible] = useState(false);
+    const [bulkModalVisible, setBulkModalVisible] = useState(false);
     const [actionLoading, setActionLoading] = useState(false);
 
     const LIMIT = 20;
@@ -137,6 +142,11 @@ export default function SlotsScreen() {
 
     const handleCreate = () => {
         setModalVisible(true);
+    };
+
+    const handleBulkGenerateSuccess = () => {
+        setBulkModalVisible(false);
+        loadData(true);
     };
 
     const handleSave = async (data: any) => {
@@ -329,6 +339,23 @@ export default function SlotsScreen() {
                                 Novo horário
                             </Text>
                         </TouchableOpacity>
+
+                        {isAdmin && (
+                            <TouchableOpacity
+                                onPress={() => setBulkModalVisible(true)}
+                                style={{ flexDirection: 'row', alignItems: 'center' }}
+                            >
+                                <Ionicons name="layers-outline" size={18} color={colors.brandPrimary} />
+                                <Text style={{
+                                    color: colors.brandPrimary,
+                                    fontSize: 13,
+                                    fontWeight: '600',
+                                    marginLeft: 6
+                                }}>
+                                    Gerar em massa
+                                </Text>
+                            </TouchableOpacity>
+                        )}
                     </View>
                 </View>
             </View>
@@ -446,6 +473,14 @@ export default function SlotsScreen() {
                 onSubmit={handleSave}
                 professionals={professionals}
                 busy={actionLoading}
+            />
+
+            <SlotBulkGenerateModal
+                visible={bulkModalVisible}
+                onClose={() => setBulkModalVisible(false)}
+                onSuccess={handleBulkGenerateSuccess}
+                professionals={professionals}
+                slug={slug}
             />
         </SafeAreaView>
     );

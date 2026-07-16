@@ -8,6 +8,7 @@ import {
   Modal,
   Pressable,
   Text,
+  StyleSheet,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../hooks/useTheme';
@@ -17,6 +18,15 @@ import { BookingFilters } from '../components/BookingFilters';
 import { BookingListHeader } from '../components/BookingListHeader';
 import client from '../api/client';
 import { useTenant } from '../hooks/useTenant';
+import { useAuth } from '../hooks/useAuth';
+import { isOwner } from '../utils/permissions';
+import { WeekView } from '../components/calendar/WeekView';
+import { DayView } from '../components/calendar/DayView';
+import { MonthView } from '../components/calendar/MonthView';
+import { ImportAppointmentsModal } from '../components/ImportAppointmentsModal';
+import { exportAppointmentsCSV } from '../api/bookings';
+import { saveAndShareCSV } from '../utils/csvFileSharing';
+import { BookingItem } from '../hooks/bookingsShared';
 
 interface BookingFiltersState {
   status?: string;
@@ -28,6 +38,7 @@ interface BookingFiltersState {
 const BookingsScreen = ({ navigation }: any) => {
   const { colors } = useTheme();
   const { slug } = useTenant();
+  const { userInfo } = useAuth();
 
   // Filter state
   const [showFilters, setShowFilters] = useState(false);
@@ -52,6 +63,42 @@ const BookingsScreen = ({ navigation }: any) => {
 
   // Ref to track if we're already loading more
   const isLoadingMore = useRef(false);
+
+  type CalendarViewMode = 'agenda' | 'day' | 'week' | 'month';
+  const [viewMode, setViewMode] = useState<CalendarViewMode>('week');
+  const [referenceDate, setReferenceDate] = useState<Date>(new Date());
+  const [importModalVisible, setImportModalVisible] = useState(false);
+
+  const handleExportCSV = async () => {
+    try {
+      const content = await exportAppointmentsCSV({ slug });
+      await saveAndShareCSV(content, 'agendamentos.csv');
+    } catch (err) {
+      console.error('Error exporting appointments:', err);
+      Alert.alert('Erro', 'Não foi possível exportar os agendamentos.');
+    }
+  };
+
+  const handleImportExport = () => {
+    Alert.alert('Importar/Exportar', 'Escolha uma opção', [
+      { text: 'Importar CSV', onPress: () => setImportModalVisible(true) },
+      { text: 'Exportar CSV', onPress: handleExportCSV },
+      { text: 'Cancelar', style: 'cancel' },
+    ]);
+  };
+
+  const handleImportSuccess = () => {
+    refetch();
+  };
+
+  const handlePressCalendarAppointment = (appointment: BookingItem) => {
+    navigation.navigate('BookingDetail', { id: appointment.id });
+  };
+
+  const handleSelectMonthDay = (date: Date) => {
+    setReferenceDate(date);
+    setViewMode('day');
+  };
 
   const handleToggleFilters = () => {
     setShowFilters(!showFilters);
@@ -176,36 +223,78 @@ const BookingsScreen = ({ navigation }: any) => {
           totalCount={totalCount}
           onToggleFilters={handleToggleFilters}
           onAdd={() => navigation.navigate('BookingCreate')}
+          onImportExport={handleImportExport}
           filtersActive={hasActiveFilters}
+          showImportExport={isOwner(userInfo)}
         />
       </View>
 
-      {/* List */}
-      <FlatList
-        data={appointments}
-        keyExtractor={(item) => item.id.toString()}
-        renderItem={({ item }) => (
-          <View style={{ paddingHorizontal: 16, paddingVertical: 8 }}>
-            <BookingCard
-              appointment={item}
-              onPress={() => handleCardPress(item.id.toString())}
-              onAction={(action) => handleCardAction(item.id.toString(), action)}
-            />
-          </View>
-        )}
-        refreshControl={
-          <RefreshControl
-            refreshing={loading}
-            onRefresh={refetch}
-            tintColor={colors.brandPrimary}
-          />
-        }
-        onEndReached={handleLoadMore}
-        onEndReachedThreshold={0.5}
-        ListEmptyComponent={renderEmptyState}
-        ListFooterComponent={renderFooter}
-        scrollEventThrottle={16}
-      />
+      {/* Calendar view mode toggle */}
+      <View style={styles.viewModeRow}>
+        {(['agenda', 'day', 'week', 'month'] as CalendarViewMode[]).map((mode) => {
+          const label = mode === 'agenda' ? 'Agenda' : mode === 'day' ? 'Dia' : mode === 'week' ? 'Semana' : 'Mês';
+          const active = viewMode === mode;
+          return (
+            <Pressable
+              key={mode}
+              onPress={() => setViewMode(mode)}
+              style={[
+                styles.viewModeButton,
+                { backgroundColor: active ? colors.brandPrimary : 'transparent' },
+              ]}
+            >
+              <Text style={{ color: active ? colors.surface : colors.textPrimary, fontWeight: '600', fontSize: 13 }}>
+                {label}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+
+      {/* Content: Agenda list or calendar views */}
+      {viewMode === 'agenda' && (
+        <FlatList
+          data={appointments}
+          keyExtractor={(item) => item.id.toString()}
+          renderItem={({ item }) => (
+            <View style={{ paddingHorizontal: 16, paddingVertical: 8 }}>
+              <BookingCard
+                appointment={item}
+                onPress={() => handleCardPress(item.id.toString())}
+                onAction={(action) => handleCardAction(item.id.toString(), action)}
+              />
+            </View>
+          )}
+          refreshControl={
+            <RefreshControl refreshing={loading} onRefresh={refetch} tintColor={colors.brandPrimary} />
+          }
+          onEndReached={handleLoadMore}
+          onEndReachedThreshold={0.5}
+          ListEmptyComponent={renderEmptyState}
+          ListFooterComponent={renderFooter}
+          scrollEventThrottle={16}
+        />
+      )}
+
+      {viewMode === 'week' && (
+        <WeekView
+          referenceDate={referenceDate}
+          onChangeReferenceDate={setReferenceDate}
+          onPressAppointment={handlePressCalendarAppointment}
+        />
+      )}
+
+      {viewMode === 'day' && (
+        <DayView
+          referenceDate={referenceDate}
+          onChangeReferenceDate={setReferenceDate}
+          onPressAppointment={handlePressCalendarAppointment}
+        />
+      )}
+
+      {viewMode === 'month' && (
+        <MonthView referenceDate={referenceDate} onSelectDay={handleSelectMonthDay} />
+      )}
 
       {/* Cancellation Confirmation Modal */}
       <Modal
@@ -282,8 +371,29 @@ const BookingsScreen = ({ navigation }: any) => {
           </View>
         </View>
       </Modal>
+
+      <ImportAppointmentsModal
+        visible={importModalVisible}
+        onClose={() => setImportModalVisible(false)}
+        onSuccess={handleImportSuccess}
+        slug={slug}
+      />
     </SafeAreaView>
   );
 };
+
+const styles = StyleSheet.create({
+  viewModeRow: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  viewModeButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+  },
+});
 
 export default BookingsScreen;

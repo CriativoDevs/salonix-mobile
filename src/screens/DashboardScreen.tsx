@@ -77,6 +77,7 @@ export default function DashboardScreen({ navigation }: any) {
           onClose={() => setMenuVisible(false)}
           onLogout={logout}
           onNavigateToAccount={() => navigation.navigate('Account' as never)}
+          onNavigateToSettings={() => navigation.navigate('Settings' as never)}
           language={language}
           onToggleLanguage={() => {
             const nextLang = language === "pt" ? "en" : "pt";

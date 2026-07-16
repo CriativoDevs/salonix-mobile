@@ -61,3 +61,60 @@ export async function cancelAppointment(id: number, { slug }: { slug?: string } 
     const response = await client.post(`appointments/${id}/cancel/`, {}, { params, headers });
     return response.data;
 }
+
+export async function importAppointmentsCSV(
+    file: { uri: string; name: string; mimeType?: string },
+    { dryRun = false, slug }: { dryRun?: boolean; slug?: string } = {}
+) {
+    const headers: any = { 'Content-Type': 'multipart/form-data' };
+    const params: any = { dry_run: dryRun ? 'true' : 'false' };
+
+    if (slug) {
+        headers['X-Tenant-Slug'] = slug;
+        params.tenant = slug;
+    }
+
+    const formData = new FormData();
+    formData.append('file', {
+        uri: file.uri,
+        name: file.name,
+        type: file.mimeType || 'text/csv',
+    } as any);
+
+    const response = await client.post('import/appointments/', formData, { headers, params });
+    return response.data;
+}
+
+export async function fetchAppointmentsImportTemplate({ slug }: { slug?: string } = {}) {
+    const headers: any = {};
+    const params: any = {};
+
+    if (slug) {
+        headers['X-Tenant-Slug'] = slug;
+        params.tenant = slug;
+    }
+
+    const response = await client.get('import/templates/appointments.csv', {
+        headers,
+        params,
+        responseType: 'text',
+    });
+    return response.data;
+}
+
+export async function exportAppointmentsCSV({ slug }: { slug?: string } = {}) {
+    const headers: any = {};
+    const params: any = {};
+
+    if (slug) {
+        headers['X-Tenant-Slug'] = slug;
+        params.tenant = slug;
+    }
+
+    const response = await client.get('salon/appointments/export/', {
+        headers,
+        params,
+        responseType: 'text',
+    });
+    return response.data;
+}
