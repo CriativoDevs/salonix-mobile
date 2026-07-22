@@ -62,6 +62,31 @@ export const getResetUrl = () => {
   return "https://salonix-backend-production.up.railway.app/reset-password";
 };
 
+export function getWebOrigin(apiBase = getApiBaseUrl()) {
+  const envWebOrigin = getEnvVar("WEB_ORIGIN");
+  if (envWebOrigin) {
+    return envWebOrigin.endsWith("/") ? envWebOrigin.slice(0, -1) : envWebOrigin;
+  }
+
+  if (
+    apiBase.includes("localhost") ||
+    apiBase.includes("0.0.0.0") ||
+    apiBase.includes("192.168")
+  ) {
+    return "http://localhost:5173";
+  }
+
+  if (apiBase.includes("timelyonestaging.pythonanywhere.com")) {
+    return "https://timelyone-staging.vercel.app";
+  }
+
+  return "https://timelyone.today";
+}
+
+export function getRegistrationLink(slug, apiBase = getApiBaseUrl()) {
+  return `${getWebOrigin(apiBase)}/join/${slug}`;
+}
+
 export const API_BASE_URL = getApiBaseUrl();
 
 // O backend não tem storage em S3/CDN configurado — `logo_url`/`favicon_url`

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, FlatList, RefreshControl, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, ActionSheetIOS, Platform, Keyboard } from 'react-native';
+import { View, Text, FlatList, RefreshControl, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, ActionSheetIOS, Platform, Keyboard, Share, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -9,7 +9,9 @@ import { Card } from '../components/ui/Card';
 import { fetchCustomers, createCustomer, updateCustomer, deleteCustomer, resendCustomerInvite, exportCustomersCSV } from '../api/customers';
 import { CustomerFormModal } from '../components/CustomerFormModal';
 import { ImportCustomersModal } from '../components/ImportCustomersModal';
+import { ShareRegistrationLinkModal } from '../components/ShareRegistrationLinkModal';
 import { saveAndShareCSV } from '../utils/csvFileSharing';
+import { getRegistrationLink } from '../utils/env';
 import { useTenant } from '../hooks/useTenant';
 import { useAuth } from '../hooks/useAuth';
 import { isOwner } from '../utils/permissions';
@@ -38,6 +40,7 @@ export default function CustomersScreen() {
     const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
     const [actionLoading, setActionLoading] = useState(false);
     const [importModalVisible, setImportModalVisible] = useState(false);
+    const [qrModalVisible, setQrModalVisible] = useState(false);
 
     const handleExportCSV = async () => {
         try {
@@ -59,6 +62,14 @@ export default function CustomersScreen() {
 
     const handleImportSuccess = () => {
         loadCustomers(true);
+    };
+
+    const handleShareLink = async () => {
+        try {
+            await Share.share({ message: getRegistrationLink(slug) });
+        } catch (error) {
+            console.error('Error sharing registration link:', error);
+        }
     };
 
     const LIMIT = 20;
@@ -277,7 +288,11 @@ export default function CustomersScreen() {
                         {totalCount} clientes
                     </Text>
 
-                    <View style={{ flexDirection: 'row', marginTop: 12, gap: 16 }}>
+                    <ScrollView
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        contentContainerStyle={{ flexDirection: 'row', marginTop: 12, gap: 16 }}
+                    >
                         <TouchableOpacity
                             onPress={() => setShowFilters(!showFilters)}
                             style={{ flexDirection: 'row', alignItems: 'center' }}
@@ -328,7 +343,37 @@ export default function CustomersScreen() {
                               </Text>
                           </TouchableOpacity>
                         )}
-                    </View>
+
+                        <TouchableOpacity
+                            onPress={handleShareLink}
+                            style={{ flexDirection: 'row', alignItems: 'center' }}
+                        >
+                            <Ionicons name="share-outline" size={18} color={colors.textSecondary} />
+                            <Text style={{
+                                color: colors.textSecondary,
+                                fontSize: 13,
+                                fontWeight: '600',
+                                marginLeft: 6
+                            }}>
+                                Partilhar link
+                            </Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                            onPress={() => setQrModalVisible(true)}
+                            style={{ flexDirection: 'row', alignItems: 'center' }}
+                        >
+                            <Ionicons name="qr-code-outline" size={18} color={colors.textSecondary} />
+                            <Text style={{
+                                color: colors.textSecondary,
+                                fontSize: 13,
+                                fontWeight: '600',
+                                marginLeft: 6
+                            }}>
+                                Gerar QR Code
+                            </Text>
+                        </TouchableOpacity>
+                    </ScrollView>
                 </View>
             </View>
 
@@ -402,6 +447,12 @@ export default function CustomersScreen() {
                 visible={importModalVisible}
                 onClose={() => setImportModalVisible(false)}
                 onSuccess={handleImportSuccess}
+                slug={slug}
+            />
+
+            <ShareRegistrationLinkModal
+                visible={qrModalVisible}
+                onClose={() => setQrModalVisible(false)}
                 slug={slug}
             />
         </SafeAreaView>
