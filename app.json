@@ -55,8 +55,6 @@
       "expo-web-browser"
     ],
     "extra": {
-      "API_BASE_URL": "https://salonix-backend-production.up.railway.app/api/",
-      "RESET_URL": "https://salonix-backend-production.up.railway.app/reset-password",
       "eas": {
         "projectId": "6642ca0c-7940-4fd3-b2a9-1af204db242b"
       }
