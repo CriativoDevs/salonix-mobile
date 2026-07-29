@@ -15,6 +15,7 @@ const {
   updateTenantModules,
   updateTenantAutoInvite,
   updateSubscriptionAction,
+  updateAutoRenewal,
   createCheckoutSession,
   createBillingPortalSession,
 } = require('../tenant');
@@ -259,6 +260,50 @@ describe('updateSubscriptionAction', () => {
     expect(client.post).toHaveBeenCalledWith(
       'payments/stripe/subscription/action/',
       { action: 'reactivate' },
+      { headers: {}, params: {} }
+    );
+  });
+});
+
+describe('updateAutoRenewal', () => {
+  afterEach(() => jest.clearAllMocks());
+
+  it('sends a PATCH with auto_renewal and tenant headers/params', async () => {
+    client.patch.mockResolvedValue({ data: { has_auto_renewal: true } });
+
+    const result = await updateAutoRenewal({ autoRenewal: true }, { slug: 'acme' });
+
+    expect(client.patch).toHaveBeenCalledWith(
+      'payments/stripe/settings/',
+      { auto_renewal: true },
+      { headers: { 'X-Tenant-Slug': 'acme' }, params: { tenant: 'acme' } }
+    );
+    expect(result).toEqual({ has_auto_renewal: true });
+  });
+
+  it('includes auto_renewal_price_id when provided', async () => {
+    client.patch.mockResolvedValue({ data: { has_auto_renewal: true } });
+
+    await updateAutoRenewal(
+      { autoRenewal: true, autoRenewalPriceId: 'price_credits_10' },
+      { slug: 'acme' }
+    );
+
+    expect(client.patch).toHaveBeenCalledWith(
+      'payments/stripe/settings/',
+      { auto_renewal: true, auto_renewal_price_id: 'price_credits_10' },
+      { headers: { 'X-Tenant-Slug': 'acme' }, params: { tenant: 'acme' } }
+    );
+  });
+
+  it('works without a slug', async () => {
+    client.patch.mockResolvedValue({ data: {} });
+
+    await updateAutoRenewal({ autoRenewal: false });
+
+    expect(client.patch).toHaveBeenCalledWith(
+      'payments/stripe/settings/',
+      { auto_renewal: false },
       { headers: {}, params: {} }
     );
   });

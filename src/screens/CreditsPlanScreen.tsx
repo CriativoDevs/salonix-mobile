@@ -8,7 +8,7 @@ import { useTheme } from '../hooks/useTheme';
 import { useTenant } from '../hooks/useTenant';
 import { useAuth } from '../hooks/useAuth';
 import { isOwner } from '../utils/permissions';
-import { fetchBillingOverview, updateSubscriptionAction, createCheckoutSession, createBillingPortalSession } from '../api/tenant';
+import { fetchBillingOverview, updateAutoRenewal, createCheckoutSession, createBillingPortalSession } from '../api/tenant';
 import { fetchCreditBalance, fetchCreditHistory, fetchCreditPackages, createCreditCheckoutSession } from '../api/credits';
 import { Button } from '../components/ui/Button';
 
@@ -51,6 +51,7 @@ export default function CreditsPlanScreen() {
   const [overview, setOverview] = useState<any>(null);
   const [autoRenewal, setAutoRenewal] = useState(false);
   const [autoRenewalSaving, setAutoRenewalSaving] = useState(false);
+  const [autoRenewalPackagePriceId, setAutoRenewalPackagePriceId] = useState('');
   const [changingPlan, setChangingPlan] = useState<string | null>(null);
   const [managingSubscription, setManagingSubscription] = useState(false);
 
@@ -88,7 +89,11 @@ export default function CreditsPlanScreen() {
       if (!active) return;
       setBalance(balanceData);
       setHistory(historyData.results || []);
-      setPackages(packagesData.packages || []);
+      const loadedPackages = packagesData.packages || [];
+      setPackages(loadedPackages);
+      if (!autoRenewalPackagePriceId && loadedPackages.length > 0) {
+        setAutoRenewalPackagePriceId(loadedPackages[0].price_id);
+      }
     }).catch(() => {
       if (!active) return;
       setCreditsError(true);
@@ -99,11 +104,22 @@ export default function CreditsPlanScreen() {
   }, [slug]);
 
   const handleToggleAutoRenewal = async (value: boolean) => {
+    if (value && !autoRenewalPackagePriceId) {
+      Alert.alert('Erro', 'Escolha um pacote de crédito antes de ativar.');
+      return;
+    }
+
     const previous = autoRenewal;
     setAutoRenewal(value);
     setAutoRenewalSaving(true);
     try {
-      await updateSubscriptionAction({ action: value ? 'reactivate' : 'cancel' }, { slug });
+      await updateAutoRenewal(
+        {
+          autoRenewal: value,
+          autoRenewalPriceId: value ? autoRenewalPackagePriceId : undefined,
+        },
+        { slug }
+      );
     } catch (error: any) {
       setAutoRenewal(previous);
       const detail = error?.response?.data?.detail;
@@ -197,7 +213,7 @@ export default function CreditsPlanScreen() {
 
             <View style={[styles.card, { borderColor: colors.border, backgroundColor: colors.surface }]}>
               <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                <Text style={{ color: colors.textPrimary, fontWeight: '600' }}>Renovação automática</Text>
+                <Text style={{ color: colors.textPrimary, fontWeight: '600' }}>Renovação automática de crédito</Text>
                 <Switch
                   testID="auto-renewal-switch"
                   value={autoRenewal}
@@ -205,6 +221,31 @@ export default function CreditsPlanScreen() {
                   onValueChange={handleToggleAutoRenewal}
                 />
               </View>
+              <Text style={{ color: colors.textSecondary, fontSize: 13, marginTop: 6 }}>
+                Quando o crédito de comunicação incluído no seu plano acabar antes do fim do
+                mês, compre automaticamente mais crédito (cobrado no seu cartão) para não
+                interromper os envios de SMS/WhatsApp.
+              </Text>
+              {!autoRenewal && (packages || []).length > 0 && (
+                <>
+                  <Text style={{ color: colors.textSecondary, fontSize: 12, marginTop: 10 }}>
+                    Pacote a comprar automaticamente
+                  </Text>
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 6 }}>
+                    {(packages || []).map((pkg) => (
+                      <Button
+                        key={pkg.price_id}
+                        onPress={() => setAutoRenewalPackagePriceId(pkg.price_id)}
+                        disabled={autoRenewalSaving}
+                        variant={autoRenewalPackagePriceId === pkg.price_id ? 'primary' : 'secondary'}
+                        size="sm"
+                      >
+                        {pkg.description}
+                      </Button>
+                    ))}
+                  </View>
+                </>
+              )}
             </View>
 
             <Text style={[styles.sectionTitle, { color: colors.textPrimary, marginTop: 16 }]}>Planos disponíveis</Text>

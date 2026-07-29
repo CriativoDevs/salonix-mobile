@@ -154,6 +154,21 @@ export async function updateSubscriptionAction({ action } = {}, { slug } = {}) {
   return response.data;
 }
 
+export async function updateAutoRenewal({ autoRenewal, autoRenewalPriceId } = {}, { slug } = {}) {
+  const headers = {};
+  const params = {};
+  if (slug) {
+    headers['X-Tenant-Slug'] = slug;
+    params.tenant = slug;
+  }
+  const payload = { auto_renewal: autoRenewal };
+  if (autoRenewalPriceId) {
+    payload.auto_renewal_price_id = autoRenewalPriceId;
+  }
+  const response = await client.patch('payments/stripe/settings/', payload, { headers, params });
+  return response.data;
+}
+
 export async function createCheckoutSession({ plan, interval } = {}, { slug } = {}) {
   const headers = {};
   const params = {};
