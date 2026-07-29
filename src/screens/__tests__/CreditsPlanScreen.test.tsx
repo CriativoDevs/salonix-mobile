@@ -35,12 +35,12 @@ jest.mock('../../hooks/useTenant', () => ({
 }));
 
 const mockFetchBillingOverview = jest.fn();
-const mockUpdateSubscriptionAction = jest.fn();
+const mockUpdateAutoRenewal = jest.fn();
 const mockCreateCheckoutSession = jest.fn();
 const mockCreateBillingPortalSession = jest.fn();
 jest.mock('../../api/tenant', () => ({
   fetchBillingOverview: (...args: any[]) => mockFetchBillingOverview(...args),
-  updateSubscriptionAction: (...args: any[]) => mockUpdateSubscriptionAction(...args),
+  updateAutoRenewal: (...args: any[]) => mockUpdateAutoRenewal(...args),
   createCheckoutSession: (...args: any[]) => mockCreateCheckoutSession(...args),
   createBillingPortalSession: (...args: any[]) => mockCreateBillingPortalSession(...args),
 }));
@@ -182,8 +182,20 @@ describe('CreditsPlanScreen', () => {
     expect(queryByText('Founder')).toBeNull();
   });
 
-  it('toggles renovação automática and calls updateSubscriptionAction with "cancel"', async () => {
-    mockUpdateSubscriptionAction.mockResolvedValue({ status: 'cancelled' });
+  it('shows the explanatory text about communication credit next to the toggle', async () => {
+    const { getByText } = await render(<CreditsPlanScreen />);
+
+    await waitFor(() =>
+      expect(
+        getByText(
+          'Quando o crédito de comunicação incluído no seu plano acabar antes do fim do mês, compre automaticamente mais crédito (cobrado no seu cartão) para não interromper os envios de SMS/WhatsApp.'
+        )
+      ).toBeTruthy()
+    );
+  });
+
+  it('toggles renovação automática off and calls updateAutoRenewal with autoRenewal: false', async () => {
+    mockUpdateAutoRenewal.mockResolvedValue({ has_auto_renewal: false });
 
     const { getByTestId } = await render(<CreditsPlanScreen />);
     await waitFor(() => expect(getByTestId('auto-renewal-switch')).toBeTruthy());
@@ -191,13 +203,41 @@ describe('CreditsPlanScreen', () => {
     await fireEvent(getByTestId('auto-renewal-switch'), 'onValueChange', false);
 
     await waitFor(() => {
-      expect(mockUpdateSubscriptionAction).toHaveBeenCalledWith({ action: 'cancel' }, { slug: 'acme' });
+      expect(mockUpdateAutoRenewal).toHaveBeenCalledWith(
+        { autoRenewal: false, autoRenewalPriceId: undefined },
+        { slug: 'acme' }
+      );
     });
     expect(getByTestId('auto-renewal-switch').props.value).toBe(false);
   });
 
-  it('reverts the toggle and shows an alert when updateSubscriptionAction fails', async () => {
-    mockUpdateSubscriptionAction.mockRejectedValue({ response: { status: 400, data: { detail: 'Erro ao atualizar.' } } });
+  it('shows the package picker after disabling, and toggling back on sends the selected price_id', async () => {
+    mockUpdateAutoRenewal.mockResolvedValue({ has_auto_renewal: false });
+
+    const { getByTestId, getByText, getAllByText } = await render(<CreditsPlanScreen />);
+    await waitFor(() => expect(getByTestId('auto-renewal-switch')).toBeTruthy());
+
+    await fireEvent(getByTestId('auto-renewal-switch'), 'onValueChange', false);
+    await waitFor(() => expect(getByText('Pacote a comprar automaticamente')).toBeTruthy());
+
+    // O botão "Créditos de 10 EUR" também existe na secção "Comprar créditos";
+    // o seletor de renovação automática aparece primeiro no ecrã.
+    const packageButtons = getAllByText('Créditos de 10 EUR');
+    await fireEvent.press(packageButtons[0]);
+
+    mockUpdateAutoRenewal.mockResolvedValue({ has_auto_renewal: true });
+    await fireEvent(getByTestId('auto-renewal-switch'), 'onValueChange', true);
+
+    await waitFor(() => {
+      expect(mockUpdateAutoRenewal).toHaveBeenCalledWith(
+        { autoRenewal: true, autoRenewalPriceId: 'price_10' },
+        { slug: 'acme' }
+      );
+    });
+  });
+
+  it('reverts the toggle and shows an alert when updateAutoRenewal fails', async () => {
+    mockUpdateAutoRenewal.mockRejectedValue({ response: { status: 400, data: { detail: 'Erro ao atualizar.' } } });
     const alertSpy = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
 
     const { getByTestId } = await render(<CreditsPlanScreen />);
