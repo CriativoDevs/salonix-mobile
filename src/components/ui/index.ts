@@ -8,3 +8,4 @@ export { Toast } from './Toast';
 export { Modal } from './Modal';
 export { Alert } from './Alert';
 export { PaginationDots } from './PaginationDots';
+export { Avatar } from './Avatar';

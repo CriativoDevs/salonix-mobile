@@ -67,6 +67,7 @@ jest.mock('../../components/ShareRegistrationLinkModal', () => {
 
 jest.mock('../../utils/env', () => ({
   getRegistrationLink: (slug: string) => `https://timelyone.today/join/${slug}`,
+  resolveMediaUrl: (url: string | null | undefined) => (url ? `https://cdn.example.com${url}` : null),
 }));
 
 describe('CustomersScreen - share registration link', () => {

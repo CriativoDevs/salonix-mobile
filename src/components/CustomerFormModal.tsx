@@ -1,10 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system/legacy';
 import { useTheme } from '../hooks/useTheme';
 import { Input } from './ui/Input';
 import { Button } from './ui/Button';
 import { Modal } from './ui/Modal';
+import { Avatar } from './ui/Avatar';
+import { resolveMediaUrl } from '../utils/env';
+
+const MAX_PHOTO_BYTES = 2 * 1024 * 1024;
+const ALLOWED_PHOTO_MIME_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+
+interface PickedPhoto {
+    uri: string;
+    name: string;
+    mimeType: string;
+}
 
 interface CustomerData {
     id?: string;
@@ -12,6 +25,8 @@ interface CustomerData {
     email: string;
     phone_number: string;
     notes: string;
+    photo?: string | null;
+    photoFile?: PickedPhoto;
 }
 
 interface CustomerFormModalProps {
@@ -31,6 +46,8 @@ export function CustomerFormModal({ visible, onClose, onSubmit, initialData, bus
         phone_number: '',
         notes: '',
     });
+    const [pickedPhoto, setPickedPhoto] = useState<PickedPhoto | null>(null);
+    const [photoError, setPhotoError] = useState<string | null>(null);
 
     const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
@@ -43,6 +60,7 @@ export function CustomerFormModal({ visible, onClose, onSubmit, initialData, bus
                     email: initialData.email || '',
                     phone_number: initialData.phone_number || '',
                     notes: initialData.notes || '',
+                    photo: initialData.photo || null,
                 });
             } else {
                 setForm({
@@ -52,6 +70,8 @@ export function CustomerFormModal({ visible, onClose, onSubmit, initialData, bus
                     notes: '',
                 });
             }
+            setPickedPhoto(null);
+            setPhotoError(null);
             setErrors({});
         }
     }, [visible, initialData]);
@@ -75,12 +95,76 @@ export function CustomerFormModal({ visible, onClose, onSubmit, initialData, bus
         if (!validate()) return;
 
         try {
-            await onSubmit(form);
+            await onSubmit(pickedPhoto ? { ...form, photoFile: pickedPhoto } : form);
         } catch (error) {
             console.error(error);
             Alert.alert('Erro', 'Ocorreu um erro ao salvar o cliente.');
         }
     };
+
+    const validateAndSetPhoto = async (asset: ImagePicker.ImagePickerAsset) => {
+        const mimeType = asset.mimeType || 'image/jpeg';
+
+        if (!ALLOWED_PHOTO_MIME_TYPES.includes(mimeType)) {
+            setPhotoError('Formato não suportado. Use JPEG, PNG, GIF ou WEBP.');
+            return;
+        }
+
+        const info = await FileSystem.getInfoAsync(asset.uri);
+        if (info.exists && typeof info.size === 'number' && info.size > MAX_PHOTO_BYTES) {
+            setPhotoError('O ficheiro deve ter no máximo 2MB.');
+            return;
+        }
+
+        setPhotoError(null);
+        setPickedPhoto({
+            uri: asset.uri,
+            name: asset.fileName || 'photo.jpg',
+            mimeType,
+        });
+    };
+
+    const handlePickFromGallery = async () => {
+        const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (!permission.granted) {
+            Alert.alert('Erro', 'Permissão de galeria necessária.');
+            return;
+        }
+
+        const result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            quality: 1,
+        });
+        if (result.canceled || !result.assets?.[0]) return;
+
+        await validateAndSetPhoto(result.assets[0]);
+    };
+
+    const handleTakePhoto = async () => {
+        const permission = await ImagePicker.requestCameraPermissionsAsync();
+        if (!permission.granted) {
+            Alert.alert('Erro', 'Permissão de câmara necessária.');
+            return;
+        }
+
+        const result = await ImagePicker.launchCameraAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            quality: 1,
+        });
+        if (result.canceled || !result.assets?.[0]) return;
+
+        await validateAndSetPhoto(result.assets[0]);
+    };
+
+    const handlePickPhoto = () => {
+        Alert.alert('Foto do cliente', 'Escolha uma opção', [
+            { text: 'Escolher da galeria', onPress: handlePickFromGallery },
+            { text: 'Tirar foto', onPress: handleTakePhoto },
+            { text: 'Cancelar', style: 'cancel' },
+        ]);
+    };
+
+    const previewUri = pickedPhoto?.uri || resolveMediaUrl(form.photo);
 
     return (
         <Modal
@@ -108,6 +192,18 @@ export function CustomerFormModal({ visible, onClose, onSubmit, initialData, bus
             }
         >
             <View style={styles.formContent}>
+                <View style={styles.photoSection}>
+                    <Avatar testID="customer-form-avatar" uri={previewUri} name={form.name} size={72} />
+                    <TouchableOpacity onPress={handlePickPhoto}>
+                        <Text style={{ color: colors.brandPrimary, fontWeight: '600', marginTop: 8 }}>
+                            {previewUri ? 'Alterar foto' : 'Adicionar foto'}
+                        </Text>
+                    </TouchableOpacity>
+                    {photoError && (
+                        <Text style={{ color: colors.error, fontSize: 12, marginTop: 4 }}>{photoError}</Text>
+                    )}
+                </View>
+
                 <View style={styles.inputGroup}>
                     <Input
                         label="Nome"
@@ -164,6 +260,10 @@ export function CustomerFormModal({ visible, onClose, onSubmit, initialData, bus
 const styles = StyleSheet.create({
     formContent: {
         // Padding is handled by Modal
+    },
+    photoSection: {
+        alignItems: 'center',
+        marginBottom: 20,
     },
     inputGroup: {
         marginBottom: 16,
