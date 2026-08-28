@@ -10,8 +10,9 @@ import { fetchCustomers, createCustomer, updateCustomer, deleteCustomer, resendC
 import { CustomerFormModal } from '../components/CustomerFormModal';
 import { ImportCustomersModal } from '../components/ImportCustomersModal';
 import { ShareRegistrationLinkModal } from '../components/ShareRegistrationLinkModal';
+import { Avatar } from '../components/ui/Avatar';
 import { saveAndShareCSV } from '../utils/csvFileSharing';
-import { getRegistrationLink } from '../utils/env';
+import { getRegistrationLink, resolveMediaUrl } from '../utils/env';
 import { useTenant } from '../hooks/useTenant';
 import { useAuth } from '../hooks/useAuth';
 import { isOwner } from '../utils/permissions';
@@ -243,30 +244,41 @@ export default function CustomersScreen() {
                 onPress={() => handleEdit(item)}
                 onLongPress={() => showOptions(item)}
             >
-                <View style={styles.cardHeader}>
-                    <Text style={[styles.customerName, { color: colors.textPrimary }]}>
-                        {item.name}
-                    </Text>
-                    {!item.is_active && (
-                        <View style={[styles.badge, { backgroundColor: colors.surfaceVariant, borderColor: colors.border }]}>
-                            <Text style={[styles.badgeText, { color: colors.textSecondary }]}>Inativo</Text>
+                <View style={styles.cardRow}>
+                    <Avatar
+                        testID={`customer-avatar-${item.id}`}
+                        uri={resolveMediaUrl(item.photo)}
+                        name={item.name}
+                        size={44}
+                        style={styles.cardAvatar}
+                    />
+                    <View style={{ flex: 1 }}>
+                        <View style={styles.cardHeader}>
+                            <Text style={[styles.customerName, { color: colors.textPrimary }]}>
+                                {item.name}
+                            </Text>
+                            {!item.is_active && (
+                                <View style={[styles.badge, { backgroundColor: colors.surfaceVariant, borderColor: colors.border }]}>
+                                    <Text style={[styles.badgeText, { color: colors.textSecondary }]}>Inativo</Text>
+                                </View>
+                            )}
                         </View>
-                    )}
-                </View>
 
-                <View style={styles.contactInfo}>
-                    {item.email && (
-                        <View style={styles.contactRow}>
-                            <Ionicons name="mail-outline" size={14} color={colors.textSecondary} style={styles.icon} />
-                            <Text style={[styles.contactText, { color: colors.textSecondary }]}>{item.email}</Text>
+                        <View style={styles.contactInfo}>
+                            {item.email && (
+                                <View style={styles.contactRow}>
+                                    <Ionicons name="mail-outline" size={14} color={colors.textSecondary} style={styles.icon} />
+                                    <Text style={[styles.contactText, { color: colors.textSecondary }]}>{item.email}</Text>
+                                </View>
+                            )}
+                            {item.phone_number && (
+                                <View style={styles.contactRow}>
+                                    <Ionicons name="call-outline" size={14} color={colors.textSecondary} style={styles.icon} />
+                                    <Text style={[styles.contactText, { color: colors.textSecondary }]}>{item.phone_number}</Text>
+                                </View>
+                            )}
                         </View>
-                    )}
-                    {item.phone_number && (
-                        <View style={styles.contactRow}>
-                            <Ionicons name="call-outline" size={14} color={colors.textSecondary} style={styles.icon} />
-                            <Text style={[styles.contactText, { color: colors.textSecondary }]}>{item.phone_number}</Text>
-                        </View>
-                    )}
+                    </View>
                 </View>
             </Card>
         </View>
@@ -493,6 +505,13 @@ const styles = StyleSheet.create({
     },
     card: {
         marginBottom: 12,
+    },
+    cardRow: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+    },
+    cardAvatar: {
+        marginRight: 12,
     },
     cardHeader: {
         flexDirection: 'row',

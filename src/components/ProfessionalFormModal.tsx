@@ -1,14 +1,27 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Switch, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system/legacy';
 import { useTheme } from '../hooks/useTheme';
 import { Input } from './ui/Input';
 import { Button } from './ui/Button';
 import { Modal } from './ui/Modal'; // Importando o Modal genérico flutuante
+import { Avatar } from './ui/Avatar';
 import { updateStaffMember, disableStaffMember } from '../api/staff';
+import { resolveMediaUrl } from '../utils/env';
 
 import { useTenant } from '../hooks/useTenant';
 import { fetchServices } from '../api/services';
+
+const MAX_PHOTO_BYTES = 2 * 1024 * 1024;
+const ALLOWED_PHOTO_MIME_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+
+interface PickedPhoto {
+    uri: string;
+    name: string;
+    mimeType: string;
+}
 
 interface ProfessionalData {
     id?: string;
@@ -17,6 +30,8 @@ interface ProfessionalData {
     phone_number: string;
     job_title?: string;
     bio?: string;
+    photo?: string | null;
+    photoFile?: PickedPhoto;
     user?: any;
     staff_member?: number;
     role?: string;
@@ -57,6 +72,8 @@ export function ProfessionalFormModal({ visible, onClose, onSubmit, initialData,
     const [selectedServiceIds, setSelectedServiceIds] = useState<number[]>([]);
     const [allServices, setAllServices] = useState<any[]>([]);
     const [servicesLoading, setServicesLoading] = useState(false);
+    const [pickedPhoto, setPickedPhoto] = useState<PickedPhoto | null>(null);
+    const [photoError, setPhotoError] = useState<string | null>(null);
 
     const [errors, setErrors] = useState<{ [key: string]: string }>({});
     const [permissionLoading, setPermissionLoading] = useState(false);
@@ -72,6 +89,7 @@ export function ProfessionalFormModal({ visible, onClose, onSubmit, initialData,
                     phone_number: initialData.phone_number || '',
                     job_title: initialData.job_title || '',
                     bio: initialData.bio || '',
+                    photo: initialData.photo || initialData.staff_member_data?.photo || null,
                 });
 
                 // Initialize permissions from data
@@ -92,6 +110,8 @@ export function ProfessionalFormModal({ visible, onClose, onSubmit, initialData,
                 setPermissionsForm({ role: 'collaborator', is_active: true });
                 setSelectedServiceIds([]);
             }
+            setPickedPhoto(null);
+            setPhotoError(null);
             setErrors({});
             setActiveTab('details');
         }
@@ -137,13 +157,78 @@ export function ProfessionalFormModal({ visible, onClose, onSubmit, initialData,
         try {
             await onSubmit({
                 ...form,
-                service_ids: selectedServiceIds
+                service_ids: selectedServiceIds,
+                ...(pickedPhoto ? { photoFile: pickedPhoto } : {}),
             });
         } catch (error) {
             console.error(error);
             Alert.alert('Erro', 'Ocorreu um erro ao salvar o profissional.');
         }
     };
+
+    const validateAndSetPhoto = async (asset: ImagePicker.ImagePickerAsset) => {
+        const mimeType = asset.mimeType || 'image/jpeg';
+
+        if (!ALLOWED_PHOTO_MIME_TYPES.includes(mimeType)) {
+            setPhotoError('Formato não suportado. Use JPEG, PNG, GIF ou WEBP.');
+            return;
+        }
+
+        const info = await FileSystem.getInfoAsync(asset.uri);
+        if (info.exists && typeof info.size === 'number' && info.size > MAX_PHOTO_BYTES) {
+            setPhotoError('O ficheiro deve ter no máximo 2MB.');
+            return;
+        }
+
+        setPhotoError(null);
+        setPickedPhoto({
+            uri: asset.uri,
+            name: asset.fileName || 'photo.jpg',
+            mimeType,
+        });
+    };
+
+    const handlePickFromGallery = async () => {
+        const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (!permission.granted) {
+            Alert.alert('Erro', 'Permissão de galeria necessária.');
+            return;
+        }
+
+        const result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            quality: 1,
+        });
+        if (result.canceled || !result.assets?.[0]) return;
+
+        await validateAndSetPhoto(result.assets[0]);
+    };
+
+    const handleTakePhoto = async () => {
+        const permission = await ImagePicker.requestCameraPermissionsAsync();
+        if (!permission.granted) {
+            Alert.alert('Erro', 'Permissão de câmara necessária.');
+            return;
+        }
+
+        const result = await ImagePicker.launchCameraAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            quality: 1,
+        });
+        if (result.canceled || !result.assets?.[0]) return;
+
+        await validateAndSetPhoto(result.assets[0]);
+    };
+
+    const handlePickPhoto = () => {
+        Alert.alert('Foto do profissional', 'Escolha uma opção', [
+            { text: 'Escolher da galeria', onPress: handlePickFromGallery },
+            { text: 'Tirar foto', onPress: handleTakePhoto },
+            { text: 'Cancelar', style: 'cancel' },
+        ]);
+    };
+
+    const previewUri = pickedPhoto?.uri || resolveMediaUrl(form.photo);
 
     const handleUpdatePermissions = async () => {
         if (!initialData?.user?.id && !initialData?.staff_member) {
@@ -229,6 +314,20 @@ export function ProfessionalFormModal({ visible, onClose, onSubmit, initialData,
                 <View style={styles.formContent}>
                     {activeTab === 'details' ? (
                         <>
+                            {isEditing && (
+                                <View style={styles.photoSection}>
+                                    <Avatar testID="professional-form-avatar" uri={previewUri} name={form.name} size={72} />
+                                    <TouchableOpacity onPress={handlePickPhoto}>
+                                        <Text style={{ color: colors.brandPrimary, fontWeight: '600', marginTop: 8 }}>
+                                            {previewUri ? 'Alterar foto' : 'Adicionar foto'}
+                                        </Text>
+                                    </TouchableOpacity>
+                                    {photoError && (
+                                        <Text style={{ color: colors.error, fontSize: 12, marginTop: 4 }}>{photoError}</Text>
+                                    )}
+                                </View>
+                            )}
+
                             <View style={styles.inputGroup}>
                                 <Input
                                     label="Nome"
@@ -405,6 +504,10 @@ const styles = StyleSheet.create({
     },
     inputGroup: {
         marginBottom: 16,
+    },
+    photoSection: {
+        alignItems: 'center',
+        marginBottom: 20,
     },
     permissionContainer: {
         paddingVertical: 8,

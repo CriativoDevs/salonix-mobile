@@ -18,6 +18,7 @@ const {
   importStaffCSV,
   fetchStaffImportTemplate,
   exportStaffCSV,
+  updateStaffContact,
 } = require('../staff');
 
 describe('importStaffCSV', () => {
@@ -67,6 +68,55 @@ describe('fetchStaffImportTemplate', () => {
       responseType: 'text',
     });
     expect(result).toBe('email,role\n');
+  });
+});
+
+describe('updateStaffContact', () => {
+  afterEach(() => jest.clearAllMocks());
+
+  it('sends a plain JSON PATCH to users/staff/contact/ when there is no photoFile', async () => {
+    client.patch.mockResolvedValue({ data: { id: 7, phone_number: '+351911111111' } });
+
+    const result = await updateStaffContact(7, { phone_number: '+351911111111' }, { slug: 'acme' });
+
+    expect(client.patch).toHaveBeenCalledWith(
+      'users/staff/contact/',
+      { id: 7, phone_number: '+351911111111' },
+      {
+        params: { tenant: 'acme' },
+        headers: { 'X-Tenant-Slug': 'acme' },
+      }
+    );
+    expect(result).toEqual({ id: 7, phone_number: '+351911111111' });
+  });
+
+  it('sends a multipart PATCH with the photo file when photoFile is provided', async () => {
+    client.patch.mockResolvedValue({ data: { id: 7, photo: '/media/staff_photos/new.jpg' } });
+
+    const photoFile = { uri: 'file:///tmp/staff.jpg', name: 'staff.jpg', mimeType: 'image/jpeg' };
+    const result = await updateStaffContact(7, { photoFile }, { slug: 'acme' });
+
+    expect(client.patch).toHaveBeenCalledTimes(1);
+    const [url, body, config] = client.patch.mock.calls[0];
+    expect(url).toBe('users/staff/contact/');
+    expect(body).toBeInstanceOf(FormData);
+    expect(config).toEqual({
+      params: { tenant: 'acme' },
+      headers: { 'X-Tenant-Slug': 'acme', 'Content-Type': 'multipart/form-data' },
+    });
+    expect(result).toEqual({ id: 7, photo: '/media/staff_photos/new.jpg' });
+  });
+
+  it('works without a slug', async () => {
+    client.patch.mockResolvedValue({ data: { id: 3 } });
+
+    await updateStaffContact(3, { bio: 'Novo bio' });
+
+    expect(client.patch).toHaveBeenCalledWith(
+      'users/staff/contact/',
+      { id: 3, bio: 'Novo bio' },
+      { params: {}, headers: {} }
+    );
   });
 });
 

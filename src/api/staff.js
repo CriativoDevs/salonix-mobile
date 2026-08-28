@@ -21,6 +21,45 @@ export async function updateStaffMember(id, payload, { slug } = {}) {
     return response.data;
 }
 
+function buildStaffContactRequestBody(id, payload) {
+    const { photoFile, ...rest } = payload;
+    const values = { id, ...rest };
+
+    if (!photoFile) {
+        return { body: values, isMultipart: false };
+    }
+
+    const formData = new FormData();
+    Object.entries(values).forEach(([key, value]) => {
+        if (value === undefined || value === null) return;
+        formData.append(key, value);
+    });
+    formData.append('photo', {
+        uri: photoFile.uri,
+        name: photoFile.name || 'photo.jpg',
+        type: photoFile.mimeType || 'image/jpeg',
+    });
+
+    return { body: formData, isMultipart: true };
+}
+
+export async function updateStaffContact(id, payload = {}, { slug } = {}) {
+    const params = {};
+    const headers = {};
+    if (slug) {
+        params.tenant = slug;
+        headers['X-Tenant-Slug'] = slug;
+    }
+
+    const { body, isMultipart } = buildStaffContactRequestBody(id, payload);
+    if (isMultipart) {
+        headers['Content-Type'] = 'multipart/form-data';
+    }
+
+    const response = await client.patch('users/staff/contact/', body, { params, headers });
+    return response.data;
+}
+
 export async function inviteStaffMember(payload, { slug } = {}) {
     const params = {};
     const headers = {};

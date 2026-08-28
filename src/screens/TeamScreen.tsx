@@ -6,14 +6,16 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../hooks/useTheme';
 import { Input } from '../components/ui/Input';
 import { Card } from '../components/ui/Card';
+import { Avatar } from '../components/ui/Avatar';
 import { fetchProfessionals, updateProfessional, deleteProfessional } from '../api/professionals';
-import { fetchStaffMembers, inviteStaffMember, exportStaffCSV } from '../api/staff';
+import { fetchStaffMembers, inviteStaffMember, exportStaffCSV, updateStaffContact } from '../api/staff';
 import { ProfessionalFormModal } from '../components/ProfessionalFormModal';
 import { ImportStaffModal } from '../components/ImportStaffModal';
 import { useTenant } from '../hooks/useTenant';
 import { useAuth } from '../hooks/useAuth';
 import { isOwner } from '../utils/permissions';
 import { saveAndShareCSV } from '../utils/csvFileSharing';
+import { resolveMediaUrl } from '../utils/env';
 
 export default function TeamScreen() {
     const { colors } = useTheme();
@@ -186,12 +188,21 @@ export default function TeamScreen() {
         setActionLoading(true);
         try {
             if (selectedProfessional) {
-                await updateProfessional(selectedProfessional.id, { ...data, slug });
-                // Update local list (simple update, might need refresh to sync staff data completely)
-                setProfessionals(prev => prev.map(p => p.id === selectedProfessional.id ? { ...p, ...data } : p));
+                const { photoFile, ...profData } = data;
+                await updateProfessional(selectedProfessional.id, { ...profData, slug });
 
-                // Refresh to get updated permissions if they changed
-                if (data.role || data.is_active !== undefined) {
+                if (photoFile) {
+                    const staffId = selectedProfessional.staff_member || selectedProfessional.user?.id;
+                    if (staffId) {
+                        await updateStaffContact(staffId, { photoFile }, { slug });
+                    }
+                }
+
+                // Update local list (simple update, might need refresh to sync staff data completely)
+                setProfessionals(prev => prev.map(p => p.id === selectedProfessional.id ? { ...p, ...profData } : p));
+
+                // Refresh to get updated permissions/photo if they changed
+                if (data.role || data.is_active !== undefined || photoFile) {
                     loadData(true);
                 }
             } else {
@@ -317,6 +328,8 @@ export default function TeamScreen() {
             }
         }
 
+        const photo = staffMember?.photo || item.photo || null;
+
         const normalizedItem = {
             ...item,
             name,
@@ -324,6 +337,7 @@ export default function TeamScreen() {
             phone_number: phone,
             job_title: jobTitle,
             bio: item.bio || item.description,
+            photo,
             role,      // Pass resolved role
             status,    // Pass resolved status string
             is_active: isActive, // Pass resolved boolean
@@ -337,21 +351,30 @@ export default function TeamScreen() {
                     onLongPress={() => showOptions(normalizedItem)}
                 >
                     <View style={styles.cardContent}>
-                        {/* Name & Job */}
-                        <View style={{ marginBottom: 8 }}>
-                            <Text style={[styles.name, { color: colors.textPrimary }]}>
-                                {name}
-                            </Text>
-                            {jobTitle ? (
-                                <Text style={[styles.jobTitle, { color: colors.textSecondary }]}>
-                                    {jobTitle}
+                        {/* Avatar, Name & Job */}
+                        <View style={[styles.headerRow, { marginBottom: 8 }]}>
+                            <Avatar
+                                testID={`team-avatar-${item.id}`}
+                                uri={resolveMediaUrl(photo)}
+                                name={name}
+                                size={48}
+                                style={{ marginRight: 12 }}
+                            />
+                            <View style={{ flex: 1 }}>
+                                <Text style={[styles.name, { color: colors.textPrimary }]}>
+                                    {name}
                                 </Text>
-                            ) : null}
-                            {email ? (
-                                <Text style={[styles.email, { color: colors.textSecondary }]}>
-                                    {email}
-                                </Text>
-                            ) : null}
+                                {jobTitle ? (
+                                    <Text style={[styles.jobTitle, { color: colors.textSecondary }]}>
+                                        {jobTitle}
+                                    </Text>
+                                ) : null}
+                                {email ? (
+                                    <Text style={[styles.email, { color: colors.textSecondary }]}>
+                                        {email}
+                                    </Text>
+                                ) : null}
+                            </View>
                         </View>
 
                         {/* Badges */}
@@ -560,6 +583,10 @@ const styles = StyleSheet.create({
     },
     cardContent: {
 
+    },
+    headerRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
     },
     name: {
         fontSize: 16,

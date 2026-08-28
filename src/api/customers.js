@@ -27,6 +27,27 @@ export async function fetchCustomers({ limit = 10, offset = 0, search = "", orde
   return response.data;
 }
 
+function buildCustomerRequestBody(payload) {
+  const { photoFile, ...rest } = payload;
+
+  if (!photoFile) {
+    return { body: rest, isMultipart: false };
+  }
+
+  const formData = new FormData();
+  Object.entries(rest).forEach(([key, value]) => {
+    if (value === undefined || value === null) return;
+    formData.append(key, value);
+  });
+  formData.append('photo', {
+    uri: photoFile.uri,
+    name: photoFile.name || 'photo.jpg',
+    type: photoFile.mimeType || 'image/jpeg',
+  });
+
+  return { body: formData, isMultipart: true };
+}
+
 export async function createCustomer(data) {
   const { slug, ...payload } = data;
   const params = {};
@@ -35,7 +56,13 @@ export async function createCustomer(data) {
     params.tenant = slug;
     headers['X-Tenant-Slug'] = slug;
   }
-  const response = await client.post("salon/customers/", payload, { params, headers });
+
+  const { body, isMultipart } = buildCustomerRequestBody(payload);
+  if (isMultipart) {
+    headers['Content-Type'] = 'multipart/form-data';
+  }
+
+  const response = await client.post("salon/customers/", body, { params, headers });
   return response.data;
 }
 
@@ -47,7 +74,13 @@ export async function updateCustomer(id, data) {
     params.tenant = slug;
     headers['X-Tenant-Slug'] = slug;
   }
-  const response = await client.patch(`salon/customers/${id}/`, payload, { params, headers });
+
+  const { body, isMultipart } = buildCustomerRequestBody(payload);
+  if (isMultipart) {
+    headers['Content-Type'] = 'multipart/form-data';
+  }
+
+  const response = await client.patch(`salon/customers/${id}/`, body, { params, headers });
   return response.data;
 }
 
