@@ -21,6 +21,7 @@ type HourGridProps = {
   rangeStartMinutes: number;
   rangeEndMinutes: number;
   onPressAppointment: (appointment: BookingItem) => void;
+  onPressEmptyCell?: (column: HourGridColumn, minutes: number) => void;
 };
 
 function toCalendarEvent(appointment: BookingItem): CalendarEvent | null {
@@ -39,7 +40,12 @@ function toCalendarEvent(appointment: BookingItem): CalendarEvent | null {
 
 function formatHourLabel(minutes: number): string {
   const hours = Math.floor(minutes / 60);
-  return `${String(hours).padStart(2, '0')}:00`;
+  const mins = minutes % 60;
+  return `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
+}
+
+function roundToNearestSlot(minutes: number, slotMinutes: number): number {
+  return Math.round(minutes / slotMinutes) * slotMinutes;
 }
 
 export function HourGrid({
@@ -47,15 +53,26 @@ export function HourGrid({
   rangeStartMinutes,
   rangeEndMinutes,
   onPressAppointment,
+  onPressEmptyCell,
 }: HourGridProps) {
   const { colors } = useTheme();
   const totalMinutes = rangeEndMinutes - rangeStartMinutes;
   const bodyHeight = (totalMinutes / 60) * PX_PER_HOUR;
 
   const hourMarks: number[] = [];
-  for (let m = rangeStartMinutes; m < rangeEndMinutes; m += 60) {
+  for (let m = rangeStartMinutes; m < rangeEndMinutes; m += 30) {
     hourMarks.push(m);
   }
+
+  const handleEmptyCellPress = (column: HourGridColumn, event: any) => {
+    if (!onPressEmptyCell) return;
+    const locationY = event?.nativeEvent?.locationY ?? 0;
+    const ratio = bodyHeight > 0 ? locationY / bodyHeight : 0;
+    const rawMinutes = rangeStartMinutes + ratio * totalMinutes;
+    const rounded = roundToNearestSlot(rawMinutes, 30);
+    const clamped = Math.min(Math.max(rounded, rangeStartMinutes), rangeEndMinutes);
+    onPressEmptyCell(column, clamped);
+  };
 
   return (
     <ScrollView style={{ flex: 1 }}>
@@ -101,7 +118,11 @@ export function HourGrid({
                       {column.label}
                     </Text>
                   </View>
-                  <View style={{ height: bodyHeight, position: 'relative' }}>
+                  <Pressable
+                    testID={`hour-grid-empty-cell-${column.key}`}
+                    style={{ height: bodyHeight, position: 'relative' }}
+                    onPress={(event) => handleEmptyCellPress(column, event)}
+                  >
                     {hourMarks.map((minutes) => (
                       <View
                         key={minutes}
@@ -147,7 +168,7 @@ export function HourGrid({
                         </Pressable>
                       );
                     })}
-                  </View>
+                  </Pressable>
                 </View>
               );
             })}

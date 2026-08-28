@@ -1,7 +1,8 @@
 import React, { useMemo } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../../hooks/useTheme';
-import HourGrid from './HourGrid';
+import HourGrid, { HourGridColumn } from './HourGrid';
 import useTenantBusinessHours from '../../hooks/useTenantBusinessHours';
 import useBookingsRange from '../../hooks/useBookingsRange';
 import { BookingItem } from '../../hooks/bookingsShared';
@@ -38,6 +39,7 @@ type WeekViewProps = {
 
 export function WeekView({ referenceDate, onChangeReferenceDate, onPressAppointment }: WeekViewProps) {
   const { colors } = useTheme();
+  const navigation = useNavigation<any>();
   const weekStart = useMemo(() => startOfWeek(referenceDate), [referenceDate]);
   const weekDays = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)), [weekStart]);
   const dateFrom = formatDateParam(weekDays[0]);
@@ -57,6 +59,10 @@ export function WeekView({ referenceDate, onChangeReferenceDate, onPressAppointm
       };
     });
   }, [weekDays, appointments]);
+
+  const handlePressEmptyCell = (column: HourGridColumn) => {
+    navigation.navigate('BookingCreate', { date: column.key });
+  };
 
   return (
     <View style={{ flex: 1 }}>
@@ -79,6 +85,7 @@ export function WeekView({ referenceDate, onChangeReferenceDate, onPressAppointm
           rangeStartMinutes={range.startMinutes}
           rangeEndMinutes={range.endMinutes}
           onPressAppointment={onPressAppointment}
+          onPressEmptyCell={handlePressEmptyCell}
         />
       )}
     </View>

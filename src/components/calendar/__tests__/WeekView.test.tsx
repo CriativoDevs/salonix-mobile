@@ -2,6 +2,11 @@ import React from 'react';
 import { render, fireEvent } from '@testing-library/react-native';
 import { WeekView } from '../WeekView';
 
+const mockNavigate = jest.fn();
+jest.mock('@react-navigation/native', () => ({
+  useNavigation: () => ({ navigate: mockNavigate }),
+}));
+
 jest.mock('../../../hooks/useTheme', () => ({
   useTheme: () => ({
     colors: { textPrimary: '#000', textSecondary: '#666', border: '#ccc', brandPrimary: '#3b82f6' },
@@ -21,6 +26,7 @@ jest.mock('../../../hooks/useBookingsRange', () => ({
 
 describe('WeekView', () => {
   beforeEach(() => {
+    mockNavigate.mockClear();
     mockUseBookingsRange.mockReturnValue({ appointments: [], loading: false });
   });
 
@@ -48,5 +54,19 @@ describe('WeekView', () => {
     expect(onChangeReferenceDate).toHaveBeenCalled();
     const calledWith: Date = onChangeReferenceDate.mock.calls[0][0];
     expect(calledWith.getDate()).toBe(1);
+  });
+
+  it('navigates to BookingCreate with the day key (no professionalId) when an empty cell is pressed', async () => {
+    const { getByTestId } = await render(
+      <WeekView
+        referenceDate={new Date('2026-07-08')}
+        onChangeReferenceDate={jest.fn()}
+        onPressAppointment={jest.fn()}
+      />
+    );
+    fireEvent(getByTestId('hour-grid-empty-cell-2026-07-06'), 'press', {
+      nativeEvent: { locationY: 0 },
+    });
+    expect(mockNavigate).toHaveBeenCalledWith('BookingCreate', { date: '2026-07-06' });
   });
 });

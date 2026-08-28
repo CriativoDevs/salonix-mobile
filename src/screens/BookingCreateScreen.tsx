@@ -24,19 +24,23 @@ import { formatCurrency, parseSlotDate } from '../utils/date';
 import { createAppointment } from '../api/bookings';
 import { Button } from '../components/ui/Button';
 import { useAuth } from '../hooks/useAuth';
+import useProfessionals from '../hooks/useProfessionals';
 
-const BookingCreateScreen = ({ navigation }: any) => {
+const BookingCreateScreen = ({ navigation, route }: any) => {
   const { colors } = useTheme();
   const { slug } = useTenant();
   const { userInfo } = useAuth();
 
-  const [step, setStep] = useState(0);
+  // Parametros de navegacao (toque numa celula vazia do calendario Semana/Dia)
+  const routeParams = route?.params || {};
+  const jumpWithProfessional = routeParams.professionalId != null;
+
+  const [step, setStep] = useState(jumpWithProfessional ? 2 : 0);
   const [loading, setLoading] = useState(false);
   const [loadingCustomers, setLoadingCustomers] = useState(false);
 
   // Data lists
   const [services, setServices] = useState<any[]>([]);
-  const [professionals, setProfessionals] = useState<any[]>([]);
   const [slots, setSlots] = useState<any[]>([]);
   const [customers, setCustomers] = useState<any[]>([]);
   const [availableDates, setAvailableDates] = useState<string[]>([]);
@@ -46,10 +50,27 @@ const BookingCreateScreen = ({ navigation }: any) => {
   // Selections
   const [selectedService, setSelectedService] = useState<any>(null);
   const [selectedProfessional, setSelectedProfessional] = useState<any>(null);
-  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState(() => {
+    const parsed = routeParams.date ? parseSlotDate(routeParams.date) : null;
+    return parsed || new Date();
+  });
   const [selectedSlot, setSelectedSlot] = useState<any>(null);
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
   const [notes, setNotes] = useState('');
+
+  // Profissionais: sem serviceId quando o toque veio direto do calendario
+  // (nesse caso ainda nao ha servico escolhido), com serviceId assim que o
+  // utilizador escolhe um servico no passo 0.
+  const { professionals } = useProfessionals({ serviceId: selectedService?.id });
+
+  // Pre-seleciona o profissional vindo dos params assim que a lista carregar
+  useEffect(() => {
+    if (jumpWithProfessional && !selectedProfessional && professionals.length > 0) {
+      const match = professionals.find((p: any) => String(p.id) === String(routeParams.professionalId));
+      if (match) setSelectedProfessional(match);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [professionals]);
 
   const toISODate = (date: Date) => {
     try {
@@ -59,35 +80,6 @@ const BookingCreateScreen = ({ navigation }: any) => {
       return '';
     }
   };
-
-  // Step 1: Load Professionals for Service
-  async function loadProfessionals(serviceId: number) {
-    try {
-      setLoading(true);
-      const response = await client.get('public/professionals/', {
-        params: { service_id: serviceId, limit: 100, tenant: slug },
-        headers: { 'X-Tenant-Slug': slug }
-      });
-      const data = response.data;
-      let results = Array.isArray(data) ? data : data.results || [];
-
-      // Filtragem de segurança para Colaboradores
-      // Se o usuário não for Admin/Manager, ele só pode ver/agendar para si mesmo
-      if (userInfo && userInfo.role !== 'owner' && userInfo.role !== 'manager' && !userInfo.is_superuser) {
-        results = results.filter((p: any) => 
-          (p.user === userInfo.id) || 
-          (p.email === userInfo.email) ||
-          (p.staff_member === userInfo.id)
-        );
-      }
-
-      setProfessionals(results);
-    } catch (error) {
-      console.error('Error loading professionals:', error);
-    } finally {
-      setLoading(false);
-    }
-  }
 
   // Step 2: Load Slots for Professional and Date
   async function loadSlots(professionalId: number, date: Date) {
@@ -149,6 +141,10 @@ const BookingCreateScreen = ({ navigation }: any) => {
             setSelectedDate(firstAvail);
             loadSlots(selectedProfessional.id, firstAvail);
           }
+        } else if (dateStr && dates && dates.includes(dateStr) && slots.length === 0) {
+          // Entrada direta no passo 2 (toque numa célula vazia): a data já é
+          // válida, mas os horários ainda não foram carregados.
+          loadSlots(selectedProfessional.id, selectedDate);
         }
       } catch (error) {
         console.error('Error loading available dates:', error);
@@ -183,13 +179,25 @@ const BookingCreateScreen = ({ navigation }: any) => {
 
   const nextStep = () => {
     if (step === 0 && selectedService) {
-      loadProfessionals(selectedService.id);
-      setStep(1);
+      // Se o profissional e o horario ja vieram pre-selecionados (toque numa
+      // celula vazia do calendario Dia), so faltava o servico: avança direto
+      // para o passo de Cliente, sem repetir a escolha de profissional/data.
+      if (jumpWithProfessional && selectedProfessional && selectedSlot) {
+        setStep(3);
+      } else {
+        setStep(1);
+      }
     } else if (step === 1 && selectedProfessional) {
       loadSlots(selectedProfessional.id, selectedDate);
       setStep(2);
     } else if (step === 2 && selectedSlot) {
-      setStep(3);
+      // Fluxo normal ja tem servico selecionado; fluxo de toque direto ainda
+      // precisa que o utilizador escolha um servico antes do resumo.
+      if (!selectedService) {
+        setStep(0);
+      } else {
+        setStep(3);
+      }
     } else if (step === 3 && selectedCustomer) {
       setStep(4);
     }
@@ -224,7 +232,11 @@ const BookingCreateScreen = ({ navigation }: any) => {
 
   const renderHeader = () => (
     <View style={styles.header}>
-      <TouchableOpacity onPress={step === 0 ? () => navigation.goBack() : prevStep} style={styles.backButton}>
+      <TouchableOpacity
+        testID="booking-create-back-button"
+        onPress={step === 0 ? () => navigation.goBack() : prevStep}
+        style={styles.backButton}
+      >
         <Ionicons name="chevron-back" size={24} color={colors.textPrimary} />
       </TouchableOpacity>
       <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>
@@ -326,7 +338,7 @@ const BookingCreateScreen = ({ navigation }: any) => {
               <TouchableOpacity
                 onPress={() => {
                   setSelectedDate(d);
-                  loadSlots(selectedProfessional.id, d);
+                  if (selectedProfessional) loadSlots(selectedProfessional.id, d);
                   setSelectedSlot(null);
                 }}
                 style={{
@@ -401,7 +413,7 @@ const BookingCreateScreen = ({ navigation }: any) => {
             setShowDatePicker(false);
             if (date) {
               setSelectedDate(date);
-              loadSlots(selectedProfessional.id, date);
+              if (selectedProfessional) loadSlots(selectedProfessional.id, date);
               setSelectedSlot(null);
             }
           }}
