@@ -41,6 +41,31 @@ describe('fetchTopServices', () => {
     });
     expect(result).toEqual({ top_services: [] });
   });
+
+  it('includes professional_id and service_id when provided', async () => {
+    client.get.mockResolvedValue({ data: { top_services: [] } });
+
+    await fetchTopServices({
+      from: '2026-06-09',
+      to: '2026-07-09',
+      limit: 10,
+      professionalId: '7',
+      serviceId: '3',
+      slug: 'acme',
+    });
+
+    expect(client.get).toHaveBeenCalledWith('reports/top-services/', {
+      headers: { 'X-Tenant-Slug': 'acme' },
+      params: {
+        tenant: 'acme',
+        from: '2026-06-09',
+        to: '2026-07-09',
+        limit: 10,
+        professional_id: '7',
+        service_id: '3',
+      },
+    });
+  });
 });
 
 describe('fetchRevenue', () => {
@@ -72,6 +97,17 @@ describe('fetchRetention', () => {
       params: { tenant: 'acme', from: '2026-06-09', to: '2026-07-09' },
     });
     expect(result).toEqual({ new_clients: { qty: 1 }, returning_clients: { qty: 2 } });
+  });
+
+  it('includes professional_id when provided', async () => {
+    client.get.mockResolvedValue({ data: { new_clients: { qty: 1 }, returning_clients: { qty: 2 } } });
+
+    await fetchRetention({ from: '2026-06-09', to: '2026-07-09', professionalId: '7', slug: 'acme' });
+
+    expect(client.get).toHaveBeenCalledWith('reports/retention/', {
+      headers: { 'X-Tenant-Slug': 'acme' },
+      params: { tenant: 'acme', from: '2026-06-09', to: '2026-07-09', professional_id: '7' },
+    });
   });
 });
 
