@@ -13,7 +13,7 @@ export async function fetchBasicReports({ from, to, slug } = {}) {
   return response.data;
 }
 
-export async function fetchTopServices({ from, to, limit, slug } = {}) {
+export async function fetchTopServices({ from, to, limit, professionalId, serviceId, slug } = {}) {
   const headers = {};
   const params = {};
   if (slug) {
@@ -23,6 +23,8 @@ export async function fetchTopServices({ from, to, limit, slug } = {}) {
   if (from) params.from = from;
   if (to) params.to = to;
   if (limit) params.limit = limit;
+  if (professionalId) params.professional_id = professionalId;
+  if (serviceId) params.service_id = serviceId;
   const response = await client.get('reports/top-services/', { headers, params });
   return response.data;
 }
@@ -41,7 +43,7 @@ export async function fetchRevenue({ from, to, interval, slug } = {}) {
   return response.data;
 }
 
-export async function fetchRetention({ from, to, slug } = {}) {
+export async function fetchRetention({ from, to, professionalId, slug } = {}) {
   const headers = {};
   const params = {};
   if (slug) {
@@ -50,6 +52,7 @@ export async function fetchRetention({ from, to, slug } = {}) {
   }
   if (from) params.from = from;
   if (to) params.to = to;
+  if (professionalId) params.professional_id = professionalId;
   const response = await client.get('reports/retention/', { headers, params });
   return response.data;
 }
