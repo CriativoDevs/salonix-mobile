@@ -3,6 +3,7 @@ import { View, Text, Modal, StyleSheet, TouchableOpacity, Platform, Alert } from
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../hooks/useTheme';
 import { ThemeToggle } from './ThemeToggle';
+import { LanguageToggle } from './LanguageToggle';
 
 interface HeaderMenuProps {
     visible: boolean;
@@ -14,7 +15,7 @@ interface HeaderMenuProps {
     onToggleLanguage?: () => void; // Mantido como opcional
 }
 
-export function HeaderMenu({ visible, onClose, onLogout, onNavigateToAccount, onNavigateToSettings }: HeaderMenuProps) {
+export function HeaderMenu({ visible, onClose, onLogout, onNavigateToAccount, onNavigateToSettings, language, onToggleLanguage }: HeaderMenuProps) {
     const { colors } = useTheme();
 
     const handleLogout = () => {
@@ -65,7 +66,18 @@ export function HeaderMenu({ visible, onClose, onLogout, onNavigateToAccount, on
                             <ThemeToggle size={24} />
                         </View>
 
-                        {/* Language Toggle Removido conforme solicitação */}
+                        {/* Language Toggle — comentado até a auditoria de i18n (issue MOB-I18N-01) cobrir
+                            o app inteiro; hoje a maioria das telas ignora `language` e mostra texto
+                            fixo em pt, então o toggle não teria efeito visível na maior parte do app. */}
+                        {false && onToggleLanguage && (
+                            <View style={styles.menuItem}>
+                                <View style={styles.itemInfo}>
+                                    <Ionicons name="language-outline" size={20} color={colors.textPrimary} />
+                                    <Text style={[styles.itemText, { color: colors.textPrimary }]}>Idioma</Text>
+                                </View>
+                                <LanguageToggle language={language} onToggle={onToggleLanguage} size={20} />
+                            </View>
+                        )}
 
                         {/* Conta */}
                         <TouchableOpacity

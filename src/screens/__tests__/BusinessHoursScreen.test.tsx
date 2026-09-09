@@ -29,6 +29,11 @@ jest.mock('../../hooks/useAuth', () => ({
   useAuth: () => mockUseAuthReturn,
 }));
 
+const mockShowToast = jest.fn();
+jest.mock('../../contexts/ToastContext', () => ({
+  useToast: () => ({ showToast: mockShowToast }),
+}));
+
 const mockFetchTenantBusinessHours = jest.fn();
 const mockUpdateTenantBusinessHours = jest.fn();
 jest.mock('../../api/tenant', () => ({

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, FlatList, RefreshControl, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, ActionSheetIOS, Platform, Keyboard, Share, ScrollView } from 'react-native';
+import { View, Text, FlatList, RefreshControl, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, Keyboard, Share, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -16,12 +16,15 @@ import { getRegistrationLink, resolveMediaUrl } from '../utils/env';
 import { useTenant } from '../hooks/useTenant';
 import { useAuth } from '../hooks/useAuth';
 import { isOwner } from '../utils/permissions';
+import { useToast } from '../contexts/ToastContext';
+import { ActionMenu } from '../components/ui/ActionMenu';
 
 export default function CustomersScreen() {
     const { colors } = useTheme();
     const navigation = useNavigation();
     const { slug } = useTenant();
     const { userInfo } = useAuth();
+    const { showToast } = useToast();
 
     const [customers, setCustomers] = useState<any[]>([]);
     const [totalCount, setTotalCount] = useState(0);
@@ -42,6 +45,8 @@ export default function CustomersScreen() {
     const [actionLoading, setActionLoading] = useState(false);
     const [importModalVisible, setImportModalVisible] = useState(false);
     const [qrModalVisible, setQrModalVisible] = useState(false);
+    const [importExportMenuVisible, setImportExportMenuVisible] = useState(false);
+    const [optionsMenuTarget, setOptionsMenuTarget] = useState<any>(null);
 
     const handleExportCSV = async () => {
         try {
@@ -54,11 +59,7 @@ export default function CustomersScreen() {
     };
 
     const handleImportExport = () => {
-        Alert.alert('Importar/Exportar', 'Escolha uma opção', [
-            { text: 'Importar CSV', onPress: () => setImportModalVisible(true) },
-            { text: 'Exportar CSV', onPress: handleExportCSV },
-            { text: 'Cancelar', style: 'cancel' },
-        ]);
+        setImportExportMenuVisible(true);
     };
 
     const handleImportSuccess = () => {
@@ -203,7 +204,7 @@ export default function CustomersScreen() {
     const handleResendInvite = async (customer: any) => {
         try {
             await resendCustomerInvite(customer.id);
-            Alert.alert('Sucesso', 'Convite reenviado com sucesso.');
+            showToast({ type: 'success', message: 'Convite reenviado com sucesso.' });
         } catch (error) {
             console.error('Error resending invite:', error);
             Alert.alert('Erro', 'Não foi possível reenviar o convite.');
@@ -211,31 +212,7 @@ export default function CustomersScreen() {
     };
 
     const showOptions = (customer: any) => {
-        if (Platform.OS === 'ios') {
-            ActionSheetIOS.showActionSheetWithOptions(
-                {
-                    options: ['Cancelar', 'Editar', 'Reenviar Convite', 'Excluir'],
-                    destructiveButtonIndex: 3,
-                    cancelButtonIndex: 0,
-                },
-                (buttonIndex) => {
-                    if (buttonIndex === 1) handleEdit(customer);
-                    if (buttonIndex === 2) handleResendInvite(customer);
-                    if (buttonIndex === 3) handleDelete(customer);
-                }
-            );
-        } else {
-            Alert.alert(
-                'Opções',
-                `Selecione uma ação para ${customer.name} `,
-                [
-                    { text: 'Editar', onPress: () => handleEdit(customer) },
-                    { text: 'Reenviar Convite', onPress: () => handleResendInvite(customer) },
-                    { text: 'Excluir', onPress: () => handleDelete(customer), style: 'destructive' },
-                    { text: 'Cancelar', style: 'cancel' },
-                ]
-            );
-        }
+        setOptionsMenuTarget(customer);
     };
 
     const renderItem = ({ item }) => (
@@ -466,6 +443,27 @@ export default function CustomersScreen() {
                 visible={qrModalVisible}
                 onClose={() => setQrModalVisible(false)}
                 slug={slug}
+            />
+
+            <ActionMenu
+                visible={importExportMenuVisible}
+                onClose={() => setImportExportMenuVisible(false)}
+                title="Importar/Exportar"
+                options={[
+                    { label: 'Importar CSV', onPress: () => setImportModalVisible(true) },
+                    { label: 'Exportar CSV', onPress: handleExportCSV },
+                ]}
+            />
+
+            <ActionMenu
+                visible={!!optionsMenuTarget}
+                onClose={() => setOptionsMenuTarget(null)}
+                title={optionsMenuTarget?.name}
+                options={[
+                    { label: 'Editar', onPress: () => handleEdit(optionsMenuTarget) },
+                    { label: 'Reenviar Convite', onPress: () => handleResendInvite(optionsMenuTarget) },
+                    { label: 'Excluir', onPress: () => handleDelete(optionsMenuTarget), destructive: true },
+                ]}
             />
         </SafeAreaView>
     );

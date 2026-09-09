@@ -22,6 +22,11 @@ jest.mock('../../hooks/useTenant', () => ({
   useTenant: () => ({ slug: 'acme' }),
 }));
 
+const mockShowToast = jest.fn();
+jest.mock('../../contexts/ToastContext', () => ({
+  useToast: () => ({ showToast: mockShowToast }),
+}));
+
 const mockFetchServices = jest.fn();
 jest.mock('../../api/services', () => ({
   fetchServices: (...args: any[]) => mockFetchServices(...args),
@@ -72,11 +77,12 @@ describe('ProfessionalFormModal - photo', () => {
     mockGetInfoAsync.mockResolvedValue({ exists: true, size: 1024 });
   });
 
-  const pickFromGallery = async (getByText: any, alertSpy: jest.SpyInstance, buttonText = 'Alterar foto') => {
+  // Foto do profissional usa `ActionMenu` (themed) em vez de `Alert.alert` com
+  // botões — ver src/components/ui/ActionMenu.tsx. Simula-se a interação real:
+  // abrir o menu tocando no botão de foto, depois tocar na opção pretendida.
+  const pickFromGallery = async (getByText: any, buttonText = 'Alterar foto') => {
     await fireEvent.press(getByText(buttonText));
-    const options = alertSpy.mock.calls[alertSpy.mock.calls.length - 1][2];
-    const galleryOption = options.find((o: any) => o.text === 'Escolher da galeria');
-    await galleryOption.onPress();
+    await fireEvent.press(getByText('Escolher da galeria'));
   };
 
   it('does not show a photo picker when creating a new professional (no staff account yet)', async () => {
@@ -106,21 +112,16 @@ describe('ProfessionalFormModal - photo', () => {
       assets: [{ uri: 'file:///tmp/professional.jpg', mimeType: 'image/jpeg', fileName: 'professional.jpg' }],
     });
 
-    const { Alert } = require('react-native');
-    const alertSpy = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
-
     const { getByText, getByTestId } = await render(
       <ProfessionalFormModal visible onClose={jest.fn()} onSubmit={jest.fn()} initialData={initialData} />
     );
 
     await waitFor(() => expect(getByText('Alterar foto')).toBeTruthy());
-    await pickFromGallery(getByText, alertSpy);
+    await pickFromGallery(getByText);
 
     await waitFor(() => {
       expect(getByTestId('professional-form-avatar').props.source.uri).toBe('file:///tmp/professional.jpg');
     });
-
-    alertSpy.mockRestore();
   });
 
   it('includes photoFile in the payload passed to onSubmit when saving with a new photo', async () => {
@@ -129,8 +130,6 @@ describe('ProfessionalFormModal - photo', () => {
       assets: [{ uri: 'file:///tmp/professional.jpg', mimeType: 'image/jpeg', fileName: 'professional.jpg' }],
     });
 
-    const { Alert } = require('react-native');
-    const alertSpy = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
     const onSubmit = jest.fn().mockResolvedValue(undefined);
 
     const { getByText, getByTestId } = await render(
@@ -138,7 +137,7 @@ describe('ProfessionalFormModal - photo', () => {
     );
 
     await waitFor(() => expect(getByText('Alterar foto')).toBeTruthy());
-    await pickFromGallery(getByText, alertSpy);
+    await pickFromGallery(getByText);
 
     await waitFor(() => {
       expect(getByTestId('professional-form-avatar').props.source.uri).toBe('file:///tmp/professional.jpg');
@@ -157,8 +156,6 @@ describe('ProfessionalFormModal - photo', () => {
         })
       );
     });
-
-    alertSpy.mockRestore();
   });
 
   it('does not include photoFile when no new photo was picked', async () => {
@@ -182,21 +179,16 @@ describe('ProfessionalFormModal - photo', () => {
     });
     mockGetInfoAsync.mockResolvedValue({ exists: true, size: 3 * 1024 * 1024 });
 
-    const { Alert } = require('react-native');
-    const alertSpy = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
-
     const { getByText } = await render(
       <ProfessionalFormModal visible onClose={jest.fn()} onSubmit={jest.fn()} initialData={initialData} />
     );
 
     await waitFor(() => expect(getByText('Alterar foto')).toBeTruthy());
-    await pickFromGallery(getByText, alertSpy);
+    await pickFromGallery(getByText);
 
     await waitFor(() => {
       expect(getByText('O ficheiro deve ter no máximo 2MB.')).toBeTruthy();
     });
-
-    alertSpy.mockRestore();
   });
 
   it('rejects an unsupported mime type with an error message and does not set the photo', async () => {
@@ -205,21 +197,16 @@ describe('ProfessionalFormModal - photo', () => {
       assets: [{ uri: 'file:///tmp/doc.pdf', mimeType: 'application/pdf', fileName: 'doc.pdf' }],
     });
 
-    const { Alert } = require('react-native');
-    const alertSpy = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
-
     const { getByText } = await render(
       <ProfessionalFormModal visible onClose={jest.fn()} onSubmit={jest.fn()} initialData={initialData} />
     );
 
     await waitFor(() => expect(getByText('Alterar foto')).toBeTruthy());
-    await pickFromGallery(getByText, alertSpy);
+    await pickFromGallery(getByText);
 
     await waitFor(() => {
       expect(getByText('Formato não suportado. Use JPEG, PNG, GIF ou WEBP.')).toBeTruthy();
     });
     expect(mockGetInfoAsync).not.toHaveBeenCalled();
-
-    alertSpy.mockRestore();
   });
 });

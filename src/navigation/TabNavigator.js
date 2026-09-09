@@ -10,8 +10,8 @@ import DashboardScreen from "../screens/DashboardScreen";
 import BookingsNavigator from "./BookingsNavigator";
 import CustomersScreen from "../screens/CustomersScreen";
 import TeamScreen from "../screens/TeamScreen";
-import SlotsScreen from "../screens/SlotsScreen";
-import ServicesScreen from "../screens/ServicesScreen";
+import ReportsScreen from "../screens/ReportsScreen";
+import { isOwner } from "../utils/permissions";
 import {
   addNotificationListeners,
   handleInitialNotificationNavigation,
@@ -27,6 +27,7 @@ export default function TabNavigator() {
   const navigation = useNavigation();
 
   const isCollaborator = userInfo?.staff_role === "collaborator";
+  const canSeeReports = isOwner(userInfo);
 
   useEffect(() => {
     setNotificationNavigationHandler((data) => {
@@ -112,12 +113,10 @@ export default function TabNavigator() {
             iconName = focused ? "calendar" : "calendar-outline";
           } else if (route.name === "Customers") {
             iconName = focused ? "people" : "people-outline";
-          } else if (route.name === "Services") {
-            iconName = focused ? "cut" : "cut-outline";
           } else if (route.name === "Team") {
             iconName = focused ? "people-circle" : "people-circle-outline";
-          } else if (route.name === "Horários") {
-            iconName = focused ? "time" : "time-outline";
+          } else if (route.name === "Reports") {
+            iconName = focused ? "bar-chart" : "bar-chart-outline";
           }
 
           return (
@@ -149,11 +148,6 @@ export default function TabNavigator() {
         component={CustomersScreen}
         options={{ tabBarLabel: "Clientes" }}
       />
-      <Tab.Screen
-        name="Services"
-        component={ServicesScreen}
-        options={{ tabBarLabel: "Serviços" }}
-      />
       {!isCollaborator && (
         <Tab.Screen
           name="Team"
@@ -161,11 +155,13 @@ export default function TabNavigator() {
           options={{ tabBarLabel: "Equipe" }}
         />
       )}
-      <Tab.Screen
-        name="Horários"
-        component={SlotsScreen}
-        options={{ tabBarLabel: "Horários" }}
-      />
+      {canSeeReports && (
+        <Tab.Screen
+          name="Reports"
+          component={ReportsScreen}
+          options={{ tabBarLabel: "Relatórios" }}
+        />
+      )}
     </Tab.Navigator>
   );
 }

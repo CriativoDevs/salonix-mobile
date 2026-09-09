@@ -9,12 +9,14 @@ import { useAuth } from '../hooks/useAuth';
 import { Input } from '../components/ui/Input';
 import { fetchTenantMeta, updateTenantContact, updateTenantModules, updateTenantAutoInvite } from '../api/tenant';
 import { Button } from '../components/ui/Button';
+import { useToast } from '../contexts/ToastContext';
 
 export default function GeneralScreen() {
   const navigation = useNavigation();
   const { colors } = useTheme();
   const { slug } = useTenant();
   const { userInfo } = useAuth();
+  const { showToast } = useToast();
   const isAdmin = userInfo?.is_superuser || userInfo?.role === 'owner' || userInfo?.role === 'manager';
 
   const [loading, setLoading] = useState(true);
@@ -47,7 +49,7 @@ export default function GeneralScreen() {
       });
       setEmail(data.profile?.email || '');
       setPhone(data.profile?.phone || '');
-      setPwaClientEnabled(!!data.feature_flags?.pwa_client_enabled);
+      setPwaClientEnabled(!!data.feature_flags?.modules?.pwa_client_enabled);
       setAutoInviteEnabled(!!data.auto_invite_enabled);
       setLoading(false);
     }).catch(() => {
@@ -65,7 +67,7 @@ export default function GeneralScreen() {
     setBusy(true);
     try {
       await updateTenantContact({ email, phone }, { slug });
-      Alert.alert('Sucesso', 'Dados de contato atualizados.');
+      showToast({ type: 'success', message: 'Dados de contato atualizados.' });
     } catch (error: any) {
       const detail = error?.response?.data?.detail;
       Alert.alert('Erro', typeof detail === 'string' ? detail : 'Não foi possível guardar os dados de contato.');

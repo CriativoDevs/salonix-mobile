@@ -9,6 +9,7 @@ import { useTenant } from '../hooks/useTenant';
 import { useAuth } from '../hooks/useAuth';
 import { fetchTenantBusinessHours, updateTenantBusinessHours } from '../api/tenant';
 import { Button } from '../components/ui/Button';
+import { useToast } from '../contexts/ToastContext';
 
 type DayHours = {
   day_of_week: number;
@@ -62,6 +63,7 @@ export default function BusinessHoursScreen() {
   const { colors } = useTheme();
   const { slug } = useTenant();
   const { userInfo } = useAuth();
+  const { showToast } = useToast();
   const isAdmin = userInfo?.is_superuser || userInfo?.role === 'owner' || userInfo?.role === 'manager';
 
   const [days, setDays] = useState<DayHours[] | null>(null);
@@ -113,7 +115,7 @@ export default function BusinessHoursScreen() {
     setBusy(true);
     try {
       await updateTenantBusinessHours(days, { slug });
-      Alert.alert('Sucesso', 'Horário de funcionamento atualizado.');
+      showToast({ type: 'success', message: 'Horário de funcionamento atualizado.' });
     } catch (error: any) {
       const detail = error?.response?.data?.detail;
       Alert.alert('Erro', typeof detail === 'string' ? detail : 'Não foi possível guardar o horário de funcionamento.');

@@ -27,6 +27,10 @@ jest.mock('../../hooks/useAuth', () => ({
   useAuth: () => mockUseAuthReturn,
 }));
 
+jest.mock('../../contexts/ToastContext', () => ({
+  useToast: () => ({ showToast: jest.fn() }),
+}));
+
 jest.mock('@react-navigation/native', () => ({
   useNavigation: () => ({ navigate: jest.fn() }),
 }));

@@ -17,6 +17,7 @@ import { useTheme } from '../hooks/useTheme';
 import { useTenant } from '../hooks/useTenant';
 import { fetchAppointmentDetail, cancelAppointment, updateAppointment } from '../api/bookings';
 import { parseSlotDate, formatDateTimeRange, formatCurrency } from '../utils/date';
+import { useToast } from '../contexts/ToastContext';
 
 const STATUS_LABELS: Record<string, string> = {
   scheduled: 'Agendado',
@@ -28,6 +29,7 @@ const STATUS_LABELS: Record<string, string> = {
 const BookingDetailScreen = ({ navigation, route }: any) => {
   const { colors } = useTheme();
   const { slug } = useTenant();
+  const { showToast } = useToast();
   const { id } = route?.params || {};
 
   const [appointment, setAppointment] = useState<any>(null);
@@ -72,7 +74,7 @@ const BookingDetailScreen = ({ navigation, route }: any) => {
             try {
               setActionLoading(true);
               await cancelAppointment(id, { slug });
-              Alert.alert('Sucesso', 'Agendamento cancelado com sucesso.');
+              showToast({ type: 'success', message: 'Agendamento cancelado com sucesso.' });
               loadData(); // Reload to show updated status
             } catch (error) {
               console.error('Error cancelling appointment:', error);
@@ -90,7 +92,7 @@ const BookingDetailScreen = ({ navigation, route }: any) => {
     try {
       setActionLoading(true);
       await updateAppointment(id, { status: 'completed' }, { slug });
-      Alert.alert('Sucesso', 'Agendamento marcado como concluído.');
+      showToast({ type: 'success', message: 'Agendamento marcado como concluído.' });
       loadData();
     } catch (error) {
       console.error('Error updating appointment:', error);

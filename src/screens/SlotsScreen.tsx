@@ -1,12 +1,14 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { View, Text, FlatList, RefreshControl, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, ActionSheetIOS, Platform } from 'react-native';
+import { View, Text, FlatList, RefreshControl, StyleSheet, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { Picker } from '@react-native-picker/picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useTheme } from '../hooks/useTheme';
 import { useTenant } from '../hooks/useTenant';
 import { Card } from '../components/ui/Card';
+import { Select } from '../components/ui/Select';
+import { ActionMenu } from '../components/ui/ActionMenu';
 import { fetchSlots, createSlot, deleteSlot } from '../api/slots';
 import { fetchProfessionals } from '../api/professionals';
 import { SlotFormModal } from '../components/SlotFormModal';
@@ -15,6 +17,7 @@ import { useAuth } from '../hooks/useAuth';
 
 export default function SlotsScreen() {
     const { colors } = useTheme();
+    const navigation = useNavigation();
     const { slug } = useTenant();
     const { userInfo } = useAuth();
     const isAdmin = userInfo?.is_superuser || userInfo?.role === 'owner' || userInfo?.role === 'manager';
@@ -34,11 +37,13 @@ export default function SlotsScreen() {
 
     const [page, setPage] = useState(0);
     const [hasMore, setHasMore] = useState(true);
+    const [loadingMore, setLoadingMore] = useState(false);
 
     // Modal & Actions State
     const [modalVisible, setModalVisible] = useState(false);
     const [bulkModalVisible, setBulkModalVisible] = useState(false);
     const [actionLoading, setActionLoading] = useState(false);
+    const [optionsMenuTarget, setOptionsMenuTarget] = useState<any>(null);
 
     const LIMIT = 20;
 
@@ -58,13 +63,14 @@ export default function SlotsScreen() {
     };
 
     const loadData = useCallback(async (shouldRefresh = false) => {
-        if (loading && !shouldRefresh) return;
-
-        if (shouldRefresh) {
+        if (!shouldRefresh) {
+            // Evita disparos concorrentes: só permite "carregar mais" quando
+            // não há nenhum carregamento em curso e ainda existem itens por vir.
+            if (loading || loadingMore || refreshing || !hasMore) return;
+            setLoadingMore(true);
+        } else {
             setRefreshing(true);
             setPage(0);
-        } else {
-            if (!hasMore && page > 0) return;
         }
 
         try {
@@ -98,7 +104,13 @@ export default function SlotsScreen() {
             if (shouldRefresh) {
                 setSlots(filteredResults);
             } else {
-                setSlots(prev => [...prev, ...filteredResults]);
+                // Deduplica por id: evita itens repetidos caso a mesma página
+                // seja pedida mais de uma vez (ex.: cliques rápidos em "Carregar mais").
+                setSlots(prev => {
+                    const existingIds = new Set(prev.map((s: any) => s.id));
+                    const newOnes = filteredResults.filter((s: any) => !existingIds.has(s.id));
+                    return [...prev, ...newOnes];
+                });
             }
 
             setHasMore(results.length >= LIMIT);
@@ -113,8 +125,9 @@ export default function SlotsScreen() {
         } finally {
             setLoading(false);
             setRefreshing(false);
+            setLoadingMore(false);
         }
-    }, [selectedProfessional, selectedDate, showAvailableOnly, page, hasMore, loading, slug]);
+    }, [selectedProfessional, selectedDate, showAvailableOnly, page, hasMore, loading, loadingMore, refreshing, slug]);
 
     // Initial load and filter changes
     useEffect(() => {
@@ -134,8 +147,8 @@ export default function SlotsScreen() {
         loadData(true);
     };
 
-    const onEndReached = () => {
-        if (!loading && !refreshing && hasMore) {
+    const handleLoadMore = () => {
+        if (!loading && !refreshing && !loadingMore && hasMore) {
             loadData(false);
         }
     };
@@ -188,27 +201,7 @@ export default function SlotsScreen() {
     };
 
     const showOptions = (slot: any) => {
-        if (Platform.OS === 'ios') {
-            ActionSheetIOS.showActionSheetWithOptions(
-                {
-                    options: ['Cancelar', 'Excluir'],
-                    destructiveButtonIndex: 1,
-                    cancelButtonIndex: 0,
-                },
-                (buttonIndex) => {
-                    if (buttonIndex === 1) handleDelete(slot);
-                }
-            );
-        } else {
-            Alert.alert(
-                'Opções',
-                'Selecione uma ação',
-                [
-                    { text: 'Excluir', onPress: () => handleDelete(slot), style: 'destructive' },
-                    { text: 'Cancelar', style: 'cancel' },
-                ]
-            );
-        }
+        setOptionsMenuTarget(slot);
     };
 
     // Group slots by date
@@ -296,11 +289,20 @@ export default function SlotsScreen() {
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
             {/* Header */}
+            <View style={[styles.header, { borderBottomColor: colors.border }]}>
+                <TouchableOpacity
+                    testID="slots-back-button"
+                    onPress={() => navigation.goBack()}
+                    style={[styles.backBtn, { backgroundColor: colors.surfaceVariant }]}
+                >
+                    <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
+                </TouchableOpacity>
+                <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Horários</Text>
+                <View style={{ width: 38 }} />
+            </View>
+
             <View style={{ paddingHorizontal: 16 }}>
                 <View style={{ marginBottom: 16 }}>
-                    <Text className="text-3xl font-bold" style={{ color: colors.textPrimary, marginBottom: 4 }}>
-                        Horários
-                    </Text>
                     <Text style={{ color: colors.textSecondary, fontSize: 13, marginBottom: 12 }}>
                         {totalCount} horários disponíveis
                     </Text>
@@ -366,18 +368,17 @@ export default function SlotsScreen() {
                     {/* Professional Filter */}
                     <View style={styles.filterGroup}>
                         <Text style={[styles.filterLabel, { color: colors.textPrimary }]}>Profissional</Text>
-                        <View style={[styles.pickerContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-                            <Picker
-                                selectedValue={selectedProfessional}
-                                onValueChange={(value) => setSelectedProfessional(String(value))}
-                                style={{ color: colors.textPrimary }}
-                            >
-                                <Picker.Item label="Todos" value="" />
-                                {professionals.map((prof) => (
-                                    <Picker.Item key={prof.id} label={prof.name} value={String(prof.id)} />
-                                ))}
-                            </Picker>
-                        </View>
+                        <Select
+                            testID="slots-professional-filter"
+                            selectedValue={selectedProfessional}
+                            onValueChange={setSelectedProfessional}
+                            placeholder="Todos"
+                            title="Profissional"
+                            options={[
+                                { label: 'Todos', value: '' },
+                                ...professionals.map((prof) => ({ label: prof.name, value: String(prof.id) })),
+                            ]}
+                        />
                     </View>
 
                     {/* Date Filter */}
@@ -444,11 +445,28 @@ export default function SlotsScreen() {
                 refreshControl={
                     <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.brandPrimary} />
                 }
-                onEndReached={onEndReached}
-                onEndReachedThreshold={0.5}
                 ListFooterComponent={
                     loading && !refreshing ? (
                         <ActivityIndicator size="small" color={colors.brandPrimary} style={styles.footerLoader} />
+                    ) : hasMore && slots.length > 0 ? (
+                        <TouchableOpacity
+                            testID="slots-load-more-button"
+                            onPress={handleLoadMore}
+                            disabled={loadingMore}
+                            style={[styles.loadMoreButton, { borderColor: colors.border, backgroundColor: colors.surface }]}
+                        >
+                            {loadingMore ? (
+                                <ActivityIndicator size="small" color={colors.brandPrimary} />
+                            ) : (
+                                <Text style={[styles.loadMoreText, { color: colors.brandPrimary }]}>
+                                    Carregar mais
+                                </Text>
+                            )}
+                        </TouchableOpacity>
+                    ) : slots.length > 0 ? (
+                        <Text style={[styles.endOfListText, { color: colors.textSecondary }]}>
+                            Todos os horários foram carregados.
+                        </Text>
                     ) : null
                 }
                 ListEmptyComponent={
@@ -482,6 +500,15 @@ export default function SlotsScreen() {
                 professionals={professionals}
                 slug={slug}
             />
+
+            <ActionMenu
+                visible={!!optionsMenuTarget}
+                onClose={() => setOptionsMenuTarget(null)}
+                title="Opções"
+                options={[
+                    { label: 'Excluir', onPress: () => handleDelete(optionsMenuTarget), destructive: true },
+                ]}
+            />
         </SafeAreaView>
     );
 }
@@ -489,6 +516,22 @@ export default function SlotsScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
+    },
+    header: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        borderBottomWidth: 1,
+    },
+    backBtn: {
+        padding: 8,
+        borderRadius: 20,
+    },
+    headerTitle: {
+        fontSize: 17,
+        fontWeight: '600',
     },
     filters: {
         padding: 16,
@@ -500,11 +543,6 @@ const styles = StyleSheet.create({
         fontSize: 14,
         fontWeight: '500',
         marginBottom: 8,
-    },
-    pickerContainer: {
-        borderWidth: 1,
-        borderRadius: 8,
-        overflow: 'hidden',
     },
     filterToggle: {
         alignSelf: 'flex-start',
@@ -557,6 +595,23 @@ const styles = StyleSheet.create({
         padding: 8,
     },
     footerLoader: {
+        paddingVertical: 16,
+    },
+    loadMoreButton: {
+        marginTop: 8,
+        marginBottom: 8,
+        paddingVertical: 12,
+        borderRadius: 8,
+        borderWidth: 1,
+        alignItems: 'center',
+    },
+    loadMoreText: {
+        fontSize: 14,
+        fontWeight: '600',
+    },
+    endOfListText: {
+        textAlign: 'center',
+        fontSize: 12,
         paddingVertical: 16,
     },
     emptyState: {

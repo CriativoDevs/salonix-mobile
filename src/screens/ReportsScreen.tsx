@@ -3,7 +3,6 @@ import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert, ActivityIn
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { Picker } from '@react-native-picker/picker';
 import { useTheme } from '../hooks/useTheme';
 import { useTenant } from '../hooks/useTenant';
 import { useAuth } from '../hooks/useAuth';
@@ -15,7 +14,7 @@ import { fetchProfessionals } from '../api/professionals';
 import { fetchServices } from '../api/services';
 import { saveAndShareCSV } from '../utils/csvFileSharing';
 import { Button } from '../components/ui/Button';
-import { Modal } from '../components/ui/Modal';
+import { Select } from '../components/ui/Select';
 
 type TabKey = 'basic' | 'business' | 'insights';
 type IntervalKey = 'day' | 'week' | 'month';
@@ -93,8 +92,6 @@ export default function ReportsScreen() {
   const [exporting, setExporting] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [revenueView, setRevenueView] = useState<'chart' | 'table'>('chart');
-  const [professionalPickerOpen, setProfessionalPickerOpen] = useState(false);
-  const [servicePickerOpen, setServicePickerOpen] = useState(false);
 
   const [applied, setApplied] = useState<Filters>(getDefaultFilters);
   const [draft, setDraft] = useState<Filters>(applied);
@@ -271,13 +268,6 @@ export default function ReportsScreen() {
 
   const intervalLabel = INTERVAL_OPTIONS.find((option) => option.value === interval)?.label || 'período';
 
-  const draftProfessionalLabel = draft.professionalId
-    ? professionals.find((prof: any) => String(prof.id) === draft.professionalId)?.name || 'Todos'
-    : 'Todos';
-  const draftServiceLabel = draft.serviceId
-    ? services.find((service: any) => String(service.id) === draft.serviceId)?.name || 'Todos'
-    : 'Todos';
-
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
       <View style={styles.header}>
@@ -328,28 +318,34 @@ export default function ReportsScreen() {
             {(activeTab === 'business' || activeTab === 'insights') && (
               <View style={styles.inputGroup}>
                 <Text style={[styles.filterLabel, { color: colors.textPrimary }]}>Profissional</Text>
-                <TouchableOpacity
-                  testID="reports-professional-picker-trigger"
-                  onPress={() => setProfessionalPickerOpen(true)}
-                  style={[styles.pickerTrigger, { borderColor: colors.border, backgroundColor: colors.background }]}
-                >
-                  <Text style={{ color: colors.textPrimary, fontSize: 14 }}>{draftProfessionalLabel}</Text>
-                  <Ionicons name="chevron-down" size={18} color={colors.textSecondary} />
-                </TouchableOpacity>
+                <Select
+                  testID="reports-professional-picker"
+                  selectedValue={draft.professionalId}
+                  onValueChange={(value) => setDraft((prev) => ({ ...prev, professionalId: value }))}
+                  placeholder="Todos"
+                  title="Profissional"
+                  options={[
+                    { label: 'Todos', value: '' },
+                    ...professionals.map((prof: any) => ({ label: prof.name, value: String(prof.id) })),
+                  ]}
+                />
               </View>
             )}
 
             {activeTab === 'business' && (
               <View style={styles.inputGroup}>
                 <Text style={[styles.filterLabel, { color: colors.textPrimary }]}>Serviço</Text>
-                <TouchableOpacity
-                  testID="reports-service-picker-trigger"
-                  onPress={() => setServicePickerOpen(true)}
-                  style={[styles.pickerTrigger, { borderColor: colors.border, backgroundColor: colors.background }]}
-                >
-                  <Text style={{ color: colors.textPrimary, fontSize: 14 }}>{draftServiceLabel}</Text>
-                  <Ionicons name="chevron-down" size={18} color={colors.textSecondary} />
-                </TouchableOpacity>
+                <Select
+                  testID="reports-service-picker"
+                  selectedValue={draft.serviceId}
+                  onValueChange={(value) => setDraft((prev) => ({ ...prev, serviceId: value }))}
+                  placeholder="Todos"
+                  title="Serviço"
+                  options={[
+                    { label: 'Todos', value: '' },
+                    ...services.map((service: any) => ({ label: service.name, value: String(service.id) })),
+                  ]}
+                />
               </View>
             )}
 
@@ -623,58 +619,6 @@ export default function ReportsScreen() {
           </>
         )}
       </ScrollView>
-
-      <Modal
-        visible={professionalPickerOpen}
-        onClose={() => setProfessionalPickerOpen(false)}
-        title="Profissional"
-        footer={
-          <Button onPress={() => setProfessionalPickerOpen(false)} style={{ flex: 1 }}>
-            Concluir
-          </Button>
-        }
-      >
-        <Picker
-          key={`professional-picker-${professionals.length}`}
-          testID="reports-professional-picker"
-          selectedValue={draft.professionalId}
-          onValueChange={(value) => setDraft((prev) => ({ ...prev, professionalId: String(value) }))}
-          style={{ color: colors.textPrimary }}
-          itemStyle={{ color: colors.textPrimary }}
-          dropdownIconColor={colors.textPrimary}
-        >
-          <Picker.Item label="Todos" value="" color={colors.textPrimary} />
-          {professionals.map((prof: any) => (
-            <Picker.Item key={prof.id} label={prof.name} value={String(prof.id)} color={colors.textPrimary} />
-          ))}
-        </Picker>
-      </Modal>
-
-      <Modal
-        visible={servicePickerOpen}
-        onClose={() => setServicePickerOpen(false)}
-        title="Serviço"
-        footer={
-          <Button onPress={() => setServicePickerOpen(false)} style={{ flex: 1 }}>
-            Concluir
-          </Button>
-        }
-      >
-        <Picker
-          key={`service-picker-${services.length}`}
-          testID="reports-service-picker"
-          selectedValue={draft.serviceId}
-          onValueChange={(value) => setDraft((prev) => ({ ...prev, serviceId: String(value) }))}
-          style={{ color: colors.textPrimary }}
-          itemStyle={{ color: colors.textPrimary }}
-          dropdownIconColor={colors.textPrimary}
-        >
-          <Picker.Item label="Todos" value="" color={colors.textPrimary} />
-          {services.map((service: any) => (
-            <Picker.Item key={service.id} label={service.name} value={String(service.id)} color={colors.textPrimary} />
-          ))}
-        </Picker>
-      </Modal>
     </SafeAreaView>
   );
 }
@@ -750,19 +694,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
     marginBottom: 6,
-  },
-  pickerContainer: {
-    borderWidth: 1,
-    borderRadius: 8,
-  },
-  pickerTrigger: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderWidth: 1,
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
   },
   table: {
     borderWidth: 1,

@@ -30,6 +30,11 @@ jest.mock('../../hooks/useAuth', () => ({
   useAuth: () => mockUseAuthReturn,
 }));
 
+const mockShowToast = jest.fn();
+jest.mock('../../contexts/ToastContext', () => ({
+  useToast: () => ({ showToast: mockShowToast }),
+}));
+
 const mockFetchTenantMeta = jest.fn();
 const mockUpdateTenantContact = jest.fn();
 const mockUpdateTenantModules = jest.fn();
@@ -49,7 +54,7 @@ const TENANT_META = {
   preferred_language: 'pt',
   auto_invite_enabled: true,
   profile: { email: 'contato@acme.pt', phone: '+351911111111' },
-  feature_flags: { pwa_client_enabled: true },
+  feature_flags: { modules: { pwa_client_enabled: true } },
 };
 
 describe('GeneralScreen', () => {
@@ -76,9 +81,8 @@ describe('GeneralScreen', () => {
     expect(getByDisplayValue('+351911111111')).toBeTruthy();
   });
 
-  it('saves the contact form and shows a success alert', async () => {
+  it('saves the contact form and shows a success toast', async () => {
     mockUpdateTenantContact.mockResolvedValue({ profile: { email: 'novo@acme.pt', phone: '+351922222222' } });
-    const alertSpy = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
 
     const { getByDisplayValue, getByText } = await render(<GeneralScreen />);
     await waitFor(() => expect(getByDisplayValue('contato@acme.pt')).toBeTruthy());
@@ -92,9 +96,7 @@ describe('GeneralScreen', () => {
         { slug: 'acme' }
       );
     });
-    expect(alertSpy).toHaveBeenCalledWith('Sucesso', 'Dados de contato atualizados.');
-
-    alertSpy.mockRestore();
+    expect(mockShowToast).toHaveBeenCalledWith({ type: 'success', message: 'Dados de contato atualizados.' });
   });
 
   it('shows the backend error detail when saving the contact form fails', async () => {
@@ -128,7 +130,7 @@ describe('GeneralScreen', () => {
     mockFetchTenantMeta.mockResolvedValue({
       ...TENANT_META,
       auto_invite_enabled: false,
-      feature_flags: { pwa_client_enabled: false },
+      feature_flags: { modules: { pwa_client_enabled: false } },
     });
 
     const { getByTestId, getByText } = await render(<GeneralScreen />);

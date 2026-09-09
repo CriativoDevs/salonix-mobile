@@ -28,6 +28,7 @@ import { exportServicesCSV } from '../api/services';
 import { exportStaffCSV } from '../api/staff';
 import { saveAndShareZip } from '../utils/zipFileSharing';
 import { isOwner } from '../utils/permissions';
+import { ActionMenu } from '../components/ui/ActionMenu';
 
 const CONFIRM_WORD = 'CANCELAR CONTA';
 
@@ -159,6 +160,7 @@ export default function AccountScreen() {
   const [cancelError, setCancelError] = useState<string | null>(null);
 
   const [bulkModalVisible, setBulkModalVisible] = useState(false);
+  const [bulkDataMenuVisible, setBulkDataMenuVisible] = useState(false);
 
   const handleExportAll = async () => {
     const entities: [string, () => Promise<string>][] = [
@@ -198,11 +200,7 @@ export default function AccountScreen() {
   };
 
   const handleBulkDataAction = () => {
-    Alert.alert(t.dataCta, undefined, [
-      { text: t.dataImportOption, onPress: () => setBulkModalVisible(true) },
-      { text: t.dataExportOption, onPress: handleExportAll },
-      { text: t.cancel, style: 'cancel' },
-    ]);
+    setBulkDataMenuVisible(true);
   };
 
   useEffect(() => {
@@ -647,6 +645,17 @@ export default function AccountScreen() {
         onClose={() => setBulkModalVisible(false)}
         onSuccess={() => setBulkModalVisible(false)}
         slug={slug}
+      />
+
+      <ActionMenu
+        visible={bulkDataMenuVisible}
+        onClose={() => setBulkDataMenuVisible(false)}
+        title={t.dataCta}
+        cancelLabel={t.cancel}
+        options={[
+          { label: t.dataImportOption, onPress: () => setBulkModalVisible(true) },
+          { label: t.dataExportOption, onPress: handleExportAll },
+        ]}
       />
     </SafeAreaView>
   );

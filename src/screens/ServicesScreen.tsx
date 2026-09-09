@@ -8,10 +8,9 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
-  ActionSheetIOS,
-  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../hooks/useTheme';
 import { Card } from '../components/ui/Card';
@@ -22,9 +21,11 @@ import { useTenant } from '../hooks/useTenant';
 import { useAuth } from '../hooks/useAuth';
 import { isOwner } from '../utils/permissions';
 import { saveAndShareCSV } from '../utils/csvFileSharing';
+import { ActionMenu } from '../components/ui/ActionMenu';
 
 export default function ServicesScreen() {
   const { colors } = useTheme();
+  const navigation = useNavigation();
   const { slug } = useTenant();
   const { userInfo } = useAuth();
   const isAdmin = userInfo?.is_superuser || userInfo?.role === 'owner' || userInfo?.role === 'manager';
@@ -37,6 +38,8 @@ export default function ServicesScreen() {
   const [selectedService, setSelectedService] = useState<any>(null);
   const [actionLoading, setActionLoading] = useState(false);
   const [importModalVisible, setImportModalVisible] = useState(false);
+  const [importExportMenuVisible, setImportExportMenuVisible] = useState(false);
+  const [optionsMenuTarget, setOptionsMenuTarget] = useState<any>(null);
 
   const loadServices = useCallback(
     async (shouldRefresh = false) => {
@@ -76,11 +79,7 @@ export default function ServicesScreen() {
   };
 
   const handleImportExport = () => {
-    Alert.alert('Importar/Exportar', 'Escolha uma opção', [
-      { text: 'Importar CSV', onPress: () => setImportModalVisible(true) },
-      { text: 'Exportar CSV', onPress: handleExportServicesCSV },
-      { text: 'Cancelar', style: 'cancel' },
-    ]);
+    setImportExportMenuVisible(true);
   };
 
   const handleImportSuccess = () => {
@@ -138,25 +137,7 @@ export default function ServicesScreen() {
   };
 
   const showOptions = (service: any) => {
-    if (Platform.OS === 'ios') {
-      ActionSheetIOS.showActionSheetWithOptions(
-        {
-          options: ['Cancelar', 'Editar', 'Excluir'],
-          destructiveButtonIndex: 2,
-          cancelButtonIndex: 0,
-        },
-        (buttonIndex) => {
-          if (buttonIndex === 1) handleEdit(service);
-          if (buttonIndex === 2) handleDelete(service);
-        }
-      );
-    } else {
-      Alert.alert('Opções', `Selecione uma ação para ${service.name}`, [
-        { text: 'Editar', onPress: () => handleEdit(service) },
-        { text: 'Excluir', onPress: () => handleDelete(service), style: 'destructive' },
-        { text: 'Cancelar', style: 'cancel' },
-      ]);
-    }
+    setOptionsMenuTarget(service);
   };
 
   const formatPrice = (value: any) => {
@@ -183,11 +164,20 @@ export default function ServicesScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.header, { borderBottomColor: colors.border }]}>
+        <TouchableOpacity
+          testID="services-back-button"
+          onPress={() => navigation.goBack()}
+          style={[styles.backBtn, { backgroundColor: colors.surfaceVariant }]}
+        >
+          <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
+        </TouchableOpacity>
+        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Serviços</Text>
+        <View style={{ width: 38 }} />
+      </View>
+
       <View style={{ paddingHorizontal: 16 }}>
         <View style={{ marginBottom: 16 }}>
-          <Text style={{ color: colors.textPrimary, fontSize: 28, fontWeight: 'bold', marginBottom: 4 }}>
-            Serviços
-          </Text>
           <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
             {services.length} serviços
           </Text>
@@ -262,12 +252,48 @@ export default function ServicesScreen() {
         onSuccess={handleImportSuccess}
         slug={slug}
       />
+
+      <ActionMenu
+        visible={importExportMenuVisible}
+        onClose={() => setImportExportMenuVisible(false)}
+        title="Importar/Exportar"
+        options={[
+          { label: 'Importar CSV', onPress: () => setImportModalVisible(true) },
+          { label: 'Exportar CSV', onPress: handleExportServicesCSV },
+        ]}
+      />
+
+      <ActionMenu
+        visible={!!optionsMenuTarget}
+        onClose={() => setOptionsMenuTarget(null)}
+        title={optionsMenuTarget?.name}
+        options={[
+          { label: 'Editar', onPress: () => handleEdit(optionsMenuTarget) },
+          { label: 'Excluir', onPress: () => handleDelete(optionsMenuTarget), destructive: true },
+        ]}
+      />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+  },
+  backBtn: {
+    padding: 8,
+    borderRadius: 20,
+  },
+  headerTitle: {
+    fontSize: 17,
+    fontWeight: '600',
+  },
   listContent: { padding: 16, paddingTop: 0 },
   card: { marginBottom: 12 },
   serviceName: { fontSize: 16, fontWeight: '600', marginBottom: 4 },

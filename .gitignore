@@ -5,6 +5,8 @@ mobile-open-issues.json
 .DS_Store
 .expo/
 node_modules/
+ios/
+android/
 dist/
 build/
 coverage/

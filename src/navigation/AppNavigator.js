@@ -14,6 +14,12 @@ import GeneralScreen from "../screens/GeneralScreen";
 import ReportsScreen from "../screens/ReportsScreen";
 import CreditsPlanScreen from "../screens/CreditsPlanScreen";
 import SettingsScreen from "../screens/SettingsScreen";
+import MarketingScreen from "../screens/MarketingScreen";
+import ServicesScreen from "../screens/ServicesScreen";
+import SlotsScreen from "../screens/SlotsScreen";
+import FeedbackScreen from "../screens/FeedbackScreen";
+import RoadmapScreen from "../screens/RoadmapScreen";
+import HowItWorksScreen from "../screens/HowItWorksScreen";
 import { useAuth } from "../hooks/useAuth";
 import { hasSeenOnboarding } from "../utils/onboardingStorage";
 
@@ -93,6 +99,30 @@ export default function AppNavigator() {
           <Stack.Screen
             name="Settings"
             component={SettingsScreen}
+          />
+          <Stack.Screen
+            name="Marketing"
+            component={MarketingScreen}
+          />
+          <Stack.Screen
+            name="Services"
+            component={ServicesScreen}
+          />
+          <Stack.Screen
+            name="Slots"
+            component={SlotsScreen}
+          />
+          <Stack.Screen
+            name="Feedback"
+            component={FeedbackScreen}
+          />
+          <Stack.Screen
+            name="Roadmap"
+            component={RoadmapScreen}
+          />
+          <Stack.Screen
+            name="HowItWorks"
+            component={HowItWorksScreen}
           />
         </>
       ) : hasSeen ? (

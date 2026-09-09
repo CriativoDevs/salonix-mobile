@@ -2,10 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { Picker } from '@react-native-picker/picker';
 import { useTheme } from '../hooks/useTheme';
 import { Button } from './ui/Button';
 import { Modal } from './ui/Modal';
+import { Select } from './ui/Select';
 import { useAuth } from '../hooks/useAuth';
 
 interface SlotFormModalProps {
@@ -122,7 +122,7 @@ export function SlotFormModal({ visible, onClose, onSubmit, professionals, busy 
             footer={
                 <>
                     <Button
-                        variant="secondary"
+                        variant="link"
                         onPress={onClose}
                         style={{ flex: 1 }}
                     >
@@ -142,19 +142,15 @@ export function SlotFormModal({ visible, onClose, onSubmit, professionals, busy 
             <View style={styles.formContent}>
                 <View style={styles.inputGroup}>
                     <Text style={[styles.label, { color: colors.textPrimary }]}>Profissional</Text>
-                    <View style={[styles.pickerContainer, { backgroundColor: colors.background, borderColor: colors.border }]}>
-                        <Picker
-                            selectedValue={form.professional_id}
-                            onValueChange={(value) => setForm({ ...form, professional_id: String(value) })}
-                            style={{ color: colors.textPrimary }}
-                            enabled={availableProfessionals.length > 1}
-                        >
-                            <Picker.Item label="Selecione..." value="" />
-                            {availableProfessionals.map((prof) => (
-                                <Picker.Item key={prof.id} label={prof.name} value={String(prof.id)} />
-                            ))}
-                        </Picker>
-                    </View>
+                    <Select
+                        testID="slot-form-professional-picker"
+                        selectedValue={form.professional_id}
+                        onValueChange={(value) => setForm({ ...form, professional_id: value })}
+                        placeholder="Selecione..."
+                        title="Profissional"
+                        disabled={availableProfessionals.length <= 1}
+                        options={availableProfessionals.map((prof) => ({ label: prof.name, value: String(prof.id) }))}
+                    />
                     {errors.professional && (
                         <Text style={{ color: colors.error, fontSize: 12, marginTop: 4 }}>
                             {errors.professional}
@@ -257,11 +253,6 @@ const styles = StyleSheet.create({
         fontSize: 14,
         fontWeight: '500',
         marginBottom: 8,
-    },
-    pickerContainer: {
-        borderWidth: 1,
-        borderRadius: 8,
-        overflow: 'hidden',
     },
     dateButton: {
         flexDirection: 'row',
