@@ -9,3 +9,7 @@ export { Modal } from './Modal';
 export { Alert } from './Alert';
 export { PaginationDots } from './PaginationDots';
 export { Avatar } from './Avatar';
+export { Select } from './Select';
+export type { SelectOption } from './Select';
+export { ActionMenu } from './ActionMenu';
+export type { ActionMenuOption } from './ActionMenu';

@@ -25,11 +25,13 @@ import { createAppointment } from '../api/bookings';
 import { Button } from '../components/ui/Button';
 import { useAuth } from '../hooks/useAuth';
 import useProfessionals from '../hooks/useProfessionals';
+import { useToast } from '../contexts/ToastContext';
 
 const BookingCreateScreen = ({ navigation, route }: any) => {
   const { colors } = useTheme();
   const { slug } = useTenant();
   const { userInfo } = useAuth();
+  const { showToast } = useToast();
 
   // Parametros de navegacao (toque numa celula vazia do calendario Semana/Dia)
   const routeParams = route?.params || {};
@@ -219,9 +221,8 @@ const BookingCreateScreen = ({ navigation, route }: any) => {
         status: 'scheduled'
       };
       await createAppointment(payload, { slug: slug as string });
-      Alert.alert('Sucesso', 'Agendamento criado com sucesso!', [
-        { text: 'OK', onPress: () => navigation.popToTop() }
-      ]);
+      showToast({ type: 'success', message: 'Agendamento criado com sucesso!' });
+      navigation.popToTop();
     } catch (error) {
       console.error('Error creating appointment:', error);
       Alert.alert('Erro', 'Não foi possível criar o agendamento.');

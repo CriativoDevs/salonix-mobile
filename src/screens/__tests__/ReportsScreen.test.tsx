@@ -1,20 +1,7 @@
 import React from 'react';
-import { render, fireEvent, waitFor, act } from '@testing-library/react-native';
+import { render, fireEvent, waitFor } from '@testing-library/react-native';
 import { Alert } from 'react-native';
 import ReportsScreen from '../ReportsScreen';
-
-// Nota: `@react-native-picker/picker` não responde a `fireEvent(el, 'valueChange', ...)`
-// neste ambiente de testes — o host component subjacente expõe um prop `onChange` que
-// espera `{ nativeEvent: { newValue, newIndex } }`. A forma confirmada e fiável de
-// simular a seleção é invocar `onChange` diretamente, dentro de `act()` (ver
-// SlotBulkGenerateModal.test.tsx para o mesmo padrão).
-async function selectPickerValue(getByTestId: any, testId: string, value: string, index = 0) {
-  await act(async () => {
-    getByTestId(testId).props.onChange({
-      nativeEvent: { newValue: value, newIndex: index },
-    });
-  });
-}
 
 jest.mock('../../hooks/useTheme', () => ({
   useTheme: () => ({
@@ -301,8 +288,8 @@ describe('ReportsScreen', () => {
     expect(queryByTestId('revenue-table')).toBeNull();
   });
 
-  it('opens the Profissional filter in a modal and applies the selection via the picker inside it', async () => {
-    const { getByText, getAllByText, getByTestId, queryByTestId } = await render(<ReportsScreen />);
+  it('opens the Profissional filter in a modal and applies the selection via the dropdown inside it', async () => {
+    const { getByText, getAllByText, getByTestId } = await render(<ReportsScreen />);
     await waitFor(() => expect(mockFetchBasicReports).toHaveBeenCalled());
 
     await fireEvent.press(getByText('Análise de Negócio'));
@@ -310,18 +297,14 @@ describe('ReportsScreen', () => {
 
     await fireEvent.press(getByTestId('toggle-filters'));
 
-    // Picker is not rendered inline; it lives inside the trigger's modal.
-    expect(queryByTestId('reports-professional-picker')).toBeNull();
     // Both triggers ("Profissional" and "Serviço") default to "Todos".
     expect(getAllByText('Todos').length).toBe(2);
 
-    await fireEvent.press(getByTestId('reports-professional-picker-trigger'));
-    await selectPickerValue(getByTestId, 'reports-professional-picker', '1', 0);
-    await fireEvent.press(getByText('Concluir'));
+    await fireEvent.press(getByTestId('reports-professional-picker'));
+    await fireEvent.press(getByText('Ana'));
 
-    await fireEvent.press(getByTestId('reports-service-picker-trigger'));
-    await selectPickerValue(getByTestId, 'reports-service-picker', '9', 0);
-    await fireEvent.press(getByText('Concluir'));
+    await fireEvent.press(getByTestId('reports-service-picker'));
+    await fireEvent.press(getByTestId('reports-service-picker-option-9'));
 
     await fireEvent.press(getByText('Aplicar filtros'));
 

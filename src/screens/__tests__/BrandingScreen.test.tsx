@@ -29,6 +29,11 @@ jest.mock('../../hooks/useAuth', () => ({
   useAuth: () => mockUseAuthReturn,
 }));
 
+const mockShowToast = jest.fn();
+jest.mock('../../contexts/ToastContext', () => ({
+  useToast: () => ({ showToast: mockShowToast }),
+}));
+
 const mockFetchTenantMeta = jest.fn();
 const mockUpdateTenantBranding = jest.fn();
 jest.mock('../../api/tenant', () => ({
@@ -132,9 +137,6 @@ describe('BrandingScreen', () => {
     mockGetInfoAsync.mockResolvedValue({ exists: true, size: 1024 });
     mockUpdateTenantBranding.mockResolvedValue({ ...TENANT_META, logo_url: 'https://cdn.example.com/new-logo.png' });
 
-    const { Alert } = require('react-native');
-    const alertSpy = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
-
     const { getByText, getByTestId } = await render(<BrandingScreen />);
     await waitFor(() => expect(getByText('Alterar logo')).toBeTruthy());
 
@@ -160,9 +162,7 @@ describe('BrandingScreen', () => {
         slug: 'acme',
       });
     });
-    expect(alertSpy).toHaveBeenCalledWith('Sucesso', 'Marca atualizada.');
-
-    alertSpy.mockRestore();
+    expect(mockShowToast).toHaveBeenCalledWith({ type: 'success', message: 'Marca atualizada.' });
   });
 
   it('shows the backend error detail message when saving fails', async () => {

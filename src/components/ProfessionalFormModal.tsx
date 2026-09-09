@@ -8,8 +8,10 @@ import { Input } from './ui/Input';
 import { Button } from './ui/Button';
 import { Modal } from './ui/Modal'; // Importando o Modal genérico flutuante
 import { Avatar } from './ui/Avatar';
+import { ActionMenu } from './ui/ActionMenu';
 import { updateStaffMember, disableStaffMember } from '../api/staff';
 import { resolveMediaUrl } from '../utils/env';
+import { useToast } from '../contexts/ToastContext';
 
 import { useTenant } from '../hooks/useTenant';
 import { fetchServices } from '../api/services';
@@ -52,6 +54,7 @@ interface ProfessionalFormModalProps {
 export function ProfessionalFormModal({ visible, onClose, onSubmit, initialData, busy = false }: ProfessionalFormModalProps) {
     const { colors } = useTheme();
     const { slug } = useTenant();
+    const { showToast } = useToast();
     const [activeTab, setActiveTab] = useState<'details' | 'permissions'>('details');
     
     // Determina se é criação ou edição
@@ -74,6 +77,7 @@ export function ProfessionalFormModal({ visible, onClose, onSubmit, initialData,
     const [servicesLoading, setServicesLoading] = useState(false);
     const [pickedPhoto, setPickedPhoto] = useState<PickedPhoto | null>(null);
     const [photoError, setPhotoError] = useState<string | null>(null);
+    const [photoMenuVisible, setPhotoMenuVisible] = useState(false);
 
     const [errors, setErrors] = useState<{ [key: string]: string }>({});
     const [permissionLoading, setPermissionLoading] = useState(false);
@@ -221,18 +225,14 @@ export function ProfessionalFormModal({ visible, onClose, onSubmit, initialData,
     };
 
     const handlePickPhoto = () => {
-        Alert.alert('Foto do profissional', 'Escolha uma opção', [
-            { text: 'Escolher da galeria', onPress: handlePickFromGallery },
-            { text: 'Tirar foto', onPress: handleTakePhoto },
-            { text: 'Cancelar', style: 'cancel' },
-        ]);
+        setPhotoMenuVisible(true);
     };
 
     const previewUri = pickedPhoto?.uri || resolveMediaUrl(form.photo);
 
     const handleUpdatePermissions = async () => {
         if (!initialData?.user?.id && !initialData?.staff_member) {
-            Alert.alert('Aviso', 'Este profissional não tem um usuário vinculado para gerenciar permissões.');
+            showToast({ type: 'warning', message: 'Este profissional não tem um usuário vinculado para gerenciar permissões.' });
             return;
         }
 
@@ -252,7 +252,7 @@ export function ProfessionalFormModal({ visible, onClose, onSubmit, initialData,
                         is_active: true
                     }, { slug });
                 }
-                Alert.alert('Sucesso', 'Permissões atualizadas com sucesso.');
+                showToast({ type: 'success', message: 'Permissões atualizadas com sucesso.' });
                 onClose(); // Close modal on success or maybe just refresh data?
             }
         } catch (error) {
@@ -264,6 +264,7 @@ export function ProfessionalFormModal({ visible, onClose, onSubmit, initialData,
     };
 
     return (
+        <>
         <Modal
             visible={visible}
             onClose={onClose}
@@ -480,6 +481,17 @@ export function ProfessionalFormModal({ visible, onClose, onSubmit, initialData,
                 </View>
             </View>
         </Modal>
+
+        <ActionMenu
+            visible={photoMenuVisible}
+            onClose={() => setPhotoMenuVisible(false)}
+            title="Foto do profissional"
+            options={[
+                { label: 'Escolher da galeria', onPress: handlePickFromGallery },
+                { label: 'Tirar foto', onPress: handleTakePhoto },
+            ]}
+        />
+        </>
     );
 }
 

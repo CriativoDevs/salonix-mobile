@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, FlatList, RefreshControl, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, ActionSheetIOS, Platform } from 'react-native';
+import { View, Text, FlatList, RefreshControl, StyleSheet, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -16,12 +16,15 @@ import { useAuth } from '../hooks/useAuth';
 import { isOwner } from '../utils/permissions';
 import { saveAndShareCSV } from '../utils/csvFileSharing';
 import { resolveMediaUrl } from '../utils/env';
+import { useToast } from '../contexts/ToastContext';
+import { ActionMenu } from '../components/ui/ActionMenu';
 
 export default function TeamScreen() {
     const { colors } = useTheme();
     const navigation = useNavigation();
     const { slug } = useTenant();
     const { userInfo } = useAuth();
+    const { showToast } = useToast();
     const isAdmin = userInfo?.is_superuser || userInfo?.role === 'owner' || userInfo?.role === 'manager';
 
     const [professionals, setProfessionals] = useState<any[]>([]);
@@ -43,6 +46,8 @@ export default function TeamScreen() {
     const [selectedProfessional, setSelectedProfessional] = useState<any>(null);
     const [actionLoading, setActionLoading] = useState(false);
     const [importModalVisible, setImportModalVisible] = useState(false);
+    const [importExportMenuVisible, setImportExportMenuVisible] = useState(false);
+    const [optionsMenuTarget, setOptionsMenuTarget] = useState<any>(null);
 
     const LIMIT = 20;
 
@@ -163,11 +168,7 @@ export default function TeamScreen() {
     };
 
     const handleImportExport = () => {
-        Alert.alert('Importar/Exportar', 'Escolha uma opção', [
-            { text: 'Importar CSV', onPress: () => setImportModalVisible(true) },
-            { text: 'Exportar CSV', onPress: handleExportStaffCSV },
-            { text: 'Cancelar', style: 'cancel' },
-        ]);
+        setImportExportMenuVisible(true);
     };
 
     const handleImportSuccess = () => {
@@ -215,7 +216,7 @@ export default function TeamScreen() {
 
                 // Refresh completo para pegar o novo Staff e o novo Professional criado
                 loadData(true);
-                Alert.alert('Sucesso', 'Convite enviado com sucesso!');
+                showToast({ type: 'success', message: 'Convite enviado com sucesso!' });
             }
             setModalVisible(false);
         } catch (error: any) {
@@ -254,35 +255,11 @@ export default function TeamScreen() {
     const handleResendInvite = async (professional: any) => {
         // Placeholder se a funcionalidade de reenviar convite for necessária
         // Para implementar corretamente, precisamos de um endpoint específico de staff
-        Alert.alert("Aviso", "Funcionalidade de reenviar convite em manutenção.");
+        showToast({ type: 'info', message: 'Funcionalidade de reenviar convite em manutenção.' });
     };
 
     const showOptions = (professional: any) => {
-        if (Platform.OS === 'ios') {
-            ActionSheetIOS.showActionSheetWithOptions(
-                {
-                    options: ['Cancelar', 'Editar', 'Reenviar Convite', 'Excluir'],
-                    destructiveButtonIndex: 3,
-                    cancelButtonIndex: 0,
-                },
-                (buttonIndex) => {
-                    if (buttonIndex === 1) handleEdit(professional);
-                    if (buttonIndex === 2) handleResendInvite(professional);
-                    if (buttonIndex === 3) handleDelete(professional);
-                }
-            );
-        } else {
-            Alert.alert(
-                'Opções',
-                `Selecione uma ação para ${professional.name} `,
-                [
-                    { text: 'Editar', onPress: () => handleEdit(professional) },
-                    { text: 'Reenviar Convite', onPress: () => handleResendInvite(professional) },
-                    { text: 'Excluir', onPress: () => handleDelete(professional), style: 'destructive' },
-                    { text: 'Cancelar', style: 'cancel' },
-                ]
-            );
-        }
+        setOptionsMenuTarget(professional);
     };
 
     const renderItem = ({ item }) => {
@@ -548,6 +525,27 @@ export default function TeamScreen() {
                 onClose={() => setImportModalVisible(false)}
                 onSuccess={handleImportSuccess}
                 slug={slug}
+            />
+
+            <ActionMenu
+                visible={importExportMenuVisible}
+                onClose={() => setImportExportMenuVisible(false)}
+                title="Importar/Exportar"
+                options={[
+                    { label: 'Importar CSV', onPress: () => setImportModalVisible(true) },
+                    { label: 'Exportar CSV', onPress: handleExportStaffCSV },
+                ]}
+            />
+
+            <ActionMenu
+                visible={!!optionsMenuTarget}
+                onClose={() => setOptionsMenuTarget(null)}
+                title={optionsMenuTarget?.name}
+                options={[
+                    { label: 'Editar', onPress: () => handleEdit(optionsMenuTarget) },
+                    { label: 'Reenviar Convite', onPress: () => handleResendInvite(optionsMenuTarget) },
+                    { label: 'Excluir', onPress: () => handleDelete(optionsMenuTarget), destructive: true },
+                ]}
             />
         </SafeAreaView>
     );

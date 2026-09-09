@@ -42,11 +42,12 @@ describe('CustomerFormModal - photo', () => {
     mockGetInfoAsync.mockResolvedValue({ exists: true, size: 1024 });
   });
 
-  const pickFromGallery = async (getByText: any, alertSpy: jest.SpyInstance, buttonText = 'Adicionar foto') => {
+  // Foto do cliente usa `ActionMenu` (themed) em vez de `Alert.alert` com botões —
+  // ver src/components/ui/ActionMenu.tsx. Simula-se a interação real: abrir o menu
+  // tocando no botão de foto, depois tocar na opção pretendida.
+  const pickFromGallery = async (getByText: any, buttonText = 'Adicionar foto') => {
     await fireEvent.press(getByText(buttonText));
-    const options = alertSpy.mock.calls[alertSpy.mock.calls.length - 1][2];
-    const galleryOption = options.find((o: any) => o.text === 'Escolher da galeria');
-    await galleryOption.onPress();
+    await fireEvent.press(getByText('Escolher da galeria'));
   };
 
   it('shows an Avatar preview after picking a photo from the gallery', async () => {
@@ -55,21 +56,16 @@ describe('CustomerFormModal - photo', () => {
       assets: [{ uri: 'file:///tmp/customer.jpg', mimeType: 'image/jpeg', fileName: 'customer.jpg' }],
     });
 
-    const { Alert } = require('react-native');
-    const alertSpy = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
-
     const { getByText, getByTestId } = await render(
       <CustomerFormModal visible onClose={jest.fn()} onSubmit={jest.fn()} initialData={null} />
     );
 
-    await pickFromGallery(getByText, alertSpy);
+    await pickFromGallery(getByText);
 
     await waitFor(() => {
       expect(getByTestId('customer-form-avatar').props.source.uri).toBe('file:///tmp/customer.jpg');
     });
     expect(getByText('Alterar foto')).toBeTruthy();
-
-    alertSpy.mockRestore();
   });
 
   it('includes photoFile in the payload passed to onSubmit when creating a customer', async () => {
@@ -78,15 +74,13 @@ describe('CustomerFormModal - photo', () => {
       assets: [{ uri: 'file:///tmp/customer.jpg', mimeType: 'image/jpeg', fileName: 'customer.jpg' }],
     });
 
-    const { Alert } = require('react-native');
-    const alertSpy = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
     const onSubmit = jest.fn().mockResolvedValue(undefined);
 
     const { getByText, getByPlaceholderText } = await render(
       <CustomerFormModal visible onClose={jest.fn()} onSubmit={onSubmit} initialData={null} />
     );
 
-    await pickFromGallery(getByText, alertSpy);
+    await pickFromGallery(getByText);
     await fireEvent.changeText(getByPlaceholderText('Nome completo'), 'Maria Silva');
     await fireEvent.changeText(getByPlaceholderText('cliente@email.com'), 'maria@example.com');
 
@@ -105,8 +99,6 @@ describe('CustomerFormModal - photo', () => {
         })
       );
     });
-
-    alertSpy.mockRestore();
   });
 
   it('includes photoFile in the payload passed to onSubmit when editing a customer', async () => {
@@ -115,8 +107,6 @@ describe('CustomerFormModal - photo', () => {
       assets: [{ uri: 'file:///tmp/new.jpg', mimeType: 'image/jpeg', fileName: 'new.jpg' }],
     });
 
-    const { Alert } = require('react-native');
-    const alertSpy = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
     const onSubmit = jest.fn().mockResolvedValue(undefined);
 
     const initialData = {
@@ -133,7 +123,7 @@ describe('CustomerFormModal - photo', () => {
     );
 
     await waitFor(() => expect(getByText('Alterar foto')).toBeTruthy());
-    await pickFromGallery(getByText, alertSpy, 'Alterar foto');
+    await pickFromGallery(getByText, 'Alterar foto');
 
     await waitFor(() => {
       expect(getByTestId('customer-form-avatar').props.source.uri).toBe('file:///tmp/new.jpg');
@@ -148,8 +138,6 @@ describe('CustomerFormModal - photo', () => {
         })
       );
     });
-
-    alertSpy.mockRestore();
   });
 
   it('does not include photoFile when no new photo was picked', async () => {
@@ -174,15 +162,13 @@ describe('CustomerFormModal - photo', () => {
     });
     mockGetInfoAsync.mockResolvedValue({ exists: true, size: 3 * 1024 * 1024 });
 
-    const { Alert } = require('react-native');
-    const alertSpy = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
     const onSubmit = jest.fn().mockResolvedValue(undefined);
 
     const { getByText, getByPlaceholderText, queryByText } = await render(
       <CustomerFormModal visible onClose={jest.fn()} onSubmit={onSubmit} initialData={null} />
     );
 
-    await pickFromGallery(getByText, alertSpy);
+    await pickFromGallery(getByText);
 
     await waitFor(() => {
       expect(getByText('O ficheiro deve ter no máximo 2MB.')).toBeTruthy();
@@ -195,8 +181,6 @@ describe('CustomerFormModal - photo', () => {
 
     await waitFor(() => expect(onSubmit).toHaveBeenCalled());
     expect(onSubmit.mock.calls[0][0].photoFile).toBeUndefined();
-
-    alertSpy.mockRestore();
   });
 
   it('rejects an unsupported mime type with an error message and does not set the photo', async () => {
@@ -205,22 +189,17 @@ describe('CustomerFormModal - photo', () => {
       assets: [{ uri: 'file:///tmp/doc.pdf', mimeType: 'application/pdf', fileName: 'doc.pdf' }],
     });
 
-    const { Alert } = require('react-native');
-    const alertSpy = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
-
     const { getByText } = await render(
       <CustomerFormModal visible onClose={jest.fn()} onSubmit={jest.fn()} initialData={null} />
     );
 
-    await pickFromGallery(getByText, alertSpy);
+    await pickFromGallery(getByText);
 
     await waitFor(() => {
       expect(getByText('Formato não suportado. Use JPEG, PNG, GIF ou WEBP.')).toBeTruthy();
     });
     expect(getByText('Adicionar foto')).toBeTruthy();
     expect(mockGetInfoAsync).not.toHaveBeenCalled();
-
-    alertSpy.mockRestore();
   });
 
   it('accepts a valid file within size and mime type limits, clearing any previous error', async () => {
@@ -230,21 +209,16 @@ describe('CustomerFormModal - photo', () => {
     });
     mockGetInfoAsync.mockResolvedValue({ exists: true, size: 512 * 1024 });
 
-    const { Alert } = require('react-native');
-    const alertSpy = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
-
     const { getByText, getByTestId, queryByText } = await render(
       <CustomerFormModal visible onClose={jest.fn()} onSubmit={jest.fn()} initialData={null} />
     );
 
-    await pickFromGallery(getByText, alertSpy);
+    await pickFromGallery(getByText);
 
     await waitFor(() => {
       expect(getByTestId('customer-form-avatar').props.source.uri).toBe('file:///tmp/customer.png');
     });
     expect(queryByText('O ficheiro deve ter no máximo 2MB.')).toBeFalsy();
     expect(queryByText('Formato não suportado. Use JPEG, PNG, GIF ou WEBP.')).toBeFalsy();
-
-    alertSpy.mockRestore();
   });
 });

@@ -1,21 +1,22 @@
 import React from 'react';
-import { render, fireEvent, waitFor, act } from '@testing-library/react-native';
+import { render, fireEvent, waitFor } from '@testing-library/react-native';
 import { Alert } from 'react-native';
 import { SlotBulkGenerateModal } from '../SlotBulkGenerateModal';
 
-// Nota: `@react-native-picker/picker` não responde a `fireEvent(el, 'valueChange', ...)`
-// neste ambiente de testes — o host component subjacente (RNCPicker/PickerIOS) expõe
-// um prop `onChange` que espera `{ nativeEvent: { newValue, newIndex } }`, e o
-// `fireEvent` do RNTL não mapeia corretamente para este evento customizado. A forma
-// confirmada e fiável de simular a seleção é invocar `onChange` diretamente, dentro de
-// `act()`.
-async function selectProfessional(getByTestId: any, value: string, index = 0) {
-  await act(async () => {
-    getByTestId('bulk-generate-professional-picker').props.onChange({
-      nativeEvent: { newValue: value, newIndex: index },
-    });
-  });
+// O Picker nativo (`@react-native-picker/picker`) foi substituído por `Select`
+// (trigger + Modal com lista de opções, ver src/components/ui/Select.tsx) para
+// corrigir a sobreposição visual do wheel picker dentro de modais com tema escuro.
+// A seleção agora simula a interação real do utilizador: abrir o trigger e tocar
+// na opção pretendida.
+async function selectProfessional(getByTestId: any, getByText: any, name: string) {
+  await fireEvent.press(getByTestId('bulk-generate-professional-picker'));
+  await fireEvent.press(getByText(name));
 }
+
+const mockShowToast = jest.fn();
+jest.mock('../../contexts/ToastContext', () => ({
+  useToast: () => ({ showToast: mockShowToast }),
+}));
 
 jest.mock('../../hooks/useTheme', () => ({
   useTheme: () => ({
@@ -24,6 +25,7 @@ jest.mock('../../hooks/useTheme', () => ({
       textSecondary: '#666',
       border: '#ccc',
       surface: '#f8fafc',
+      surfaceVariant: '#eee',
       error: '#ef4444',
       brandPrimary: '#3b82f6',
       background: '#fff',
@@ -70,7 +72,7 @@ describe('SlotBulkGenerateModal', () => {
       />
     );
 
-    await selectProfessional(getByTestId, '1', 0);
+    await selectProfessional(getByTestId, getByText, 'Ana');
     const intervalInput = getByPlaceholderText('30');
     await fireEvent.changeText(intervalInput, '5');
     await fireEvent.press(getByText('Gerar horários'));
@@ -83,7 +85,6 @@ describe('SlotBulkGenerateModal', () => {
     mockBulkGenerateSlots.mockResolvedValue({ created: 12, skipped: 3 });
     const onSuccess = jest.fn();
     const onClose = jest.fn();
-    const alertSpy = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
 
     const { getByText, getByTestId } = await render(
       <SlotBulkGenerateModal
@@ -95,7 +96,7 @@ describe('SlotBulkGenerateModal', () => {
       />
     );
 
-    await selectProfessional(getByTestId, '1', 0);
+    await selectProfessional(getByTestId, getByText, 'Ana');
     await fireEvent.press(getByText('Semana'));
     await fireEvent.press(getByText('Gerar horários'));
 
@@ -111,11 +112,12 @@ describe('SlotBulkGenerateModal', () => {
         slug: 'acme',
       })
     );
-    expect(alertSpy).toHaveBeenCalledWith('Horários gerados', 'Criados: 12, Ignorados: 3');
+    expect(mockShowToast).toHaveBeenCalledWith({
+      type: 'success',
+      message: 'Horários gerados. Criados: 12, Ignorados: 3',
+    });
     expect(onSuccess).toHaveBeenCalled();
     expect(onClose).toHaveBeenCalled();
-
-    alertSpy.mockRestore();
   });
 
   it('shows the backend error detail message when the request fails with a detail field', async () => {
@@ -137,7 +139,7 @@ describe('SlotBulkGenerateModal', () => {
       />
     );
 
-    await selectProfessional(getByTestId, '1', 0);
+    await selectProfessional(getByTestId, getByText, 'Ana');
     await fireEvent.press(getByText('Gerar horários'));
 
     await waitFor(() => {
@@ -166,7 +168,7 @@ describe('SlotBulkGenerateModal', () => {
       />
     );
 
-    await selectProfessional(getByTestId, '1', 0);
+    await selectProfessional(getByTestId, getByText, 'Ana');
     await fireEvent.press(getByText('Gerar horários'));
 
     await waitFor(() => {

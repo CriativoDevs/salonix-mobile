@@ -19,6 +19,17 @@ jest.mock('../ThemeToggle', () => ({
   ThemeToggle: () => null,
 }));
 
+jest.mock('../LanguageToggle', () => {
+  const { Pressable, Text } = require('react-native');
+  return {
+    LanguageToggle: ({ onToggle, language }: any) => (
+      <Pressable onPress={onToggle} accessibilityLabel="toggle-language">
+        <Text>{language}</Text>
+      </Pressable>
+    ),
+  };
+});
+
 describe('HeaderMenu', () => {
   afterEach(() => jest.clearAllMocks());
 
@@ -60,5 +71,31 @@ describe('HeaderMenu', () => {
     await waitFor(() => expect(onLogout).toHaveBeenCalled());
 
     alertSpy.mockRestore();
+  });
+
+  // Language toggle está desativado (comentado no HeaderMenu) até a auditoria
+  // de i18n do app inteiro (issue MOB-I18N-01) — a maioria das telas ainda
+  // ignora `language` e mostra texto fixo em pt, então o toggle não teria
+  // efeito visível hoje. Reativar este teste junto com o toggle.
+  it('does not render the language toggle even when onToggleLanguage is provided (disabled pending i18n audit)', async () => {
+    const { queryByLabelText } = await render(
+      <HeaderMenu
+        visible
+        onClose={jest.fn()}
+        onLogout={jest.fn()}
+        language="pt"
+        onToggleLanguage={jest.fn()}
+      />
+    );
+
+    expect(queryByLabelText('toggle-language')).toBeNull();
+  });
+
+  it('does not render the language toggle when onToggleLanguage is not provided', async () => {
+    const { queryByLabelText } = await render(
+      <HeaderMenu visible onClose={jest.fn()} onLogout={jest.fn()} />
+    );
+
+    expect(queryByLabelText('toggle-language')).toBeNull();
   });
 });

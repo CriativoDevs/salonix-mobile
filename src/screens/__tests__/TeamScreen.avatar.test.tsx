@@ -27,6 +27,10 @@ jest.mock('../../hooks/useAuth', () => ({
   useAuth: () => ({ userInfo: { id: 1, role: 'owner' } }),
 }));
 
+jest.mock('../../contexts/ToastContext', () => ({
+  useToast: () => ({ showToast: jest.fn() }),
+}));
+
 const mockFetchProfessionals = jest.fn();
 jest.mock('../../api/professionals', () => ({
   fetchProfessionals: (...args: any[]) => mockFetchProfessionals(...args),

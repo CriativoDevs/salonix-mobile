@@ -28,58 +28,91 @@ jest.mock('../../hooks/useAuth', () => ({
 describe('SettingsScreen', () => {
   beforeEach(() => {
     mockUseAuthReturn = { userInfo: { email: 'owner@acme.pt', role: 'owner' } };
+    mockNavigate.mockClear();
   });
   afterEach(() => jest.clearAllMocks());
 
-  it('shows all 6 links for an owner and navigates to the correct routes', async () => {
-    const { getByText } = await render(<SettingsScreen />);
+  it('shows every link for an owner, grouped by section, and navigates to the correct routes', async () => {
+    const { getByText, queryByText } = await render(<SettingsScreen />);
 
-    await waitFor(() => expect(getByText('Horário de Funcionamento')).toBeTruthy());
-    expect(getByText('Marca')).toBeTruthy();
+    // Definições
+    await waitFor(() => expect(getByText('Geral')).toBeTruthy());
     expect(getByText('Notificações')).toBeTruthy();
-    expect(getByText('Geral')).toBeTruthy();
-    expect(getByText('Relatórios')).toBeTruthy();
     expect(getByText('Créditos e Plano')).toBeTruthy();
 
-    await fireEvent.press(getByText('Horário de Funcionamento'));
-    expect(mockNavigate).toHaveBeenCalledWith('BusinessHours');
+    // Perfil
+    expect(getByText('Marca')).toBeTruthy();
+    expect(getByText('Marketing por email')).toBeTruthy();
 
-    await fireEvent.press(getByText('Marca'));
-    expect(mockNavigate).toHaveBeenCalledWith('Branding');
+    // App
+    expect(getByText('Feedback')).toBeTruthy();
+    expect(getByText('Como funciona')).toBeTruthy();
+    expect(getByText('Roadmap')).toBeTruthy();
 
-    await fireEvent.press(getByText('Notificações'));
-    expect(mockNavigate).toHaveBeenCalledWith('Notifications');
+    // Funcionamento
+    expect(getByText('Horário de Funcionamento')).toBeTruthy();
+    expect(getByText('Serviços')).toBeTruthy();
+    expect(getByText('Horários')).toBeTruthy();
+
+    // "Relatórios" saiu de Definições (agora vive na tab bar)
+    expect(queryByText('Relatórios')).toBeNull();
 
     await fireEvent.press(getByText('Geral'));
     expect(mockNavigate).toHaveBeenCalledWith('General');
 
-    await fireEvent.press(getByText('Relatórios'));
-    expect(mockNavigate).toHaveBeenCalledWith('Reports');
+    await fireEvent.press(getByText('Notificações'));
+    expect(mockNavigate).toHaveBeenCalledWith('Notifications');
 
     await fireEvent.press(getByText('Créditos e Plano'));
     expect(mockNavigate).toHaveBeenCalledWith('CreditsPlan');
+
+    await fireEvent.press(getByText('Marca'));
+    expect(mockNavigate).toHaveBeenCalledWith('Branding');
+
+    await fireEvent.press(getByText('Marketing por email'));
+    expect(mockNavigate).toHaveBeenCalledWith('Marketing');
+
+    await fireEvent.press(getByText('Feedback'));
+    expect(mockNavigate).toHaveBeenCalledWith('Feedback');
+
+    await fireEvent.press(getByText('Como funciona'));
+    expect(mockNavigate).toHaveBeenCalledWith('HowItWorks');
+
+    await fireEvent.press(getByText('Roadmap'));
+    expect(mockNavigate).toHaveBeenCalledWith('Roadmap');
+
+    await fireEvent.press(getByText('Horário de Funcionamento'));
+    expect(mockNavigate).toHaveBeenCalledWith('BusinessHours');
+
+    await fireEvent.press(getByText('Serviços'));
+    expect(mockNavigate).toHaveBeenCalledWith('Services');
+
+    await fireEvent.press(getByText('Horários'));
+    expect(mockNavigate).toHaveBeenCalledWith('Slots');
   });
 
-  it('hides "Relatórios" and "Créditos e Plano" for a manager, keeps the other 4', async () => {
+  it('hides "Créditos e Plano" and "Marketing por email" for a manager, keeps the other links', async () => {
     mockUseAuthReturn = { userInfo: { email: 'manager@acme.pt', role: 'manager' } };
 
     const { getByText, queryByText } = await render(<SettingsScreen />);
 
-    await waitFor(() => expect(getByText('Horário de Funcionamento')).toBeTruthy());
+    await waitFor(() => expect(getByText('Geral')).toBeTruthy());
     expect(getByText('Marca')).toBeTruthy();
-    expect(getByText('Notificações')).toBeTruthy();
-    expect(getByText('Geral')).toBeTruthy();
-    expect(queryByText('Relatórios')).toBeNull();
+    // Manager conta como admin (owner/manager) — mantém acesso ao Marketing.
+    expect(getByText('Marketing por email')).toBeTruthy();
     expect(queryByText('Créditos e Plano')).toBeNull();
   });
 
-  it('hides "Relatórios" and "Créditos e Plano" for a collaborator', async () => {
+  it('hides "Créditos e Plano" and "Marketing por email" for a collaborator', async () => {
     mockUseAuthReturn = { userInfo: { email: 'collab@acme.pt', role: 'collaborator' } };
 
     const { getByText, queryByText } = await render(<SettingsScreen />);
 
-    await waitFor(() => expect(getByText('Horário de Funcionamento')).toBeTruthy());
-    expect(queryByText('Relatórios')).toBeNull();
+    await waitFor(() => expect(getByText('Geral')).toBeTruthy());
     expect(queryByText('Créditos e Plano')).toBeNull();
+    expect(queryByText('Marketing por email')).toBeNull();
+    // Links sem restrição continuam visíveis
+    expect(getByText('Feedback')).toBeTruthy();
+    expect(getByText('Serviços')).toBeTruthy();
   });
 });

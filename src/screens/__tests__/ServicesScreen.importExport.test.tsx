@@ -1,6 +1,5 @@
 import React from 'react';
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
-import { Alert } from 'react-native';
 import ServicesScreen from '../ServicesScreen';
 
 jest.mock('../../hooks/useTheme', () => ({
@@ -16,6 +15,10 @@ jest.mock('../../hooks/useTheme', () => ({
 
 jest.mock('../../hooks/useTenant', () => ({
   useTenant: () => ({ slug: 'acme' }),
+}));
+
+jest.mock('@react-navigation/native', () => ({
+  useNavigation: () => ({ goBack: jest.fn() }),
 }));
 
 let mockUseAuthReturn: any = { userInfo: { id: 1, role: 'owner' } };
@@ -78,14 +81,11 @@ describe('ServicesScreen - import/export', () => {
 
   it('exports the CSV and shares it when "Exportar CSV" is chosen', async () => {
     mockExportServicesCSV.mockResolvedValue('name,price_eur\nCorte,20\n');
-    jest.spyOn(Alert, 'alert').mockImplementation((title, message, buttons: any) => {
-      const exportButton = buttons?.find((b: any) => b.text === 'Exportar CSV');
-      exportButton?.onPress?.();
-    });
 
     const { getByText } = await render(<ServicesScreen />);
     await waitFor(() => expect(mockFetchAdminServices).toHaveBeenCalled());
     await fireEvent.press(getByText('Importar/Exportar'));
+    await fireEvent.press(getByText('Exportar CSV'));
 
     await waitFor(() => {
       expect(mockExportServicesCSV).toHaveBeenCalledWith({ slug: 'acme' });
@@ -94,14 +94,10 @@ describe('ServicesScreen - import/export', () => {
   });
 
   it('opens the import modal when "Importar CSV" is chosen, and refreshes the list on success', async () => {
-    jest.spyOn(Alert, 'alert').mockImplementation((title, message, buttons: any) => {
-      const importButton = buttons?.find((b: any) => b.text === 'Importar CSV');
-      importButton?.onPress?.();
-    });
-
     const { getByText } = await render(<ServicesScreen />);
     await waitFor(() => expect(mockFetchAdminServices).toHaveBeenCalled());
     await fireEvent.press(getByText('Importar/Exportar'));
+    await fireEvent.press(getByText('Importar CSV'));
 
     await waitFor(() => {
       expect(getByText('import-services-modal-stub')).toBeTruthy();

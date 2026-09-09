@@ -1,13 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Picker } from '@react-native-picker/picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Button } from './ui/Button';
 import { Modal } from './ui/Modal';
 import { Input } from './ui/Input';
+import { Select } from './ui/Select';
 import { useTheme } from '../hooks/useTheme';
 import { bulkGenerateSlots } from '../api/slots';
+import { useToast } from '../contexts/ToastContext';
 
 type Period = 'day' | 'week' | 'month';
 
@@ -27,6 +28,7 @@ const PERIOD_OPTIONS: { value: Period; label: string }[] = [
 
 export function SlotBulkGenerateModal({ visible, onClose, onSuccess, professionals, slug }: SlotBulkGenerateModalProps) {
   const { colors } = useTheme();
+  const { showToast } = useToast();
   const [professionalId, setProfessionalId] = useState('');
   const [period, setPeriod] = useState<Period>('week');
   const [date, setDate] = useState(new Date());
@@ -73,7 +75,7 @@ export function SlotBulkGenerateModal({ visible, onClose, onSuccess, professiona
         date: date.toISOString().split('T')[0],
         slug,
       });
-      Alert.alert('Horários gerados', `Criados: ${result.created}, Ignorados: ${result.skipped}`);
+      showToast({ type: 'success', message: `Horários gerados. Criados: ${result.created}, Ignorados: ${result.skipped}` });
       onSuccess();
       handleClose();
     } catch (error: any) {
@@ -91,7 +93,7 @@ export function SlotBulkGenerateModal({ visible, onClose, onSuccess, professiona
       title="Gerar Horários em Massa"
       footer={
         <>
-          <Button variant="secondary" onPress={handleClose} style={{ flex: 1 }}>
+          <Button variant="link" onPress={handleClose} style={{ flex: 1 }}>
             Cancelar
           </Button>
           <Button onPress={handleSubmit} loading={busy} disabled={busy || !professionalId} style={{ flex: 1 }}>
@@ -103,19 +105,14 @@ export function SlotBulkGenerateModal({ visible, onClose, onSuccess, professiona
       <View style={styles.content}>
         <View style={styles.inputGroup}>
           <Text style={[styles.label, { color: colors.textPrimary }]}>Profissional</Text>
-          <View style={[styles.pickerContainer, { backgroundColor: colors.background, borderColor: colors.border }]}>
-            <Picker
-              testID="bulk-generate-professional-picker"
-              selectedValue={professionalId}
-              onValueChange={(value) => setProfessionalId(String(value))}
-              style={{ color: colors.textPrimary }}
-            >
-              <Picker.Item label="Selecione..." value="" />
-              {professionals.map((prof) => (
-                <Picker.Item key={prof.id} label={prof.name} value={String(prof.id)} />
-              ))}
-            </Picker>
-          </View>
+          <Select
+            testID="bulk-generate-professional-picker"
+            selectedValue={professionalId}
+            onValueChange={setProfessionalId}
+            placeholder="Selecione..."
+            title="Profissional"
+            options={professionals.map((prof) => ({ label: prof.name, value: String(prof.id) }))}
+          />
         </View>
 
         <View style={styles.inputGroup}>
@@ -190,11 +187,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
     marginBottom: 8,
-  },
-  pickerContainer: {
-    borderWidth: 1,
-    borderRadius: 8,
-    overflow: 'hidden',
   },
   periodOption: {
     paddingHorizontal: 14,

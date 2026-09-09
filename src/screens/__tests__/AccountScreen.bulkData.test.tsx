@@ -1,6 +1,5 @@
 import React from 'react';
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
-import { Alert } from 'react-native';
 import AccountScreen from '../AccountScreen';
 
 jest.mock('../../hooks/useTheme', () => ({
@@ -94,14 +93,10 @@ describe('AccountScreen - bulk data (Dados)', () => {
     mockExportServicesCSV.mockResolvedValue('name,price_eur\nCorte,20\n');
     mockExportStaffCSV.mockResolvedValue('email,role\njoao@x.com,collaborator\n');
 
-    jest.spyOn(Alert, 'alert').mockImplementation((title, message, buttons: any) => {
-      const exportButton = buttons?.find((b: any) => b.text === 'Exportar Tudo (ZIP)');
-      exportButton?.onPress?.();
-    });
-
     const { getByText } = await render(<AccountScreen />);
     await waitFor(() => expect(getByText('Importar/Exportar Tudo')).toBeTruthy());
     await fireEvent.press(getByText('Importar/Exportar Tudo'));
+    await fireEvent.press(getByText('Exportar Tudo (ZIP)'));
 
     await waitFor(() => {
       expect(mockExportCustomersCSV).toHaveBeenCalledWith({ slug: 'acme' });
@@ -116,14 +111,10 @@ describe('AccountScreen - bulk data (Dados)', () => {
   });
 
   it('opens the bulk import modal when "Importar Tudo (ZIP)" is chosen', async () => {
-    jest.spyOn(Alert, 'alert').mockImplementation((title, message, buttons: any) => {
-      const importButton = buttons?.find((b: any) => b.text === 'Importar Tudo (ZIP)');
-      importButton?.onPress?.();
-    });
-
     const { getByText } = await render(<AccountScreen />);
     await waitFor(() => expect(getByText('Importar/Exportar Tudo')).toBeTruthy());
     await fireEvent.press(getByText('Importar/Exportar Tudo'));
+    await fireEvent.press(getByText('Importar Tudo (ZIP)'));
 
     await waitFor(() => {
       expect(getByText('bulk-import-modal-stub')).toBeTruthy();
@@ -136,14 +127,10 @@ describe('AccountScreen - bulk data (Dados)', () => {
     mockExportServicesCSV.mockResolvedValue('name,price_eur\n');
     mockExportStaffCSV.mockResolvedValue('email,role\n');
 
-    jest.spyOn(Alert, 'alert').mockImplementation((title, message, buttons: any) => {
-      const exportButton = buttons?.find((b: any) => b.text === 'Exportar Tudo (ZIP)');
-      exportButton?.onPress?.();
-    });
-
     const { getByText } = await render(<AccountScreen />);
     await waitFor(() => expect(getByText('Importar/Exportar Tudo')).toBeTruthy());
     await fireEvent.press(getByText('Importar/Exportar Tudo'));
+    await fireEvent.press(getByText('Exportar Tudo (ZIP)'));
 
     await waitFor(() => {
       expect(mockExportCustomersCSV).toHaveBeenCalled();
@@ -152,14 +139,10 @@ describe('AccountScreen - bulk data (Dados)', () => {
   });
 
   it('does nothing when "Cancelar" is chosen', async () => {
-    jest.spyOn(Alert, 'alert').mockImplementation((title, message, buttons: any) => {
-      const cancelButton = buttons?.find((b: any) => b.text === 'Cancelar');
-      cancelButton?.onPress?.();
-    });
-
     const { getByText, queryByText } = await render(<AccountScreen />);
     await waitFor(() => expect(getByText('Importar/Exportar Tudo')).toBeTruthy());
     await fireEvent.press(getByText('Importar/Exportar Tudo'));
+    await fireEvent.press(getByText('Cancelar'));
 
     expect(mockExportCustomersCSV).not.toHaveBeenCalled();
     expect(queryByText('bulk-import-modal-stub')).toBeNull();

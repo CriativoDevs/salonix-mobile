@@ -20,6 +20,10 @@ jest.mock('../../hooks/useTenant', () => ({
   useTenant: () => ({ slug: 'acme' }),
 }));
 
+jest.mock('@react-navigation/native', () => ({
+  useNavigation: () => ({ goBack: jest.fn() }),
+}));
+
 jest.mock('../../hooks/useAuth', () => ({
   useAuth: () => ({ userInfo: { id: 1, role: 'owner' } }),
 }));

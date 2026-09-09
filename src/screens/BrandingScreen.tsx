@@ -12,6 +12,7 @@ import { Input } from '../components/ui/Input';
 import { fetchTenantMeta, updateTenantBranding } from '../api/tenant';
 import { resolveMediaUrl } from '../utils/env';
 import { Button } from '../components/ui/Button';
+import { useToast } from '../contexts/ToastContext';
 
 const ADDRESS_FIELDS: { key: string; label: string }[] = [
   { key: 'address_street', label: 'Rua' },
@@ -35,6 +36,7 @@ export default function BrandingScreen() {
   const { colors } = useTheme();
   const { slug } = useTenant();
   const { userInfo } = useAuth();
+  const { showToast } = useToast();
   const isAdmin = userInfo?.is_superuser || userInfo?.role === 'owner' || userInfo?.role === 'manager';
 
   const [loading, setLoading] = useState(true);
@@ -115,7 +117,7 @@ export default function BrandingScreen() {
       } as any);
       setLogoUrl(resolveMediaUrl(result.logo_url));
       setPickedLogo(null);
-      Alert.alert('Sucesso', 'Marca atualizada.');
+      showToast({ type: 'success', message: 'Marca atualizada.' });
     } catch (error: any) {
       const detail = error?.response?.data?.detail;
       Alert.alert('Erro', typeof detail === 'string' ? detail : 'Não foi possível guardar a marca.');

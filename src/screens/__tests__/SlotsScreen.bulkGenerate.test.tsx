@@ -20,6 +20,10 @@ jest.mock('../../hooks/useTenant', () => ({
   useTenant: () => ({ slug: 'acme' }),
 }));
 
+jest.mock('@react-navigation/native', () => ({
+  useNavigation: () => ({ goBack: jest.fn() }),
+}));
+
 const mockFetchSlots = jest.fn();
 const mockCreateSlot = jest.fn();
 const mockDeleteSlot = jest.fn();

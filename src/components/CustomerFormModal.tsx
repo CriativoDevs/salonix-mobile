@@ -8,6 +8,7 @@ import { Input } from './ui/Input';
 import { Button } from './ui/Button';
 import { Modal } from './ui/Modal';
 import { Avatar } from './ui/Avatar';
+import { ActionMenu } from './ui/ActionMenu';
 import { resolveMediaUrl } from '../utils/env';
 
 const MAX_PHOTO_BYTES = 2 * 1024 * 1024;
@@ -48,6 +49,7 @@ export function CustomerFormModal({ visible, onClose, onSubmit, initialData, bus
     });
     const [pickedPhoto, setPickedPhoto] = useState<PickedPhoto | null>(null);
     const [photoError, setPhotoError] = useState<string | null>(null);
+    const [photoMenuVisible, setPhotoMenuVisible] = useState(false);
 
     const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
@@ -157,16 +159,13 @@ export function CustomerFormModal({ visible, onClose, onSubmit, initialData, bus
     };
 
     const handlePickPhoto = () => {
-        Alert.alert('Foto do cliente', 'Escolha uma opção', [
-            { text: 'Escolher da galeria', onPress: handlePickFromGallery },
-            { text: 'Tirar foto', onPress: handleTakePhoto },
-            { text: 'Cancelar', style: 'cancel' },
-        ]);
+        setPhotoMenuVisible(true);
     };
 
     const previewUri = pickedPhoto?.uri || resolveMediaUrl(form.photo);
 
     return (
+        <>
         <Modal
             visible={visible}
             onClose={onClose}
@@ -254,6 +253,17 @@ export function CustomerFormModal({ visible, onClose, onSubmit, initialData, bus
                 </View>
             </View>
         </Modal>
+
+        <ActionMenu
+            visible={photoMenuVisible}
+            onClose={() => setPhotoMenuVisible(false)}
+            title="Foto do cliente"
+            options={[
+                { label: 'Escolher da galeria', onPress: handlePickFromGallery },
+                { label: 'Tirar foto', onPress: handleTakePhoto },
+            ]}
+        />
+        </>
     );
 }
 

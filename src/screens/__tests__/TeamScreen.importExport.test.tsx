@@ -1,6 +1,5 @@
 import React from 'react';
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
-import { Alert } from 'react-native';
 import TeamScreen from '../TeamScreen';
 
 jest.mock('../../hooks/useTheme', () => ({
@@ -26,6 +25,10 @@ jest.mock('@react-navigation/native', () => ({
 let mockUseAuthReturn: any = { userInfo: { id: 1, role: 'owner' } };
 jest.mock('../../hooks/useAuth', () => ({
   useAuth: () => mockUseAuthReturn,
+}));
+
+jest.mock('../../contexts/ToastContext', () => ({
+  useToast: () => ({ showToast: jest.fn() }),
 }));
 
 const mockFetchProfessionals = jest.fn();
@@ -89,14 +92,11 @@ describe('TeamScreen - import/export', () => {
 
   it('exports the CSV and shares it when "Exportar CSV" is chosen', async () => {
     mockExportStaffCSV.mockResolvedValue('email,role\njoao@x.com,collaborator\n');
-    jest.spyOn(Alert, 'alert').mockImplementation((title, message, buttons: any) => {
-      const exportButton = buttons?.find((b: any) => b.text === 'Exportar CSV');
-      exportButton?.onPress?.();
-    });
 
     const { getByText } = await render(<TeamScreen />);
     await waitFor(() => expect(mockFetchProfessionals).toHaveBeenCalled());
     await fireEvent.press(getByText('Importar/Exportar'));
+    await fireEvent.press(getByText('Exportar CSV'));
 
     await waitFor(() => {
       expect(mockExportStaffCSV).toHaveBeenCalledWith({ slug: 'acme' });
@@ -105,14 +105,10 @@ describe('TeamScreen - import/export', () => {
   });
 
   it('opens the import modal when "Importar CSV" is chosen, and refreshes the list on success', async () => {
-    jest.spyOn(Alert, 'alert').mockImplementation((title, message, buttons: any) => {
-      const importButton = buttons?.find((b: any) => b.text === 'Importar CSV');
-      importButton?.onPress?.();
-    });
-
     const { getByText } = await render(<TeamScreen />);
     await waitFor(() => expect(mockFetchProfessionals).toHaveBeenCalled());
     await fireEvent.press(getByText('Importar/Exportar'));
+    await fireEvent.press(getByText('Importar CSV'));
 
     await waitFor(() => {
       expect(getByText('import-staff-modal-stub')).toBeTruthy();

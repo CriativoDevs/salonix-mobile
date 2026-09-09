@@ -1,6 +1,5 @@
 import React from 'react';
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
-import { Alert } from 'react-native';
 import BookingsScreen from '../BookingsScreen';
 
 jest.mock('../../hooks/useTheme', () => ({
@@ -24,6 +23,10 @@ jest.mock('../../hooks/useTenant', () => ({
 let mockUseAuthReturn: any = { userInfo: { id: 1, role: 'owner' } };
 jest.mock('../../hooks/useAuth', () => ({
   useAuth: () => mockUseAuthReturn,
+}));
+
+jest.mock('../../contexts/ToastContext', () => ({
+  useToast: () => ({ showToast: jest.fn() }),
 }));
 
 const mockRefetch = jest.fn();
@@ -87,13 +90,10 @@ describe('BookingsScreen - import/export', () => {
 
   it('exports the CSV and shares it when "Exportar CSV" is chosen', async () => {
     mockExportAppointmentsCSV.mockResolvedValue('id,customer\n1,Ana\n');
-    jest.spyOn(Alert, 'alert').mockImplementation((title, message, buttons: any) => {
-      const exportButton = buttons?.find((b: any) => b.text === 'Exportar CSV');
-      exportButton?.onPress?.();
-    });
 
     const { getByText } = await render(<BookingsScreen navigation={{ navigate: jest.fn() }} />);
     await fireEvent.press(getByText('Importar/Exportar'));
+    await fireEvent.press(getByText('Exportar CSV'));
 
     await waitFor(() => {
       expect(mockExportAppointmentsCSV).toHaveBeenCalledWith({ slug: 'acme' });
@@ -102,13 +102,9 @@ describe('BookingsScreen - import/export', () => {
   });
 
   it('opens the import modal when "Importar CSV" is chosen, and refetches on success', async () => {
-    jest.spyOn(Alert, 'alert').mockImplementation((title, message, buttons: any) => {
-      const importButton = buttons?.find((b: any) => b.text === 'Importar CSV');
-      importButton?.onPress?.();
-    });
-
     const { getByText } = await render(<BookingsScreen navigation={{ navigate: jest.fn() }} />);
     await fireEvent.press(getByText('Importar/Exportar'));
+    await fireEvent.press(getByText('Importar CSV'));
 
     await waitFor(() => {
       expect(getByText('import-modal-stub')).toBeTruthy();

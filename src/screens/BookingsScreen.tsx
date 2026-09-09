@@ -27,6 +27,8 @@ import { ImportAppointmentsModal } from '../components/ImportAppointmentsModal';
 import { exportAppointmentsCSV } from '../api/bookings';
 import { saveAndShareCSV } from '../utils/csvFileSharing';
 import { BookingItem } from '../hooks/bookingsShared';
+import { useToast } from '../contexts/ToastContext';
+import { ActionMenu } from '../components/ui/ActionMenu';
 
 interface BookingFiltersState {
   status?: string;
@@ -39,6 +41,7 @@ const BookingsScreen = ({ navigation }: any) => {
   const { colors } = useTheme();
   const { slug } = useTenant();
   const { userInfo } = useAuth();
+  const { showToast } = useToast();
 
   // Filter state
   const [showFilters, setShowFilters] = useState(false);
@@ -68,6 +71,7 @@ const BookingsScreen = ({ navigation }: any) => {
   const [viewMode, setViewMode] = useState<CalendarViewMode>('week');
   const [referenceDate, setReferenceDate] = useState<Date>(new Date());
   const [importModalVisible, setImportModalVisible] = useState(false);
+  const [importExportMenuVisible, setImportExportMenuVisible] = useState(false);
 
   const handleExportCSV = async () => {
     try {
@@ -80,11 +84,7 @@ const BookingsScreen = ({ navigation }: any) => {
   };
 
   const handleImportExport = () => {
-    Alert.alert('Importar/Exportar', 'Escolha uma opção', [
-      { text: 'Importar CSV', onPress: () => setImportModalVisible(true) },
-      { text: 'Exportar CSV', onPress: handleExportCSV },
-      { text: 'Cancelar', style: 'cancel' },
-    ]);
+    setImportExportMenuVisible(true);
   };
 
   const handleImportSuccess = () => {
@@ -144,8 +144,7 @@ const BookingsScreen = ({ navigation }: any) => {
       // Refresh the list
       refetch();
 
-      // Show success toast/alert
-      Alert.alert('Sucesso', 'Agendamento cancelado com sucesso');
+      showToast({ type: 'success', message: 'Agendamento cancelado com sucesso' });
     } catch (err) {
       console.error('Error cancelling appointment:', err);
       Alert.alert('Erro', 'Falha ao cancelar agendamento');
@@ -377,6 +376,16 @@ const BookingsScreen = ({ navigation }: any) => {
         onClose={() => setImportModalVisible(false)}
         onSuccess={handleImportSuccess}
         slug={slug}
+      />
+
+      <ActionMenu
+        visible={importExportMenuVisible}
+        onClose={() => setImportExportMenuVisible(false)}
+        title="Importar/Exportar"
+        options={[
+          { label: 'Importar CSV', onPress: () => setImportModalVisible(true) },
+          { label: 'Exportar CSV', onPress: handleExportCSV },
+        ]}
       />
     </SafeAreaView>
   );
