@@ -19,10 +19,25 @@ import {
   createInventoryItem,
   updateInventoryItem,
   deleteInventoryItem,
+  createStockMovement,
 } from '../api/inventory';
 import { InventoryItemFormModal } from '../components/InventoryItemFormModal';
+import { StockMovementModal } from '../components/StockMovementModal';
 import { useTenant } from '../hooks/useTenant';
 import { ActionMenu } from '../components/ui/ActionMenu';
+
+function extractErrorMessage(error: any, fallback: string): string {
+  const data = error?.response?.data;
+  if (!data) return error?.message || fallback;
+  if (typeof data === 'string') return data;
+  if (typeof data.detail === 'string') return data.detail;
+  for (const value of Object.values(data)) {
+    if (Array.isArray(value) && typeof value[0] === 'string') {
+      return value[0];
+    }
+  }
+  return fallback;
+}
 
 export default function InventoryScreen() {
   const { colors } = useTheme();
@@ -38,6 +53,10 @@ export default function InventoryScreen() {
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const [actionLoading, setActionLoading] = useState(false);
   const [optionsMenuTarget, setOptionsMenuTarget] = useState<any>(null);
+
+  const [movementTarget, setMovementTarget] = useState<any>(null);
+  const [movementBusy, setMovementBusy] = useState(false);
+  const [movementError, setMovementError] = useState<string | null>(null);
 
   const loadItems = useCallback(
     async (shouldRefresh = false) => {
@@ -125,6 +144,39 @@ export default function InventoryScreen() {
     setOptionsMenuTarget(item);
   };
 
+  const handleOpenMovement = (item: any) => {
+    setMovementTarget(item);
+    setMovementError(null);
+  };
+
+  const closeMovementModal = () => {
+    setMovementTarget(null);
+    setMovementError(null);
+  };
+
+  const handleMovementSubmit = async (data: { movement_type: 'in' | 'out'; quantity: number; notes: string }) => {
+    if (!movementTarget) return;
+    setMovementBusy(true);
+    setMovementError(null);
+    try {
+      await createStockMovement({ slug, item: movementTarget.id, ...data });
+      const delta = data.movement_type === 'in' ? data.quantity : -data.quantity;
+      setItems((prev) =>
+        prev.map((i) =>
+          i.id === movementTarget.id ? { ...i, quantity: Number(i.quantity) + delta } : i
+        )
+      );
+      closeMovementModal();
+    } catch (error) {
+      console.error('Error creating stock movement:', error);
+      setMovementError(
+        extractErrorMessage(error, 'Não foi possível registrar a movimentação.')
+      );
+    } finally {
+      setMovementBusy(false);
+    }
+  };
+
   const isLowStock = (item: any) => {
     if (item.minimum_quantity == null) return false;
     return Number(item.quantity) <= Number(item.minimum_quantity);
@@ -134,7 +186,11 @@ export default function InventoryScreen() {
     const lowStock = isLowStock(item);
     return (
       <View style={styles.card}>
-        <Card onPress={() => handleEdit(item)} onLongPress={() => showOptions(item)}>
+        <Card
+          testID={`inventory-item-${item.id}`}
+          onPress={() => handleEdit(item)}
+          onLongPress={() => showOptions(item)}
+        >
           <View style={styles.titleRow}>
             <Text style={[styles.itemName, { color: colors.textPrimary }]}>{item.name}</Text>
             {lowStock && (
@@ -233,8 +289,18 @@ export default function InventoryScreen() {
         title={optionsMenuTarget?.name}
         options={[
           { label: 'Editar', onPress: () => handleEdit(optionsMenuTarget) },
+          { label: 'Registrar movimentação', onPress: () => handleOpenMovement(optionsMenuTarget) },
           { label: 'Remover', onPress: () => handleDelete(optionsMenuTarget), destructive: true },
         ]}
+      />
+
+      <StockMovementModal
+        visible={!!movementTarget}
+        onClose={closeMovementModal}
+        onSubmit={handleMovementSubmit}
+        item={movementTarget}
+        busy={movementBusy}
+        errorMessage={movementError}
       />
     </SafeAreaView>
   );
