@@ -48,6 +48,19 @@ jest.mock('../../components/HeaderMenu', () => ({
   HeaderMenu: () => null,
 }));
 
+jest.mock('@react-navigation/native', () => ({
+  useFocusEffect: (callback: () => void) => {
+    const React = require('react');
+    React.useEffect(() => {
+      callback();
+    }, []);
+  },
+}));
+
+jest.mock('../../api/inventory', () => ({
+  fetchInventoryItems: jest.fn(() => Promise.resolve([])),
+}));
+
 jest.mock('../../components/ThemeToggle', () => ({
   ThemeToggle: () => null,
 }));

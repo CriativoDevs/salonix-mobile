@@ -16,6 +16,7 @@ import CreditsPlanScreen from "../screens/CreditsPlanScreen";
 import SettingsScreen from "../screens/SettingsScreen";
 import MarketingScreen from "../screens/MarketingScreen";
 import ServicesScreen from "../screens/ServicesScreen";
+import InventoryScreen from "../screens/InventoryScreen";
 import SlotsScreen from "../screens/SlotsScreen";
 import FeedbackScreen from "../screens/FeedbackScreen";
 import RoadmapScreen from "../screens/RoadmapScreen";
@@ -107,6 +108,10 @@ export default function AppNavigator() {
           <Stack.Screen
             name="Services"
             component={ServicesScreen}
+          />
+          <Stack.Screen
+            name="Inventory"
+            component={InventoryScreen}
           />
           <Stack.Screen
             name="Slots"

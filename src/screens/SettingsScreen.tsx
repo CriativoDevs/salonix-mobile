@@ -25,6 +25,7 @@ const COPY = {
     roadmapLink: 'Roadmap',
     businessHoursLink: 'Horário de Funcionamento',
     servicesLink: 'Serviços',
+    inventoryLink: 'Estoque',
     slotsLink: 'Horários',
   },
   en: {
@@ -44,6 +45,7 @@ const COPY = {
     roadmapLink: 'Roadmap',
     businessHoursLink: 'Business Hours',
     servicesLink: 'Services',
+    inventoryLink: 'Inventory',
     slotsLink: 'Slots',
   },
 } as const;
@@ -104,6 +106,7 @@ export default function SettingsScreen() {
       links: [
         { key: 'businessHours', label: t.businessHoursLink, icon: 'time-outline', route: 'BusinessHours' },
         { key: 'services', label: t.servicesLink, icon: 'cut-outline', route: 'Services' },
+        { key: 'inventory', label: t.inventoryLink, icon: 'cube-outline', route: 'Inventory' },
         { key: 'slots', label: t.slotsLink, icon: 'calendar-outline', route: 'Slots' },
       ],
     },
