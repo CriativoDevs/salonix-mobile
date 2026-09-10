@@ -308,6 +308,54 @@ export const EmptyAppointmentsState = memo(({ title, description, actionLabel, o
     );
 });
 
+interface InventoryAlertRowProps {
+  name: string;
+  quantity: number | string;
+  unit: string;
+  lowStock: boolean;
+  onPress: () => void;
+}
+
+export const InventoryAlertRow = memo(({ name, quantity, unit, lowStock, onPress }: InventoryAlertRowProps) => {
+  const { colors } = useTheme();
+
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingVertical: 10,
+        paddingHorizontal: 12,
+        borderRadius: 10,
+        backgroundColor: colors.surfaceVariant,
+        marginBottom: 8,
+      }}
+    >
+      <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: 8 }}>
+        {lowStock && (
+          <Ionicons
+            name="alert-circle-outline"
+            size={16}
+            color={colors.error}
+            style={{ marginRight: 8 }}
+          />
+        )}
+        <Text
+          numberOfLines={1}
+          style={{ color: colors.textPrimary, fontSize: 14, fontWeight: '500', flex: 1 }}
+        >
+          {name}
+        </Text>
+      </View>
+      <Text style={{ color: lowStock ? colors.error : colors.textSecondary, fontSize: 13, fontWeight: '500' }}>
+        {quantity} {unit}
+      </Text>
+    </TouchableOpacity>
+  );
+});
+
 interface QuickActionProps {
     label: string;
     onPress: () => void;

@@ -1,16 +1,26 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, Text, ScrollView, RefreshControl, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../hooks/useTheme';
 import { useTenant } from '../hooks/useTenant';
 import { useLanguage } from '../contexts/LanguageContext';
 import { Ionicons } from '@expo/vector-icons';
-import { StatCard, AppointmentCard, EmptyAppointmentsState } from '../components/DashboardComponents';
+import { StatCard, AppointmentCard, EmptyAppointmentsState, InventoryAlertRow } from '../components/DashboardComponents';
 import useDashboardData from '../hooks/useDashboardData';
 import { useAuth } from '../hooks/useAuth';
 import { isOwner } from '../utils/permissions';
 import { HeaderMenu } from '../components/HeaderMenu';
 import { ThemeToggle } from '../components/ThemeToggle';
+import { fetchInventoryItems } from '../api/inventory';
+
+const INVENTORY_SHORTCUT_LIMIT = 4;
+
+const isLowStockItem = (item: any) => {
+  const min = item?.minimum_quantity;
+  if (min == null || Number(min) <= 0) return false;
+  return Number(item?.quantity) <= Number(min);
+};
 
 export default function DashboardScreen({ navigation }: any) {
   const { colors, toggleTheme, theme } = useTheme();
@@ -22,11 +32,45 @@ export default function DashboardScreen({ navigation }: any) {
 
   const isDark = theme === 'dark';
 
+  const [inventoryShortcut, setInventoryShortcut] = useState<any[]>([]);
+  const [inventoryLoading, setInventoryLoading] = useState(true);
+
+  const loadInventoryShortcut = useCallback(async () => {
+    setInventoryLoading(true);
+    try {
+      const items = await fetchInventoryItems({ slug: tenant?.slug } as any);
+      const lowStock = items.filter(isLowStockItem);
+      let selected = lowStock;
+      if (selected.length < INVENTORY_SHORTCUT_LIMIT) {
+        const rest = items
+          .filter((item: any) => !isLowStockItem(item))
+          .sort((a: any, b: any) => {
+            const ta = a?.created_at ? new Date(a.created_at).getTime() : 0;
+            const tb = b?.created_at ? new Date(b.created_at).getTime() : 0;
+            return tb - ta;
+          });
+        selected = [...lowStock, ...rest];
+      }
+      setInventoryShortcut(selected.slice(0, INVENTORY_SHORTCUT_LIMIT));
+    } catch {
+      setInventoryShortcut([]);
+    } finally {
+      setInventoryLoading(false);
+    }
+  }, [tenant?.slug]);
+
+  useFocusEffect(
+    useCallback(() => {
+      refetch();
+      loadInventoryShortcut();
+    }, [refetch, loadInventoryShortcut])
+  );
+
   const [refreshing, setRefreshing] = useState(false);
   const onRefresh = React.useCallback(() => {
     setRefreshing(true);
-    refetch().finally(() => setRefreshing(false));
-  }, [refetch]);
+    Promise.all([refetch(), loadInventoryShortcut()]).finally(() => setRefreshing(false));
+  }, [refetch, loadInventoryShortcut]);
 
   const handleRefreshCredits = () => {
     setRefreshing(true);
@@ -183,6 +227,86 @@ export default function DashboardScreen({ navigation }: any) {
               description="Crie um novo agendamento ou abra horários disponíveis."
               actionLabel="Novo agendamento"
               onAction={() => navigation.navigate('Agendamentos')}
+            />
+          )}
+        </View>
+
+        <View
+          style={{
+            borderRadius: 16,
+            borderWidth: 1,
+            borderColor: colors.border,
+            backgroundColor: colors.surface,
+            padding: 24,
+            marginBottom: 24,
+          }}
+        >
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: 16,
+            }}
+          >
+            <Text
+              style={{
+                color: colors.textPrimary,
+                fontSize: 18,
+                fontWeight: '600',
+              }}
+            >
+              Estoque
+            </Text>
+
+            {!inventoryLoading && inventoryShortcut.length > 0 && (
+              <TouchableOpacity onPress={() => navigation.navigate('Inventory')}>
+                <Text
+                  style={{
+                    color: colors.brandPrimary,
+                    fontSize: 13,
+                    fontWeight: '500',
+                  }}
+                >
+                  Ver todos
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {inventoryLoading ? (
+            <View>
+              {[1, 2].map((i) => (
+                <View
+                  key={i}
+                  style={{
+                    height: 44,
+                    borderRadius: 10,
+                    backgroundColor: colors.surfaceVariant,
+                    marginBottom: 8,
+                  }}
+                />
+              ))}
+            </View>
+          ) : inventoryShortcut.length > 0 ? (
+            <View>
+              {inventoryShortcut.map((item) => (
+                <InventoryAlertRow
+                  key={item.id}
+                  name={item.name}
+                  quantity={item.quantity}
+                  unit={item.unit}
+                  lowStock={isLowStockItem(item)}
+                  onPress={() => navigation.navigate('Inventory')}
+                />
+              ))}
+            </View>
+          ) : (
+            <EmptyAppointmentsState
+              title="Nenhum item de estoque cadastrado"
+              description="Adicione o primeiro item para acompanhar quantidades e alertas."
+              actionLabel="Adicionar item"
+              onAction={() => navigation.navigate('Inventory', { openCreate: true })}
             />
           )}
         </View>
