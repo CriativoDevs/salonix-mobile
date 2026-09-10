@@ -30,11 +30,13 @@ const mockFetchInventoryItems = jest.fn();
 const mockCreateInventoryItem = jest.fn();
 const mockUpdateInventoryItem = jest.fn();
 const mockDeleteInventoryItem = jest.fn();
+const mockCreateStockMovement = jest.fn();
 jest.mock('../../api/inventory', () => ({
   fetchInventoryItems: (...args: any[]) => mockFetchInventoryItems(...args),
   createInventoryItem: (...args: any[]) => mockCreateInventoryItem(...args),
   updateInventoryItem: (...args: any[]) => mockUpdateInventoryItem(...args),
   deleteInventoryItem: (...args: any[]) => mockDeleteInventoryItem(...args),
+  createStockMovement: (...args: any[]) => mockCreateStockMovement(...args),
 }));
 
 jest.mock('../../components/InventoryItemFormModal', () => {
@@ -102,5 +104,77 @@ describe('InventoryScreen', () => {
     mockFetchInventoryItems.mockResolvedValue([]);
     const { findByText } = await render(<InventoryScreen />);
     expect(await findByText('Nenhum item de estoque cadastrado.')).toBeTruthy();
+  });
+
+  it('registers a stock movement from the item action menu and updates the quantity shown', async () => {
+    mockFetchInventoryItems.mockResolvedValue([
+      { id: 1, name: 'Shampoo', unit: 'un', quantity: 10, minimum_quantity: 2 },
+    ]);
+    mockCreateStockMovement.mockResolvedValue({
+      id: 99,
+      item: 1,
+      movement_type: 'in',
+      quantity: 5,
+      notes: '',
+    });
+    const { findByText, getByText, getByTestId, getByPlaceholderText } = await render(<InventoryScreen />);
+    await findByText('Shampoo');
+    fireEvent(getByTestId('inventory-item-1'), 'longPress');
+
+    await fireEvent.press(await findByText('Registrar movimentação'));
+    await fireEvent.changeText(getByPlaceholderText('0'), '5');
+    await fireEvent.press(getByText('Registrar'));
+
+    expect(mockCreateStockMovement).toHaveBeenCalledWith({
+      slug: 'acme',
+      item: 1,
+      movement_type: 'in',
+      quantity: 5,
+      notes: '',
+    });
+    expect(await findByText('15 un')).toBeTruthy();
+  });
+
+  it('subtracts the quantity for an "out" movement', async () => {
+    mockFetchInventoryItems.mockResolvedValue([
+      { id: 1, name: 'Shampoo', unit: 'un', quantity: 10, minimum_quantity: 2 },
+    ]);
+    mockCreateStockMovement.mockResolvedValue({
+      id: 99,
+      item: 1,
+      movement_type: 'out',
+      quantity: 4,
+      notes: '',
+    });
+    const { findByText, getByText, getByTestId, getByPlaceholderText } = await render(<InventoryScreen />);
+    await findByText('Shampoo');
+    fireEvent(getByTestId('inventory-item-1'), 'longPress');
+
+    await fireEvent.press(await findByText('Registrar movimentação'));
+    await fireEvent.press(getByTestId('stock-movement-type-out'));
+    await fireEvent.changeText(getByPlaceholderText('0'), '4');
+    await fireEvent.press(getByText('Registrar'));
+
+    expect(await findByText('6 un')).toBeTruthy();
+  });
+
+  it('shows a clear error message when the movement would leave a negative balance', async () => {
+    mockFetchInventoryItems.mockResolvedValue([
+      { id: 1, name: 'Shampoo', unit: 'un', quantity: 10, minimum_quantity: 2 },
+    ]);
+    mockCreateStockMovement.mockRejectedValue({
+      response: { data: { quantity: ['Saída não pode deixar a quantidade do item negativa.'] } },
+    });
+    const { findByText, getByText, getByTestId, getByPlaceholderText } = await render(<InventoryScreen />);
+    await findByText('Shampoo');
+    fireEvent(getByTestId('inventory-item-1'), 'longPress');
+
+    await fireEvent.press(await findByText('Registrar movimentação'));
+    await fireEvent.press(getByTestId('stock-movement-type-out'));
+    await fireEvent.changeText(getByPlaceholderText('0'), '999');
+    await fireEvent.press(getByText('Registrar'));
+
+    expect(await findByText('Saída não pode deixar a quantidade do item negativa.')).toBeTruthy();
+    expect(await findByText('10 un')).toBeTruthy();
   });
 });
