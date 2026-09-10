@@ -12,6 +12,18 @@ export async function fetchInventoryItems({ slug, limit = 100 } = {}) {
   return Array.isArray(data) ? data : data?.results || [];
 }
 
+export async function fetchInventoryAlerts({ slug, limit = 100 } = {}) {
+  const params = { limit };
+  const headers = {};
+  if (slug) {
+    params.tenant = slug;
+    headers['X-Tenant-Slug'] = slug;
+  }
+  const response = await client.get('inventory/alerts/', { params, headers });
+  const data = response.data;
+  return Array.isArray(data) ? data : data?.results || [];
+}
+
 export async function createInventoryItem(data) {
   const { slug, ...payload } = data;
   const params = {};

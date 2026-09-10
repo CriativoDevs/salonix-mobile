@@ -16,6 +16,7 @@ import { useTheme } from '../hooks/useTheme';
 import { Card } from '../components/ui/Card';
 import {
   fetchInventoryItems,
+  fetchInventoryAlerts,
   createInventoryItem,
   updateInventoryItem,
   deleteInventoryItem,
@@ -49,6 +50,8 @@ export default function InventoryScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
+  const [alerts, setAlerts] = useState<any[]>([]);
+
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const [actionLoading, setActionLoading] = useState(false);
@@ -78,9 +81,19 @@ export default function InventoryScreen() {
     [slug]
   );
 
+  const loadAlerts = useCallback(async () => {
+    try {
+      const data = await fetchInventoryAlerts({ slug } as any);
+      setAlerts(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error('Error fetching inventory alerts:', error);
+    }
+  }, [slug]);
+
   useEffect(() => {
     loadItems();
-  }, [loadItems]);
+    loadAlerts();
+  }, [loadItems, loadAlerts]);
 
   useEffect(() => {
     if (route.params?.openCreate) {
@@ -90,7 +103,10 @@ export default function InventoryScreen() {
     }
   }, [route.params?.openCreate, navigation]);
 
-  const onRefresh = () => loadItems(true);
+  const onRefresh = () => {
+    loadItems(true);
+    loadAlerts();
+  };
 
   const handleCreate = () => {
     setSelectedItem(null);
@@ -113,6 +129,7 @@ export default function InventoryScreen() {
         setItems((prev) => [created, ...prev]);
       }
       setModalVisible(false);
+      loadAlerts();
     } catch (error) {
       console.error('Error saving inventory item:', error);
       Alert.alert('Erro', 'Não foi possível salvar o item.');
@@ -131,6 +148,7 @@ export default function InventoryScreen() {
           try {
             await deleteInventoryItem(item.id);
             setItems((prev) => prev.filter((i) => i.id !== item.id));
+            loadAlerts();
           } catch (error) {
             console.error('Error deleting inventory item:', error);
             Alert.alert('Erro', 'Não foi possível remover o item.');
@@ -167,6 +185,7 @@ export default function InventoryScreen() {
         )
       );
       closeMovementModal();
+      loadAlerts();
     } catch (error) {
       console.error('Error creating stock movement:', error);
       setMovementError(
@@ -230,6 +249,33 @@ export default function InventoryScreen() {
       </View>
 
       <View style={{ paddingHorizontal: 16 }}>
+        {alerts.length > 0 && (
+          <View
+            testID="inventory-alerts-section"
+            style={[
+              styles.alertsSection,
+              { backgroundColor: colors.error + '11', borderColor: colors.error + '33' },
+            ]}
+          >
+            <View style={styles.alertsHeader}>
+              <Ionicons name="warning-outline" size={16} color={colors.error} />
+              <Text style={[styles.alertsTitle, { color: colors.error }]}>
+                Alertas de estoque ({alerts.length})
+              </Text>
+            </View>
+            {alerts.map((alert) => (
+              <View key={alert.id} style={styles.alertRow}>
+                <Text style={[styles.alertItemName, { color: colors.textPrimary }]} numberOfLines={1}>
+                  {alert.name}
+                </Text>
+                <Text style={[styles.alertItemQty, { color: colors.error }]}>
+                  {alert.quantity} / mín. {alert.minimum_quantity} {alert.unit}
+                </Text>
+              </View>
+            ))}
+          </View>
+        )}
+
         <View style={{ marginBottom: 16, marginTop: 16 }}>
           <Text style={{ color: colors.textSecondary, fontSize: 13 }}>{items.length} itens</Text>
           <View style={{ flexDirection: 'row', marginTop: 12, gap: 16 }}>
@@ -325,6 +371,28 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   listContent: { padding: 16, paddingTop: 0 },
+  alertsSection: {
+    marginTop: 16,
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  alertsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 8,
+  },
+  alertsTitle: { fontSize: 13, fontWeight: '700' },
+  alertRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 4,
+    gap: 8,
+  },
+  alertItemName: { fontSize: 13, flexShrink: 1 },
+  alertItemQty: { fontSize: 12, fontWeight: '600' },
   card: { marginBottom: 12 },
   titleRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginBottom: 4 },
   itemName: { fontSize: 16, fontWeight: '600' },
