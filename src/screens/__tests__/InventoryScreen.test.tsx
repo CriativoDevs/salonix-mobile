@@ -1,4 +1,5 @@
 import React from 'react';
+import { Alert } from 'react-native';
 import { render, waitFor, fireEvent } from '@testing-library/react-native';
 import InventoryScreen from '../InventoryScreen';
 
@@ -27,12 +28,14 @@ jest.mock('@react-navigation/native', () => ({
 }));
 
 const mockFetchInventoryItems = jest.fn();
+const mockFetchInventoryAlerts = jest.fn();
 const mockCreateInventoryItem = jest.fn();
 const mockUpdateInventoryItem = jest.fn();
 const mockDeleteInventoryItem = jest.fn();
 const mockCreateStockMovement = jest.fn();
 jest.mock('../../api/inventory', () => ({
   fetchInventoryItems: (...args: any[]) => mockFetchInventoryItems(...args),
+  fetchInventoryAlerts: (...args: any[]) => mockFetchInventoryAlerts(...args),
   createInventoryItem: (...args: any[]) => mockCreateInventoryItem(...args),
   updateInventoryItem: (...args: any[]) => mockUpdateInventoryItem(...args),
   deleteInventoryItem: (...args: any[]) => mockDeleteInventoryItem(...args),
@@ -59,6 +62,9 @@ jest.mock('../../components/InventoryItemFormModal', () => {
 });
 
 describe('InventoryScreen', () => {
+  beforeEach(() => {
+    mockFetchInventoryAlerts.mockResolvedValue([]);
+  });
   afterEach(() => jest.clearAllMocks());
 
   it('renders inventory items fetched from the API', async () => {
@@ -176,5 +182,96 @@ describe('InventoryScreen', () => {
 
     expect(await findByText('Saída não pode deixar a quantidade do item negativa.')).toBeTruthy();
     expect(await findByText('10 un')).toBeTruthy();
+  });
+
+  it('does not show the alerts section when there are no alerts', async () => {
+    mockFetchInventoryItems.mockResolvedValue([
+      { id: 1, name: 'Shampoo', unit: 'un', quantity: 10, minimum_quantity: 2 },
+    ]);
+    mockFetchInventoryAlerts.mockResolvedValue([]);
+    const { queryByTestId, findByText } = await render(<InventoryScreen />);
+    await findByText('Shampoo');
+    expect(queryByTestId('inventory-alerts-section')).toBeNull();
+  });
+
+  it('shows the alerts section with items returned by the alerts endpoint', async () => {
+    mockFetchInventoryItems.mockResolvedValue([
+      { id: 1, name: 'Shampoo', unit: 'un', quantity: 1, minimum_quantity: 2 },
+      { id: 2, name: 'Condicionador', unit: 'un', quantity: 20, minimum_quantity: 5 },
+    ]);
+    mockFetchInventoryAlerts.mockResolvedValue([
+      { id: 1, name: 'Shampoo', unit: 'un', quantity: 1, minimum_quantity: 2 },
+    ]);
+    const { getByTestId, findByText, queryByText } = await render(<InventoryScreen />);
+    await waitFor(() => expect(getByTestId('inventory-alerts-section')).toBeTruthy());
+
+    expect(await findByText('Alertas de estoque (1)')).toBeTruthy();
+    expect(await findByText('1 / mín. 2 un')).toBeTruthy();
+    expect(queryByText('Condicionador')).toBeTruthy();
+  });
+
+  it('reloads alerts after creating an item', async () => {
+    mockFetchInventoryItems.mockResolvedValue([]);
+    mockCreateInventoryItem.mockResolvedValue({
+      id: 2,
+      name: 'Cera',
+      unit: 'un',
+      quantity: 5,
+      minimum_quantity: 1,
+    });
+    const { getByText, findByText } = await render(<InventoryScreen />);
+    await waitFor(() => expect(mockFetchInventoryAlerts).toHaveBeenCalledTimes(1));
+    await fireEvent.press(getByText('Novo item'));
+    await fireEvent.press(getByText('submit-stub'));
+    await findByText('Cera');
+
+    await waitFor(() => expect(mockFetchInventoryAlerts).toHaveBeenCalledTimes(2));
+  });
+
+  it('reloads alerts after registering a stock movement', async () => {
+    mockFetchInventoryItems.mockResolvedValue([
+      { id: 1, name: 'Shampoo', unit: 'un', quantity: 10, minimum_quantity: 2 },
+    ]);
+    mockCreateStockMovement.mockResolvedValue({
+      id: 99,
+      item: 1,
+      movement_type: 'out',
+      quantity: 9,
+      notes: '',
+    });
+    const { findByText, getByText, getByTestId, getByPlaceholderText } = await render(<InventoryScreen />);
+    await findByText('Shampoo');
+    await waitFor(() => expect(mockFetchInventoryAlerts).toHaveBeenCalledTimes(1));
+    fireEvent(getByTestId('inventory-item-1'), 'longPress');
+
+    await fireEvent.press(await findByText('Registrar movimentação'));
+    await fireEvent.press(getByTestId('stock-movement-type-out'));
+    await fireEvent.changeText(getByPlaceholderText('0'), '9');
+    await fireEvent.press(getByText('Registrar'));
+
+    await waitFor(() => expect(mockFetchInventoryAlerts).toHaveBeenCalledTimes(2));
+  });
+
+  it('reloads alerts after removing an item', async () => {
+    mockFetchInventoryItems.mockResolvedValue([
+      { id: 1, name: 'Shampoo', unit: 'un', quantity: 10, minimum_quantity: 2 },
+    ]);
+    mockDeleteInventoryItem.mockResolvedValue({});
+    const alertSpy = jest.spyOn(Alert, 'alert').mockImplementation((_title, _message, buttons) => {
+      const confirmButton = buttons?.find((b: any) => b.text === 'Remover');
+      confirmButton?.onPress?.();
+    });
+
+    const { findByText, getByTestId } = await render(<InventoryScreen />);
+    await findByText('Shampoo');
+    await waitFor(() => expect(mockFetchInventoryAlerts).toHaveBeenCalledTimes(1));
+    fireEvent(getByTestId('inventory-item-1'), 'longPress');
+
+    await fireEvent.press(await findByText('Remover'));
+
+    await waitFor(() => expect(mockDeleteInventoryItem).toHaveBeenCalledWith(1));
+    await waitFor(() => expect(mockFetchInventoryAlerts).toHaveBeenCalledTimes(2));
+
+    alertSpy.mockRestore();
   });
 });

@@ -8,6 +8,7 @@ jest.mock('../client', () => ({
 const client = require('../client');
 const {
   fetchInventoryItems,
+  fetchInventoryAlerts,
   createInventoryItem,
   updateInventoryItem,
   deleteInventoryItem,
@@ -43,6 +44,41 @@ describe('fetchInventoryItems', () => {
     client.get.mockResolvedValue({ data: { results: [{ id: 1 }] } });
 
     const result = await fetchInventoryItems({ slug: 'acme' });
+
+    expect(result).toEqual([{ id: 1 }]);
+  });
+});
+
+describe('fetchInventoryAlerts', () => {
+  afterEach(() => jest.clearAllMocks());
+
+  it('reads from the inventory/alerts/ endpoint with tenant headers', async () => {
+    client.get.mockResolvedValue({ data: [{ id: 1, name: 'Shampoo', quantity: 1, minimum_quantity: 2 }] });
+
+    const result = await fetchInventoryAlerts({ slug: 'acme' });
+
+    expect(client.get).toHaveBeenCalledWith('inventory/alerts/', {
+      params: { limit: 100, tenant: 'acme' },
+      headers: { 'X-Tenant-Slug': 'acme' },
+    });
+    expect(result).toEqual([{ id: 1, name: 'Shampoo', quantity: 1, minimum_quantity: 2 }]);
+  });
+
+  it('works without a slug', async () => {
+    client.get.mockResolvedValue({ data: [] });
+
+    await fetchInventoryAlerts();
+
+    expect(client.get).toHaveBeenCalledWith('inventory/alerts/', {
+      params: { limit: 100 },
+      headers: {},
+    });
+  });
+
+  it('unwraps paginated results', async () => {
+    client.get.mockResolvedValue({ data: { results: [{ id: 1 }] } });
+
+    const result = await fetchInventoryAlerts({ slug: 'acme' });
 
     expect(result).toEqual([{ id: 1 }]);
   });
