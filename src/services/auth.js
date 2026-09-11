@@ -59,6 +59,7 @@ import {
   getClientRefreshToken,
   clearClientTokens,
   setClientLogoutHandler,
+  setClientTenantSlug,
 } from "../utils/clientAuthStorage";
 
 // ============================================================
@@ -210,10 +211,15 @@ export const getStaffProfile = async () => {
  * Login como cliente (agendamento)
  * Salva tokens automaticamente em SecureStore
  *
+ * O backend (`POST /api/clients/login/`) devolve só
+ * {access, refresh, tenant_id, customer_id} — não um objeto "client"
+ * embutido. Os dados do perfil (nome, email, foto, etc) vêm à parte via
+ * getClientProfile().
+ *
  * @param {string} email
  * @param {string} password
  * @param {string} tenantSlug - Identificador único do salão
- * @returns {Promise<{client}>}
+ * @returns {Promise<{tenantId, customerId}>}
  * @throws {Error} 400 Invalid tenant, 401 Invalid credentials, network error, etc
  */
 export const loginClient = async (email, password, tenantSlug) => {
@@ -230,20 +236,19 @@ export const loginClient = async (email, password, tenantSlug) => {
       tenant_slug: tenantSlug,
     });
 
-    const { access, refresh, client: clientData } = response.data;
+    const { access, refresh, tenant_id, customer_id } = response.data;
 
     // Validate response has required fields
-    if (!access || !refresh || !clientData) {
-      throw new Error(
-        "Invalid response from server: missing tokens or client data",
-      );
+    if (!access || !refresh) {
+      throw new Error("Invalid response from server: missing tokens");
     }
 
     // Save tokens to SecureStore (client-specific storage)
     await setClientAccessToken(access);
     await setClientRefreshToken(refresh);
+    await setClientTenantSlug(tenantSlug);
 
-    return clientData;
+    return { tenantId: tenant_id, customerId: customer_id };
   } catch (error) {
     console.error("[auth] Client login failed:", {
       email,
@@ -267,8 +272,8 @@ export const loginClient = async (email, password, tenantSlug) => {
  */
 export const getClientProfile = async () => {
   try {
-    const response = await client.get("clients/me/");
-    return response.data; // { client, appointments }
+    const response = await client.get("clients/me/profile/");
+    return response.data; // { id, name, email, phone_number, photo, birthday, marketing_opt_in, ... }
   } catch (error) {
     console.error("[auth] ❌ Erro ao obter client profile:", {
       status: error?.response?.status,
