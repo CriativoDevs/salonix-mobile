@@ -85,3 +85,20 @@ export const updateClientProfile = async (partial) => {
   const { data } = await client.patch("clients/me/profile/", partial);
   return data;
 };
+
+/**
+ * @param {{uri: string, name?: string, mimeType?: string}} photoFile - asset
+ *   vindo de expo-image-picker.
+ */
+export const updateClientProfilePhoto = async (photoFile) => {
+  const formData = new FormData();
+  formData.append("photo", {
+    uri: photoFile.uri,
+    name: photoFile.name || "photo.jpg",
+    type: photoFile.mimeType || "image/jpeg",
+  });
+  const { data } = await client.patch("clients/me/profile/", formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+  return data;
+};

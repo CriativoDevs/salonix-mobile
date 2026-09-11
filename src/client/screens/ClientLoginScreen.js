@@ -12,7 +12,44 @@ import { Ionicons } from "@expo/vector-icons";
 import { useClientAuth } from "../../hooks/useClientAuth";
 import { useToast } from "../../contexts/ToastContext";
 import { useTheme } from "../../hooks/useTheme";
+import { useLanguage } from "../../contexts/LanguageContext";
 import { Button, Input, Alert } from "../../components/ui";
+import { LanguageToggle } from "../../components/LanguageToggle";
+
+const COPY = {
+  pt: {
+    title: "TimelyOne Client",
+    subtitle: "Acesse a sua conta de cliente",
+    hint: "Use o email e senha definidos no link de acesso enviado pelo estabelecimento.",
+    tenantLabel: "Identificador do estabelecimento",
+    tenantPlaceholder: "ex.: nome-do-salao",
+    tenantRequired: "Identificador do estabelecimento é obrigatório",
+    emailLabel: "Email",
+    emailRequired: "Email é obrigatório",
+    emailInvalid: "Email inválido",
+    passwordLabel: "Senha",
+    passwordRequired: "Senha é obrigatória",
+    submit: "Entrar",
+    welcome: "Bem-vindo! 👋",
+    loginFailed: "Erro ao fazer login. Verifique os dados.",
+  },
+  en: {
+    title: "TimelyOne Client",
+    subtitle: "Sign in to your client account",
+    hint: "Use the email and password set in the access link sent by the business.",
+    tenantLabel: "Business identifier",
+    tenantPlaceholder: "e.g.: salon-name",
+    tenantRequired: "Business identifier is required",
+    emailLabel: "Email",
+    emailRequired: "Email is required",
+    emailInvalid: "Invalid email",
+    passwordLabel: "Password",
+    passwordRequired: "Password is required",
+    submit: "Sign in",
+    welcome: "Welcome! 👋",
+    loginFailed: "Login failed. Check your details.",
+  },
+};
 
 export default function ClientLoginScreen() {
   const [tenantSlug, setTenantSlugInput] = useState("");
@@ -21,6 +58,8 @@ export default function ClientLoginScreen() {
   const { login, authError, isLoading } = useClientAuth();
   const { showToast } = useToast();
   const { theme, colors, toggleTheme } = useTheme();
+  const { language, setLanguage } = useLanguage();
+  const t = COPY[language] || COPY.pt;
 
   const [tenantError, setTenantError] = useState("");
   const [emailError, setEmailError] = useState("");
@@ -33,20 +72,20 @@ export default function ClientLoginScreen() {
   const validateEmail = (text) => {
     setEmail(text);
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    setEmailError(text && !emailRegex.test(text.trim()) ? "Email inválido" : "");
+    setEmailError(text && !emailRegex.test(text.trim()) ? t.emailInvalid : "");
   };
 
   const handleLogin = async () => {
     if (!tenantSlug) {
-      setTenantError("Identificador do estabelecimento é obrigatório");
+      setTenantError(t.tenantRequired);
       return;
     }
     if (!email) {
-      setEmailError("Email é obrigatório");
+      setEmailError(t.emailRequired);
       return;
     }
     if (!password) {
-      setPasswordError("Senha é obrigatória");
+      setPasswordError(t.passwordRequired);
       return;
     }
     if (emailError) return;
@@ -54,11 +93,11 @@ export default function ClientLoginScreen() {
     const result = await login(email, password, tenantSlug.trim());
 
     if (result.success) {
-      showToast({ type: "success", message: "Bem-vindo! 👋", duration: 3000 });
+      showToast({ type: "success", message: t.welcome, duration: 3000 });
     } else {
       showToast({
         type: "error",
-        message: result.error || "Erro ao fazer login. Verifique os dados.",
+        message: result.error || t.loginFailed,
         duration: 5000,
       });
     }
@@ -77,6 +116,11 @@ export default function ClientLoginScreen() {
         style={styles.container}
       >
         <View style={styles.header}>
+          <LanguageToggle
+            language={language}
+            onToggle={() => setLanguage(language === "pt" ? "en" : "pt")}
+            size={18}
+          />
           <TouchableOpacity
             onPress={toggleTheme}
             style={styles.themeToggle}
@@ -92,24 +136,19 @@ export default function ClientLoginScreen() {
         </View>
 
         <View style={styles.content}>
-          <Text style={[styles.title, { color: colors.textPrimary }]}>
-            TimelyOne Client
-          </Text>
+          <Text style={[styles.title, { color: colors.textPrimary }]}>{t.title}</Text>
           <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-            Acesse a sua conta de cliente
+            {t.subtitle}
           </Text>
 
           <View style={styles.alertContainer}>
-            <Alert
-              type="info"
-              message="Use o email e senha definidos no link de acesso enviado pelo estabelecimento."
-            />
+            <Alert type="info" message={t.hint} />
           </View>
 
           <Input
             ref={tenantInputRef}
-            label="Identificador do estabelecimento"
-            placeholder="ex.: nome-do-salao"
+            label={t.tenantLabel}
+            placeholder={t.tenantPlaceholder}
             value={tenantSlug}
             onChangeText={(text) => {
               setTenantSlugInput(text);
@@ -124,7 +163,7 @@ export default function ClientLoginScreen() {
 
           <Input
             ref={emailInputRef}
-            label="Email"
+            label={t.emailLabel}
             placeholder="seu@email.com"
             value={email}
             onChangeText={validateEmail}
@@ -137,7 +176,7 @@ export default function ClientLoginScreen() {
 
           <Input
             ref={passwordInputRef}
-            label="Senha"
+            label={t.passwordLabel}
             placeholder="••••••••"
             value={password}
             onChangeText={(text) => {
@@ -156,7 +195,7 @@ export default function ClientLoginScreen() {
             loading={isLoading}
             disabled={isLoading}
           >
-            Entrar
+            {t.submit}
           </Button>
         </View>
       </KeyboardAvoidingView>
@@ -169,7 +208,9 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   header: {
     flexDirection: "row",
+    alignItems: "center",
     justifyContent: "flex-end",
+    gap: 8,
     paddingHorizontal: 24,
     paddingTop: 8,
     paddingBottom: 16,
