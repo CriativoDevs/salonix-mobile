@@ -227,7 +227,7 @@ export default function ClientBookingCreateScreen({ navigation }) {
                 </Text>
               </Card>
               <Button
-                variant="primary"
+                variant="link"
                 onPress={confirm}
                 loading={submitting}
                 disabled={submitting}

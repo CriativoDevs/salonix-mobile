@@ -170,7 +170,7 @@ export default function ClientProfileScreen() {
         <Input label={t.email} value={clientInfo?.email || ""} editable={false} />
         <Input label={t.phone} value={phone} onChangeText={setPhone} />
 
-        <Button variant="primary" onPress={onSave} loading={saving} disabled={saving}>
+        <Button variant="link" onPress={onSave} loading={saving} disabled={saving}>
           {t.save}
         </Button>
       </View>

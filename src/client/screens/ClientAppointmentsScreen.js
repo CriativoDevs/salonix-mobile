@@ -210,13 +210,21 @@ export default function ClientAppointmentsScreen({ navigation }) {
 
       <View style={styles.tabs}>
         <Button
-          variant={activeTab === "upcoming" ? "primary" : "link"}
+          variant="link"
+          style={[
+            styles.tabButton,
+            activeTab === "upcoming" && { borderBottomColor: colors.brandPrimary },
+          ]}
           onPress={() => setActiveTab("upcoming")}
         >
           {`${t.upcoming} (${upcoming.length}${upcomingHasMore ? "+" : ""})`}
         </Button>
         <Button
-          variant={activeTab === "history" ? "primary" : "link"}
+          variant="link"
+          style={[
+            styles.tabButton,
+            activeTab === "history" && { borderBottomColor: colors.brandPrimary },
+          ]}
           onPress={() => setActiveTab("history")}
         >
           {`${t.history} (${history.length}${historyHasMore ? "+" : ""})`}
@@ -270,6 +278,7 @@ const styles = StyleSheet.create({
   title: { fontSize: 24, fontWeight: "700" },
   newBookingRow: { paddingHorizontal: 20, alignItems: "flex-end" },
   tabs: { flexDirection: "row", gap: 8, paddingHorizontal: 20, paddingTop: 8 },
+  tabButton: { borderBottomWidth: 2, borderBottomColor: "transparent" },
   listContent: { padding: 20, gap: 12 },
   card: { marginBottom: 12 },
   cardRow: { flexDirection: "row", justifyContent: "space-between", gap: 8 },
