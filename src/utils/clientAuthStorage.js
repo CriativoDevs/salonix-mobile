@@ -24,11 +24,13 @@ import * as SecureStore from "expo-secure-store";
 // ===== CONSTANTS =====
 const CLIENT_REFRESH_KEY = "salonix_client_refresh_token";
 const CLIENT_ACCESS_KEY = "salonix_client_access_token";
+const CLIENT_TENANT_SLUG_KEY = "salonix_client_tenant_slug";
 
 // ===== IN-MEMORY CACHE =====
 // Tokens ficam em memória após load inicial (performance)
 let clientAccessToken = null;
 let clientRefreshToken = null;
+let clientTenantSlug = null;
 
 /**
  * Initialize client tokens from SecureStore
@@ -40,6 +42,7 @@ export const initializeClientTokens = async () => {
   try {
     clientAccessToken = await SecureStore.getItemAsync(CLIENT_ACCESS_KEY);
     clientRefreshToken = await SecureStore.getItemAsync(CLIENT_REFRESH_KEY);
+    clientTenantSlug = await SecureStore.getItemAsync(CLIENT_TENANT_SLUG_KEY);
 
     if (clientAccessToken || clientRefreshToken) {
       console.log("[clientAuthStorage] Client tokens loaded from SecureStore");
@@ -49,6 +52,32 @@ export const initializeClientTokens = async () => {
     // Fallback: tokens permanecem null (user precisa fazer login)
   }
 };
+
+/**
+ * Set/get the tenant slug the client last logged into. Endpoints públicos
+ * usados no fluxo de agendamento (ex. slots) exigem o tenant explicitamente
+ * — os endpoints "clients/me/*" já resolvem o tenant a partir do JWT.
+ *
+ * @param {string|null} slug
+ * @returns {Promise<void>}
+ */
+export const setClientTenantSlug = async (slug) => {
+  clientTenantSlug = slug || null;
+  try {
+    if (slug) {
+      await SecureStore.setItemAsync(CLIENT_TENANT_SLUG_KEY, slug);
+    } else {
+      await SecureStore.deleteItemAsync(CLIENT_TENANT_SLUG_KEY);
+    }
+  } catch (error) {
+    console.error("[clientAuthStorage] Error saving tenant slug:", error);
+  }
+};
+
+/**
+ * @returns {string|null}
+ */
+export const getClientTenantSlug = () => clientTenantSlug;
 
 /**
  * Set client access token (memory + SecureStore)
@@ -112,6 +141,7 @@ export const getClientRefreshToken = () => clientRefreshToken;
 export const clearClientTokens = async () => {
   await setClientAccessToken(null);
   await setClientRefreshToken(null);
+  await setClientTenantSlug(null);
   console.log("[clientAuthStorage] Client tokens cleared");
 };
 
