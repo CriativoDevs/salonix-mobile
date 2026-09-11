@@ -9,7 +9,7 @@ import { ThemeProvider } from "./src/contexts/ThemeContext";
 import { LanguageProvider } from "./src/contexts/LanguageContext";
 import { initializeTokens } from "./src/utils/authStorage";
 import { initializeClientTokens } from "./src/utils/clientAuthStorage";
-import AppNavigator from "./src/navigation/AppNavigator";
+import RootVariantNavigator from "./src/navigation/RootVariantNavigator";
 import { StatusBar } from "expo-status-bar";
 import * as Font from "expo-font";
 import {
@@ -219,7 +219,7 @@ export default function App() {
                 <RateLimitProvider>
                   <NavigationContainer>
                     <StatusBar style="auto" />
-                    <AppNavigator />
+                    <RootVariantNavigator />
                   </NavigationContainer>
                 </RateLimitProvider>
               </AuthProvider>
