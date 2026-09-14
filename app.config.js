@@ -72,7 +72,12 @@ module.exports = ({ config }) => ({
       backgroundColor: "#0D1B2A",
     },
     package: VARIANT.androidPackage,
-    googleServicesFile: "./google-services.json",
+    // google-services.json só tem entrada para com.timelyone.app (admin) —
+    // aplicar o plugin do Google Services na variante cliente falha o build
+    // (No matching client found for package name 'com.timelyone.client').
+    // A variante cliente ainda não usa push notifications (ver
+    // ARCHITECTURE_MOB.md), então fica sem o ficheiro até isso mudar.
+    ...(IS_CLIENT ? {} : { googleServicesFile: "./google-services.json" }),
     permissions: ["NOTIFICATIONS", "VIBRATE"],
   },
   web: { favicon: "./assets/favicon.png" },
