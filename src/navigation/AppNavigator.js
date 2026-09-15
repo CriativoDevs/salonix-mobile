@@ -21,19 +21,35 @@ import SlotsScreen from "../screens/SlotsScreen";
 import FeedbackScreen from "../screens/FeedbackScreen";
 import RoadmapScreen from "../screens/RoadmapScreen";
 import HowItWorksScreen from "../screens/HowItWorksScreen";
+import TrialExpiredScreen from "../screens/TrialExpiredScreen";
 import { useAuth } from "../hooks/useAuth";
+import { useTenant } from "../hooks/useTenant";
 import { hasSeenOnboarding } from "../utils/onboardingStorage";
 
 const Stack = createNativeStackNavigator();
 
 export default function AppNavigator() {
   const { isAuthenticated, isLoading } = useAuth();
+  const { tenant } = useTenant();
   const [onboardingChecked, setOnboardingChecked] = useState(false);
   const [hasSeen, setHasSeen] = useState(false);
 
+  // MOB-TRIAL-01: bloqueio brando pós-trial. Quando o trial de 14 dias
+  // expira sem pagamento (Tenant.is_trial_expired(), BE-TRIAL-01), o
+  // usuário autenticado só vê esta tela -- nenhuma outra rota fica
+  // acessível até pagar (mesma decisão de produto do FEW, OnboardingGuard).
+  const isTrialLocked = isAuthenticated && tenant?.is_trial_expired === true;
+
   const navigatorKey = useMemo(
-    () => (isAuthenticated ? "auth" : hasSeen ? "unauth_seen" : "unauth_new"),
-    [isAuthenticated, hasSeen],
+    () =>
+      isAuthenticated
+        ? isTrialLocked
+          ? "auth_trial_locked"
+          : "auth"
+        : hasSeen
+          ? "unauth_seen"
+          : "unauth_new",
+    [isAuthenticated, isTrialLocked, hasSeen],
   );
 
   useEffect(() => {
@@ -60,10 +76,19 @@ export default function AppNavigator() {
       key={navigatorKey}
       screenOptions={{ headerShown: false }}
       initialRouteName={
-        isAuthenticated ? "Home" : hasSeen ? "Login" : "Onboarding"
+        isAuthenticated
+          ? isTrialLocked
+            ? "TrialExpired"
+            : "Home"
+          : hasSeen
+            ? "Login"
+            : "Onboarding"
       }
     >
       {isAuthenticated ? (
+        isTrialLocked ? (
+          <Stack.Screen name="TrialExpired" component={TrialExpiredScreen} />
+        ) : (
         <>
           <Stack.Screen
             name="Home"
@@ -130,6 +155,7 @@ export default function AppNavigator() {
             component={HowItWorksScreen}
           />
         </>
+        )
       ) : hasSeen ? (
         <>
           <Stack.Screen

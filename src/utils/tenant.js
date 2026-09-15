@@ -21,6 +21,12 @@ export const DEFAULT_TENANT_META = {
   channels: {},
   profile: {},
   onboarding_state: null,
+  // BE-TRIAL-01/02 + MOB-TRIAL-01: fonte de trial independente do Stripe,
+  // exposta tanto no bootstrap de login (TenantSelfServiceSerializer)
+  // quanto no endpoint público recarregado em todo restart/refresh
+  // (TenantMetaSerializer, users/tenant/meta/). Default seguro (não
+  // bloqueia) enquanto o dado real não chega.
+  is_trial_expired: false,
 };
 
 export const sanitizeTenantSlug = (slug) => {

@@ -14,7 +14,7 @@ const VARIANT = {
     notificationIcon: "./assets/notification-icon.png",
     notificationColor: "#2563EB",
     easProjectId: "6642ca0c-7940-4fd3-b2a9-1af204db242b",
-    version: "2.3.0",
+    version: "2.4.0",
   },
   client: {
     name: "TimelyOne Client",
@@ -34,7 +34,9 @@ const VARIANT = {
     // (eas project:init) e substituir este placeholder. Buildar
     // production-client sem isto configurado publicaria sob o projeto EAS
     // do admin.
-    easProjectId: process.env.EAS_PROJECT_ID_CLIENT || "5578952f-f9b5-4d3a-9af1-971743938639",
+    easProjectId:
+      process.env.EAS_PROJECT_ID_CLIENT ||
+      "5578952f-f9b5-4d3a-9af1-971743938639",
   },
 }[APP_VARIANT];
 
@@ -42,7 +44,7 @@ if (IS_CLIENT && VARIANT.easProjectId.startsWith("TODO")) {
   const isBuildContext = Boolean(process.env.EAS_BUILD || process.env.CI);
   if (isBuildContext) {
     throw new Error(
-      "APP_VARIANT=client requer EAS_PROJECT_ID_CLIENT configurado antes de build/submit."
+      "APP_VARIANT=client requer EAS_PROJECT_ID_CLIENT configurado antes de build/submit.",
     );
   }
 }
@@ -82,7 +84,10 @@ module.exports = ({ config }) => ({
   },
   web: { favicon: "./assets/favicon.png" },
   plugins: [
-    ["expo-notifications", { icon: VARIANT.notificationIcon, color: VARIANT.notificationColor }],
+    [
+      "expo-notifications",
+      { icon: VARIANT.notificationIcon, color: VARIANT.notificationColor },
+    ],
     "expo-asset",
     "expo-font",
     "expo-secure-store",
