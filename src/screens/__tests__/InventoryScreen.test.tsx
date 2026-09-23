@@ -61,11 +61,25 @@ jest.mock('../../components/InventoryItemFormModal', () => {
   };
 });
 
+let mockLanguage = 'pt';
+jest.mock('../../contexts/LanguageContext', () => ({
+  useLanguage: () => ({ language: mockLanguage, setLanguage: jest.fn() }),
+}));
+
 describe('InventoryScreen', () => {
   beforeEach(() => {
     mockFetchInventoryAlerts.mockResolvedValue([]);
+    mockLanguage = 'pt';
   });
   afterEach(() => jest.clearAllMocks());
+
+  it('shows English text when language is en', async () => {
+    mockLanguage = 'en';
+    mockFetchInventoryItems.mockResolvedValue([]);
+    const { findByText } = await render(<InventoryScreen />);
+    expect(await findByText('Inventory')).toBeTruthy();
+    expect(await findByText('New item')).toBeTruthy();
+  });
 
   it('renders inventory items fetched from the API', async () => {
     mockFetchInventoryItems.mockResolvedValue([

@@ -61,6 +61,11 @@ function makeNavigation() {
   return { navigate: jest.fn(), goBack: jest.fn(), popToTop: jest.fn() };
 }
 
+let mockLanguage = 'pt';
+jest.mock('../../contexts/LanguageContext', () => ({
+  useLanguage: () => ({ language: mockLanguage, setLanguage: jest.fn() }),
+}));
+
 describe('BookingCreateScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -75,6 +80,15 @@ describe('BookingCreateScreen', () => {
     mockUseProfessionals.mockReturnValue({ professionals: [], loading: false, reload: jest.fn() });
     mockFetchAvailableDates.mockResolvedValue([]);
     mockFetchSlots.mockResolvedValue([]);
+    mockLanguage = 'pt';
+  });
+
+  it('shows English text when language is en', async () => {
+    mockLanguage = 'en';
+    const { findByText } = await render(
+      <BookingCreateScreen navigation={makeNavigation()} route={{ params: undefined }} />
+    );
+    expect(await findByText('Which service would you like to book?')).toBeTruthy();
   });
 
   it('starts on the service step when no params are given', async () => {

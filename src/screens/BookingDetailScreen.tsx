@@ -14,23 +14,84 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../hooks/useTheme';
+import { useLanguage } from '../contexts/LanguageContext';
 import { useTenant } from '../hooks/useTenant';
 import { fetchAppointmentDetail, cancelAppointment, updateAppointment } from '../api/bookings';
 import { parseSlotDate, formatDateTimeRange, formatCurrency } from '../utils/date';
 import { useToast } from '../contexts/ToastContext';
 import WhatsAppButton from '../components/WhatsAppButton';
 
-const STATUS_LABELS: Record<string, string> = {
-  scheduled: 'Agendado',
-  completed: 'Concluido',
-  paid: 'Pago',
-  cancelled: 'Cancelado',
-};
+const COPY = {
+  pt: {
+    status: {
+      scheduled: 'Agendado',
+      completed: 'Concluido',
+      paid: 'Pago',
+      cancelled: 'Cancelado',
+    },
+    errorTitle: 'Erro',
+    loadError: 'Não foi possível carregar os detalhes do agendamento.',
+    cancelTitle: 'Cancelar Agendamento',
+    cancelMessage: 'Tem certeza que deseja cancelar este agendamento?',
+    no: 'Não',
+    yesCancel: 'Sim, Cancelar',
+    cancelSuccess: 'Agendamento cancelado com sucesso.',
+    cancelError: 'Falha ao cancelar agendamento.',
+    completeSuccess: 'Agendamento marcado como concluído.',
+    completeError: 'Falha ao atualizar agendamento.',
+    details: 'Detalhes',
+    notFound: 'Agendamento não encontrado.',
+    customer: 'CLIENTE',
+    customerFallback: 'Cliente',
+    service: 'SERVIÇO',
+    serviceFallback: 'Serviço',
+    professional: 'PROFISSIONAL',
+    professionalFallback: 'Profissional',
+    notes: 'NOTAS',
+    sendReminderWhatsApp: 'Enviar lembrete via WhatsApp',
+    markAsCompleted: 'Marcar como Concluído',
+    cancelAppointment: 'Cancelar Agendamento',
+    minutesSuffix: 'min',
+  },
+  en: {
+    status: {
+      scheduled: 'Scheduled',
+      completed: 'Completed',
+      paid: 'Paid',
+      cancelled: 'Cancelled',
+    },
+    errorTitle: 'Error',
+    loadError: 'Could not load the appointment details.',
+    cancelTitle: 'Cancel Appointment',
+    cancelMessage: 'Are you sure you want to cancel this appointment?',
+    no: 'No',
+    yesCancel: 'Yes, Cancel',
+    cancelSuccess: 'Appointment cancelled successfully.',
+    cancelError: 'Failed to cancel the appointment.',
+    completeSuccess: 'Appointment marked as completed.',
+    completeError: 'Failed to update the appointment.',
+    details: 'Details',
+    notFound: 'Appointment not found.',
+    customer: 'CUSTOMER',
+    customerFallback: 'Customer',
+    service: 'SERVICE',
+    serviceFallback: 'Service',
+    professional: 'PROFESSIONAL',
+    professionalFallback: 'Professional',
+    notes: 'NOTES',
+    sendReminderWhatsApp: 'Send reminder via WhatsApp',
+    markAsCompleted: 'Mark as Completed',
+    cancelAppointment: 'Cancel Appointment',
+    minutesSuffix: 'min',
+  },
+} as const;
 
 const BookingDetailScreen = ({ navigation, route }: any) => {
   const { colors } = useTheme();
   const { slug, tenant } = useTenant();
   const { showToast } = useToast();
+  const { language } = useLanguage();
+  const t = language === 'en' ? COPY.en : COPY.pt;
   const { id } = route?.params || {};
 
   const [appointment, setAppointment] = useState<any>(null);
@@ -46,7 +107,7 @@ const BookingDetailScreen = ({ navigation, route }: any) => {
       setAppointment(data);
     } catch (error) {
       console.error('Error fetching appointment detail:', error);
-      Alert.alert('Erro', 'Não foi possível carregar os detalhes do agendamento.');
+      Alert.alert(t.errorTitle, t.loadError);
     } finally {
       setLoading(false);
     }
@@ -64,22 +125,22 @@ const BookingDetailScreen = ({ navigation, route }: any) => {
 
   const handleCancel = async () => {
     Alert.alert(
-      'Cancelar Agendamento',
-      'Tem certeza que deseja cancelar este agendamento?',
+      t.cancelTitle,
+      t.cancelMessage,
       [
-        { text: 'Não', style: 'cancel' },
+        { text: t.no, style: 'cancel' },
         {
-          text: 'Sim, Cancelar',
+          text: t.yesCancel,
           style: 'destructive',
           onPress: async () => {
             try {
               setActionLoading(true);
               await cancelAppointment(id, { slug });
-              showToast({ type: 'success', message: 'Agendamento cancelado com sucesso.' });
+              showToast({ type: 'success', message: t.cancelSuccess });
               loadData(); // Reload to show updated status
             } catch (error) {
               console.error('Error cancelling appointment:', error);
-              Alert.alert('Erro', 'Falha ao cancelar agendamento.');
+              Alert.alert(t.errorTitle, t.cancelError);
             } finally {
               setActionLoading(false);
             }
@@ -93,11 +154,11 @@ const BookingDetailScreen = ({ navigation, route }: any) => {
     try {
       setActionLoading(true);
       await updateAppointment(id, { status: 'completed' }, { slug });
-      showToast({ type: 'success', message: 'Agendamento marcado como concluído.' });
+      showToast({ type: 'success', message: t.completeSuccess });
       loadData();
     } catch (error) {
       console.error('Error updating appointment:', error);
-      Alert.alert('Erro', 'Falha ao atualizar agendamento.');
+      Alert.alert(t.errorTitle, t.completeError);
     } finally {
       setActionLoading(false);
     }
@@ -131,7 +192,7 @@ const BookingDetailScreen = ({ navigation, route }: any) => {
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
             <Ionicons name="chevron-back" size={24} color={colors.textPrimary} />
           </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Detalhes</Text>
+          <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>{t.details}</Text>
         </View>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.brandPrimary} />
@@ -147,10 +208,10 @@ const BookingDetailScreen = ({ navigation, route }: any) => {
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
             <Ionicons name="chevron-back" size={24} color={colors.textPrimary} />
           </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Detalhes</Text>
+          <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>{t.details}</Text>
         </View>
         <View style={styles.loadingContainer}>
-          <Text style={{ color: colors.textSecondary }}>Agendamento não encontrado.</Text>
+          <Text style={{ color: colors.textSecondary }}>{t.notFound}</Text>
         </View>
       </SafeAreaView>
     );
@@ -175,7 +236,7 @@ const BookingDetailScreen = ({ navigation, route }: any) => {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <Ionicons name="chevron-back" size={24} color={colors.textPrimary} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Detalhes</Text>
+        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>{t.details}</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -200,7 +261,7 @@ const BookingDetailScreen = ({ navigation, route }: any) => {
               ]}
             >
               <Text style={[styles.badgeText, { color: badgeStyles.textColor }]}>
-                {STATUS_LABELS[statusKey]?.toUpperCase() || statusKey.toUpperCase()}
+                {(t.status as Record<string, string>)[statusKey]?.toUpperCase() || statusKey.toUpperCase()}
               </Text>
             </View>
             <Text style={[styles.rangeText, { color: colors.textSecondary }]}>{rangeLabel}</Text>
@@ -208,11 +269,11 @@ const BookingDetailScreen = ({ navigation, route }: any) => {
 
           {/* Info Cards */}
           <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <Text style={[styles.cardTitle, { color: colors.textSecondary }]}>CLIENTE</Text>
+            <Text style={[styles.cardTitle, { color: colors.textSecondary }]}>{t.customer}</Text>
             <View style={styles.infoRow}>
               <View>
                 <Text style={[styles.mainInfo, { color: colors.textPrimary }]}>
-                  {appointment.customer?.name || appointment.client_username || 'Cliente'}
+                  {appointment.customer?.name || appointment.client_username || t.customerFallback}
                 </Text>
                 {appointment.customer?.phone_number && (
                   <TouchableOpacity
@@ -230,14 +291,14 @@ const BookingDetailScreen = ({ navigation, route }: any) => {
           </View>
 
           <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <Text style={[styles.cardTitle, { color: colors.textSecondary }]}>SERVIÇO</Text>
+            <Text style={[styles.cardTitle, { color: colors.textSecondary }]}>{t.service}</Text>
             <View style={styles.infoRow}>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.mainInfo, { color: colors.textPrimary }]}>
-                  {appointment.service?.name || 'Serviço'}
+                  {appointment.service?.name || t.serviceFallback}
                 </Text>
                 <Text style={[styles.subInfo, { color: colors.textSecondary }]}>
-                  {appointment.service?.duration_minutes || '--'} min •{' '}
+                  {appointment.service?.duration_minutes || '--'} {t.minutesSuffix} •{' '}
                   {formatCurrency(appointment.service?.price_eur ?? 0)}
                 </Text>
               </View>
@@ -246,11 +307,11 @@ const BookingDetailScreen = ({ navigation, route }: any) => {
           </View>
 
           <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <Text style={[styles.cardTitle, { color: colors.textSecondary }]}>PROFISSIONAL</Text>
+            <Text style={[styles.cardTitle, { color: colors.textSecondary }]}>{t.professional}</Text>
             <View style={styles.infoRow}>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.mainInfo, { color: colors.textPrimary }]}>
-                  {appointment.professional?.name || 'Profissional'}
+                  {appointment.professional?.name || t.professionalFallback}
                 </Text>
               </View>
               <Ionicons name="person-outline" size={24} color={colors.textSecondary} />
@@ -259,7 +320,7 @@ const BookingDetailScreen = ({ navigation, route }: any) => {
 
           {appointment.notes && (
             <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-              <Text style={[styles.cardTitle, { color: colors.textSecondary }]}>NOTAS</Text>
+              <Text style={[styles.cardTitle, { color: colors.textSecondary }]}>{t.notes}</Text>
               <Text style={[styles.notesText, { color: colors.textPrimary }]}>{appointment.notes}</Text>
             </View>
           )}
@@ -271,7 +332,7 @@ const BookingDetailScreen = ({ navigation, route }: any) => {
               <WhatsAppButton
                 appointment={whatsAppAppointment}
                 eventType="reminder"
-                label="Enviar lembrete via WhatsApp"
+                label={t.sendReminderWhatsApp}
               />
 
               <TouchableOpacity
@@ -283,7 +344,7 @@ const BookingDetailScreen = ({ navigation, route }: any) => {
                   <ActivityIndicator color={colors.brandPrimary} />
                 ) : (
                   <Text style={[styles.linkTextPrimary, { color: colors.brandPrimary }]}>
-                    Marcar como Concluído
+                    {t.markAsCompleted}
                   </Text>
                 )}
               </TouchableOpacity>
@@ -294,7 +355,7 @@ const BookingDetailScreen = ({ navigation, route }: any) => {
                 style={styles.linkAction}
               >
                 <Text style={[styles.linkTextSecondary, { color: colors.error }]}>
-                  Cancelar Agendamento
+                  {t.cancelAppointment}
                 </Text>
               </TouchableOpacity>
             </>

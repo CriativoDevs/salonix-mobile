@@ -16,6 +16,49 @@ import { fetchInventoryItems } from '../api/inventory';
 
 const INVENTORY_SHORTCUT_LIMIT = 4;
 
+const COPY = {
+  pt: {
+    title: 'Dashboard',
+    summaryWithName: (name: string) => `${name} • Resumo do seu negócio`,
+    summaryFallback: 'admin • Resumo do seu negócio',
+    credits: 'Créditos',
+    creditsHint: 'Saldo disponível',
+    bookingsToday: 'Agendamentos (hoje)',
+    bookingsCompletedHint: (n: number | string) => `${n} concluídos`,
+    clients: 'Clientes',
+    clientsHint: (n: number | string) => `${n} registrados`,
+    upcomingTitle: 'Próximos agendamentos',
+    seeAll: 'Ver todos',
+    emptyAppointmentsTitle: 'Sem agendamentos nas próximas horas',
+    emptyAppointmentsDescription: 'Crie um novo agendamento ou abra horários disponíveis.',
+    newAppointment: 'Novo agendamento',
+    inventoryTitle: 'Estoque',
+    emptyInventoryTitle: 'Nenhum item de estoque cadastrado',
+    emptyInventoryDescription: 'Adicione o primeiro item para acompanhar quantidades e alertas.',
+    addItem: 'Adicionar item',
+  },
+  en: {
+    title: 'Dashboard',
+    summaryWithName: (name: string) => `${name} • Business overview`,
+    summaryFallback: 'admin • Business overview',
+    credits: 'Credits',
+    creditsHint: 'Available balance',
+    bookingsToday: 'Appointments (today)',
+    bookingsCompletedHint: (n: number | string) => `${n} completed`,
+    clients: 'Clients',
+    clientsHint: (n: number | string) => `${n} registered`,
+    upcomingTitle: 'Upcoming appointments',
+    seeAll: 'See all',
+    emptyAppointmentsTitle: 'No appointments in the next few hours',
+    emptyAppointmentsDescription: 'Create a new appointment or open available slots.',
+    newAppointment: 'New appointment',
+    inventoryTitle: 'Inventory',
+    emptyInventoryTitle: 'No inventory items registered',
+    emptyInventoryDescription: 'Add the first item to track quantities and alerts.',
+    addItem: 'Add item',
+  },
+} as const;
+
 const isLowStockItem = (item: any) => {
   const min = item?.minimum_quantity;
   if (min == null || Number(min) <= 0) return false;
@@ -28,6 +71,7 @@ export default function DashboardScreen({ navigation }: any) {
   const { data, loading, refetch } = useDashboardData();
   const { logout, userInfo } = useAuth();
   const { language, setLanguage } = useLanguage();
+  const t = language === 'en' ? COPY.en : COPY.pt;
   const [menuVisible, setMenuVisible] = useState(false);
 
   const isDark = theme === 'dark';
@@ -93,13 +137,11 @@ export default function DashboardScreen({ navigation }: any) {
         <View style={{ marginBottom: 24, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <View>
             <Text className="text-3xl font-bold" style={{ color: colors.textPrimary, marginBottom: 4 }}>
-              Dashboard
+              {t.title}
             </Text>
 
             <Text className="text-sm" style={{ color: colors.textSecondary }}>
-              {tenant?.name
-                ? `${tenant.name} • Resumo do seu negócio`
-                : 'admin • Resumo do seu negócio'}
+              {tenant?.name ? t.summaryWithName(tenant.name) : t.summaryFallback}
             </Text>
           </View>
 
@@ -133,24 +175,24 @@ export default function DashboardScreen({ navigation }: any) {
         <View className="mb-6">
           {isOwner(userInfo) && (
             <StatCard
-              label="Créditos"
+              label={t.credits}
               value={loading ? '-' : data.stats.credits}
               icon="wallet-outline"
               actionIcon="refresh"
               onActionPress={handleRefreshCredits}
-              hint="Saldo disponível"
+              hint={t.creditsHint}
               isPrimary
             />
           )}
           <StatCard
-            label="Agendamentos (hoje)"
+            label={t.bookingsToday}
             value={loading ? '-' : data.stats.bookings}
-            hint={`${data.stats.bookingsCompleted} concluídos`}
+            hint={t.bookingsCompletedHint(data.stats.bookingsCompleted)}
           />
           <StatCard
-            label="Clientes"
+            label={t.clients}
             value={loading ? '-' : data.stats.clients}
-            hint={`${data.stats.clients} registrados`}
+            hint={t.clientsHint(data.stats.clients)}
           />
         </View>
 
@@ -179,7 +221,7 @@ export default function DashboardScreen({ navigation }: any) {
                 fontWeight: '600',
               }}
             >
-              Próximos agendamentos
+              {t.upcomingTitle}
             </Text>
 
             {data.upcoming.length > 0 && (
@@ -191,7 +233,7 @@ export default function DashboardScreen({ navigation }: any) {
                     fontWeight: '500',
                   }}
                 >
-                  Ver todos
+                  {t.seeAll}
                 </Text>
               </TouchableOpacity>
             )}
@@ -223,9 +265,9 @@ export default function DashboardScreen({ navigation }: any) {
             </View>
           ) : (
             <EmptyAppointmentsState
-              title="Sem agendamentos nas próximas horas"
-              description="Crie um novo agendamento ou abra horários disponíveis."
-              actionLabel="Novo agendamento"
+              title={t.emptyAppointmentsTitle}
+              description={t.emptyAppointmentsDescription}
+              actionLabel={t.newAppointment}
               onAction={() => navigation.navigate('Agendamentos')}
             />
           )}
@@ -256,7 +298,7 @@ export default function DashboardScreen({ navigation }: any) {
                 fontWeight: '600',
               }}
             >
-              Estoque
+              {t.inventoryTitle}
             </Text>
 
             {!inventoryLoading && inventoryShortcut.length > 0 && (
@@ -268,7 +310,7 @@ export default function DashboardScreen({ navigation }: any) {
                     fontWeight: '500',
                   }}
                 >
-                  Ver todos
+                  {t.seeAll}
                 </Text>
               </TouchableOpacity>
             )}
@@ -303,9 +345,9 @@ export default function DashboardScreen({ navigation }: any) {
             </View>
           ) : (
             <EmptyAppointmentsState
-              title="Nenhum item de estoque cadastrado"
-              description="Adicione o primeiro item para acompanhar quantidades e alertas."
-              actionLabel="Adicionar item"
+              title={t.emptyInventoryTitle}
+              description={t.emptyInventoryDescription}
+              actionLabel={t.addItem}
               onAction={() => navigation.navigate('Inventory', { openCreate: true })}
             />
           )}

@@ -2,6 +2,22 @@ import React from 'react';
 import { TouchableOpacity, Text, StyleSheet, Linking, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { buildWhatsAppUrl, buildWhatsAppMessage, WhatsAppAppointment, WhatsAppEventType } from '../utils/whatsapp';
+import { useLanguage } from '../contexts/LanguageContext';
+
+const COPY = {
+  pt: {
+    unavailableTitle: 'WhatsApp indisponível',
+    unavailableMessage: 'Não foi possível abrir o WhatsApp neste dispositivo.',
+    errorTitle: 'Erro',
+    errorMessage: 'Não foi possível abrir o WhatsApp.',
+  },
+  en: {
+    unavailableTitle: 'WhatsApp unavailable',
+    unavailableMessage: 'Could not open WhatsApp on this device.',
+    errorTitle: 'Error',
+    errorMessage: 'Could not open WhatsApp.',
+  },
+} as const;
 
 const WHATSAPP_GREEN = '#25D366';
 const WHATSAPP_GREEN_DARK = '#128C7E';
@@ -18,6 +34,8 @@ interface WhatsAppButtonProps {
  * for possível montar a mensagem/URL (ex.: eventType desconhecido).
  */
 export default function WhatsAppButton({ appointment, eventType, label }: WhatsAppButtonProps) {
+  const { language } = useLanguage();
+  const t = language === 'en' ? COPY.en : COPY.pt;
   if (!appointment) return null;
 
   const phone = appointment.customerPhone;
@@ -33,11 +51,11 @@ export default function WhatsAppButton({ appointment, eventType, label }: WhatsA
       if (canOpen) {
         await Linking.openURL(url);
       } else {
-        Alert.alert('WhatsApp indisponível', 'Não foi possível abrir o WhatsApp neste dispositivo.');
+        Alert.alert(t.unavailableTitle, t.unavailableMessage);
       }
     } catch (error) {
       console.error('Error opening WhatsApp URL:', error);
-      Alert.alert('Erro', 'Não foi possível abrir o WhatsApp.');
+      Alert.alert(t.errorTitle, t.errorMessage);
     }
   };
 

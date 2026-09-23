@@ -66,12 +66,27 @@ const TENANT_META = {
   address_country: 'Portugal',
 };
 
+let mockLanguage = 'pt';
+jest.mock('../../contexts/LanguageContext', () => ({
+  useLanguage: () => ({ language: mockLanguage, setLanguage: jest.fn() }),
+}));
+
 describe('BrandingScreen', () => {
   beforeEach(() => {
     mockUseAuthReturn = { userInfo: { id: 1, role: 'owner' } };
     mockFetchTenantMeta.mockResolvedValue(TENANT_META);
+    mockLanguage = 'pt';
   });
   afterEach(() => jest.clearAllMocks());
+
+  it('shows English labels when language is en', async () => {
+    mockLanguage = 'en';
+    const { findByText } = await render(<BrandingScreen />);
+
+    expect(await findByText('Branding')).toBeTruthy();
+    expect(await findByText('Street')).toBeTruthy();
+    expect(await findByText('Save')).toBeTruthy();
+  });
 
   it('loads and shows the current address fields', async () => {
     const { getByDisplayValue, getAllByDisplayValue } = await render(<BrandingScreen />);

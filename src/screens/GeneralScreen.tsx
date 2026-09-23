@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../hooks/useTheme';
+import { useLanguage } from '../contexts/LanguageContext';
 import { useTenant } from '../hooks/useTenant';
 import { useAuth } from '../hooks/useAuth';
 import { Input } from '../components/ui/Input';
@@ -11,12 +12,55 @@ import { fetchTenantMeta, updateTenantContact, updateTenantModules, updateTenant
 import { Button } from '../components/ui/Button';
 import { useToast } from '../contexts/ToastContext';
 
+const COPY = {
+  pt: {
+    errorTitle: 'Erro',
+    loadError: 'Não foi possível carregar as definições gerais.',
+    contactUpdated: 'Dados de contato atualizados.',
+    contactSaveError: 'Não foi possível guardar os dados de contato.',
+    pwaClientError: 'Não foi possível atualizar o PWA Cliente.',
+    autoInviteError: 'Não foi possível atualizar os convites automáticos.',
+    title: 'Geral',
+    email: 'Email',
+    phone: 'Telefone',
+    save: 'Guardar',
+    pwaClient: 'PWA Cliente',
+    active: 'Ativo',
+    inactive: 'Inativo',
+    pwaClientHint: 'Ativa a área do cliente no PWA.',
+    autoInvite: 'Convites automáticos',
+    autoInviteHintEnabled: 'Envia convite PWA automaticamente a novos clientes.',
+    autoInviteHintDisabled: 'Ative o PWA Cliente primeiro.',
+  },
+  en: {
+    errorTitle: 'Error',
+    loadError: 'Could not load the general settings.',
+    contactUpdated: 'Contact information updated.',
+    contactSaveError: 'Could not save the contact information.',
+    pwaClientError: 'Could not update the Client PWA.',
+    autoInviteError: 'Could not update the automatic invites.',
+    title: 'General',
+    email: 'Email',
+    phone: 'Phone',
+    save: 'Save',
+    pwaClient: 'Client PWA',
+    active: 'Active',
+    inactive: 'Inactive',
+    pwaClientHint: 'Enables the client area in the PWA.',
+    autoInvite: 'Automatic invites',
+    autoInviteHintEnabled: 'Automatically sends a PWA invite to new customers.',
+    autoInviteHintDisabled: 'Enable the Client PWA first.',
+  },
+} as const;
+
 export default function GeneralScreen() {
   const navigation = useNavigation();
   const { colors } = useTheme();
   const { slug } = useTenant();
   const { userInfo } = useAuth();
   const { showToast } = useToast();
+  const { language } = useLanguage();
+  const t = language === 'en' ? COPY.en : COPY.pt;
   const isAdmin = userInfo?.is_superuser || userInfo?.role === 'owner' || userInfo?.role === 'manager';
 
   const [loading, setLoading] = useState(true);
@@ -56,7 +100,7 @@ export default function GeneralScreen() {
       if (!active) return;
       setLoadError(true);
       setLoading(false);
-      Alert.alert('Erro', 'Não foi possível carregar as definições gerais.');
+      Alert.alert(t.errorTitle, t.loadError);
     });
     return () => {
       active = false;
@@ -67,10 +111,10 @@ export default function GeneralScreen() {
     setBusy(true);
     try {
       await updateTenantContact({ email, phone }, { slug });
-      showToast({ type: 'success', message: 'Dados de contato atualizados.' });
+      showToast({ type: 'success', message: t.contactUpdated });
     } catch (error: any) {
       const detail = error?.response?.data?.detail;
-      Alert.alert('Erro', typeof detail === 'string' ? detail : 'Não foi possível guardar os dados de contato.');
+      Alert.alert(t.errorTitle, typeof detail === 'string' ? detail : t.contactSaveError);
     } finally {
       setBusy(false);
     }
@@ -85,7 +129,7 @@ export default function GeneralScreen() {
     } catch (error: any) {
       setPwaClientEnabled(previous);
       const detail = error?.response?.data?.detail;
-      Alert.alert('Erro', typeof detail === 'string' ? detail : 'Não foi possível atualizar o PWA Cliente.');
+      Alert.alert(t.errorTitle, typeof detail === 'string' ? detail : t.pwaClientError);
     } finally {
       setPwaClientSaving(false);
     }
@@ -100,7 +144,7 @@ export default function GeneralScreen() {
     } catch (error: any) {
       setAutoInviteEnabled(previous);
       const detail = error?.response?.data?.detail;
-      Alert.alert('Erro', typeof detail === 'string' ? detail : 'Não foi possível atualizar os convites automáticos.');
+      Alert.alert(t.errorTitle, typeof detail === 'string' ? detail : t.autoInviteError);
     } finally {
       setAutoInviteSaving(false);
     }
@@ -120,14 +164,14 @@ export default function GeneralScreen() {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Geral</Text>
+        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>{t.title}</Text>
         <View style={{ width: 38 }} />
       </View>
 
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
         {loadError ? (
           <Text style={{ color: colors.textSecondary, fontSize: 14 }}>
-            Não foi possível carregar as definições gerais.
+            {t.loadError}
           </Text>
         ) : (
           <>
@@ -142,13 +186,13 @@ export default function GeneralScreen() {
             {isAdmin ? (
               <Input
                 testID="general-email-input"
-                label="Email"
+                label={t.email}
                 value={email}
                 onChangeText={setEmail}
               />
             ) : (
               <View style={styles.readOnlyField}>
-                <Text style={{ color: colors.textSecondary, fontSize: 12 }}>Email</Text>
+                <Text style={{ color: colors.textSecondary, fontSize: 12 }}>{t.email}</Text>
                 <Text style={{ color: colors.textPrimary, fontSize: 14 }}>{email || '—'}</Text>
               </View>
             )}
@@ -156,27 +200,27 @@ export default function GeneralScreen() {
             {isAdmin ? (
               <Input
                 testID="general-phone-input"
-                label="Telefone"
+                label={t.phone}
                 value={phone}
                 onChangeText={setPhone}
                 keyboardType="phone-pad"
               />
             ) : (
               <View style={styles.readOnlyField}>
-                <Text style={{ color: colors.textSecondary, fontSize: 12 }}>Telefone</Text>
+                <Text style={{ color: colors.textSecondary, fontSize: 12 }}>{t.phone}</Text>
                 <Text style={{ color: colors.textPrimary, fontSize: 14 }}>{phone || '—'}</Text>
               </View>
             )}
 
             {isAdmin && (
               <Button onPress={handleSaveContact} loading={busy} disabled={busy}>
-                Guardar
+                {t.save}
               </Button>
             )}
 
             <View style={[styles.channelRow, { borderColor: colors.border, backgroundColor: colors.surface }]}>
               <View style={styles.channelHeader}>
-                <Text style={[styles.channelLabel, { color: colors.textPrimary }]}>PWA Cliente</Text>
+                <Text style={[styles.channelLabel, { color: colors.textPrimary }]}>{t.pwaClient}</Text>
                 {isAdmin ? (
                   <Switch
                     testID="general-pwa-client-switch"
@@ -186,18 +230,18 @@ export default function GeneralScreen() {
                   />
                 ) : (
                   <Text style={{ color: colors.textSecondary, fontSize: 12 }}>
-                    {pwaClientEnabled ? 'Ativo' : 'Inativo'}
+                    {pwaClientEnabled ? t.active : t.inactive}
                   </Text>
                 )}
               </View>
               <Text style={{ color: colors.textSecondary, fontSize: 12, marginTop: 4 }}>
-                Ativa a área do cliente no PWA.
+                {t.pwaClientHint}
               </Text>
             </View>
 
             <View style={[styles.channelRow, { borderColor: colors.border, backgroundColor: colors.surface }]}>
               <View style={styles.channelHeader}>
-                <Text style={[styles.channelLabel, { color: colors.textPrimary }]}>Convites automáticos</Text>
+                <Text style={[styles.channelLabel, { color: colors.textPrimary }]}>{t.autoInvite}</Text>
                 {isAdmin ? (
                   <Switch
                     testID="general-auto-invite-switch"
@@ -207,14 +251,12 @@ export default function GeneralScreen() {
                   />
                 ) : (
                   <Text style={{ color: colors.textSecondary, fontSize: 12 }}>
-                    {autoInviteEnabled ? 'Ativo' : 'Inativo'}
+                    {autoInviteEnabled ? t.active : t.inactive}
                   </Text>
                 )}
               </View>
               <Text style={{ color: colors.textSecondary, fontSize: 12, marginTop: 4 }}>
-                {pwaClientEnabled
-                  ? 'Envia convite PWA automaticamente a novos clientes.'
-                  : 'Ative o PWA Cliente primeiro.'}
+                {pwaClientEnabled ? t.autoInviteHintEnabled : t.autoInviteHintDisabled}
               </Text>
             </View>
           </>

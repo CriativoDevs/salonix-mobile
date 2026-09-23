@@ -56,6 +56,27 @@ jest.mock('expo-file-system/legacy', () => ({
   getInfoAsync: (...args: any[]) => mockGetInfoAsync(...args),
 }));
 
+let mockLanguage = 'pt';
+jest.mock('../../contexts/LanguageContext', () => ({
+  useLanguage: () => ({ language: mockLanguage, setLanguage: jest.fn() }),
+}));
+
+beforeEach(() => {
+  mockLanguage = 'pt';
+  mockFetchServices.mockResolvedValue([]);
+});
+
+describe('ProfessionalFormModal - language', () => {
+  it('shows English text when language is en', async () => {
+    mockLanguage = 'en';
+    const { getByText } = await render(
+      <ProfessionalFormModal visible onClose={jest.fn()} onSubmit={jest.fn()} initialData={null} />
+    );
+    expect(getByText('New Professional')).toBeTruthy();
+    expect(getByText('Invite')).toBeTruthy();
+  });
+});
+
 describe('ProfessionalFormModal - photo', () => {
   const initialData = {
     id: '10',

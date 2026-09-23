@@ -4,8 +4,46 @@ import * as DocumentPicker from 'expo-document-picker';
 import { Button } from './ui/Button';
 import { Modal } from './ui/Modal';
 import { useTheme } from '../hooks/useTheme';
+import { useLanguage } from '../contexts/LanguageContext';
 import { importAppointmentsCSV, fetchAppointmentsImportTemplate } from '../api/bookings';
 import { saveAndShareCSV } from '../utils/csvFileSharing';
+
+const COPY = {
+  pt: {
+    downloadTemplateError: 'Não foi possível descarregar o modelo.',
+    previewError: 'Não foi possível pré-visualizar o ficheiro.',
+    importError: 'Não foi possível importar o ficheiro.',
+    errorTitle: 'Erro',
+    title: 'Importar Agendamentos',
+    cancel: 'Cancelar',
+    confirmImport: 'Confirmar importação',
+    preview: 'Pré-visualizar',
+    chooseFile: 'Escolher ficheiro CSV',
+    downloadTemplate: 'Descarregar modelo CSV',
+    previewSummary: 'Resumo da pré-visualização',
+    created: 'Criados',
+    updated: 'Atualizados',
+    skipped: 'Ignorados',
+    line: 'Linha',
+  },
+  en: {
+    downloadTemplateError: 'Could not download the template.',
+    previewError: 'Could not preview the file.',
+    importError: 'Could not import the file.',
+    errorTitle: 'Error',
+    title: 'Import Appointments',
+    cancel: 'Cancel',
+    confirmImport: 'Confirm import',
+    preview: 'Preview',
+    chooseFile: 'Choose CSV file',
+    downloadTemplate: 'Download CSV template',
+    previewSummary: 'Preview summary',
+    created: 'Created',
+    updated: 'Updated',
+    skipped: 'Skipped',
+    line: 'Line',
+  },
+} as const;
 
 type PickedFile = { uri: string; name: string; mimeType?: string };
 
@@ -25,6 +63,8 @@ interface ImportAppointmentsModalProps {
 
 export function ImportAppointmentsModal({ visible, onClose, onSuccess, slug }: ImportAppointmentsModalProps) {
   const { colors } = useTheme();
+  const { language } = useLanguage();
+  const t = language === 'en' ? COPY.en : COPY.pt;
   const [file, setFile] = useState<PickedFile | null>(null);
   const [summary, setSummary] = useState<ImportSummary | null>(null);
   const [busy, setBusy] = useState(false);
@@ -54,7 +94,7 @@ export function ImportAppointmentsModal({ visible, onClose, onSuccess, slug }: I
       await saveAndShareCSV(content, 'modelo-agendamentos.csv');
     } catch (error) {
       console.error('Error downloading template:', error);
-      Alert.alert('Erro', 'Não foi possível descarregar o modelo.');
+      Alert.alert(t.errorTitle, t.downloadTemplateError);
     }
   };
 
@@ -66,7 +106,7 @@ export function ImportAppointmentsModal({ visible, onClose, onSuccess, slug }: I
       setSummary(result.summary);
     } catch (error) {
       console.error('Error previewing import:', error);
-      Alert.alert('Erro', 'Não foi possível pré-visualizar o ficheiro.');
+      Alert.alert(t.errorTitle, t.previewError);
     } finally {
       setBusy(false);
     }
@@ -81,7 +121,7 @@ export function ImportAppointmentsModal({ visible, onClose, onSuccess, slug }: I
       handleClose();
     } catch (error) {
       console.error('Error confirming import:', error);
-      Alert.alert('Erro', 'Não foi possível importar o ficheiro.');
+      Alert.alert(t.errorTitle, t.importError);
     } finally {
       setBusy(false);
     }
@@ -91,24 +131,24 @@ export function ImportAppointmentsModal({ visible, onClose, onSuccess, slug }: I
     <Modal
       visible={visible}
       onClose={handleClose}
-      title="Importar Agendamentos"
+      title={t.title}
       footer={
         summary ? (
           <>
             <Button variant="secondary" onPress={handleClose} style={{ flex: 1 }}>
-              Cancelar
+              {t.cancel}
             </Button>
             <Button onPress={handleConfirm} loading={busy} disabled={busy} style={{ flex: 1 }}>
-              Confirmar importação
+              {t.confirmImport}
             </Button>
           </>
         ) : (
           <>
             <Button variant="secondary" onPress={handleClose} style={{ flex: 1 }}>
-              Cancelar
+              {t.cancel}
             </Button>
             <Button onPress={handlePreview} loading={busy} disabled={busy || !file} style={{ flex: 1 }}>
-              Pré-visualizar
+              {t.preview}
             </Button>
           </>
         )
@@ -116,7 +156,7 @@ export function ImportAppointmentsModal({ visible, onClose, onSuccess, slug }: I
     >
       <View style={styles.content}>
         <Button variant="secondary" onPress={handlePickFile} style={{ marginBottom: 8 }}>
-          Escolher ficheiro CSV
+          {t.chooseFile}
         </Button>
 
         {file && (
@@ -124,22 +164,22 @@ export function ImportAppointmentsModal({ visible, onClose, onSuccess, slug }: I
         )}
 
         <Button variant="link" onPress={handleDownloadTemplate}>
-          Descarregar modelo CSV
+          {t.downloadTemplate}
         </Button>
 
         {summary && (
           <View style={styles.summary}>
             <Text style={{ color: colors.textPrimary, fontWeight: '600', marginBottom: 8 }}>
-              Resumo da pré-visualização
+              {t.previewSummary}
             </Text>
-            <Text style={{ color: colors.textPrimary }}>Criados: {summary.created}</Text>
-            <Text style={{ color: colors.textPrimary }}>Atualizados: {summary.updated}</Text>
-            <Text style={{ color: colors.textPrimary }}>Ignorados: {summary.skipped}</Text>
+            <Text style={{ color: colors.textPrimary }}>{t.created}: {summary.created}</Text>
+            <Text style={{ color: colors.textPrimary }}>{t.updated}: {summary.updated}</Text>
+            <Text style={{ color: colors.textPrimary }}>{t.skipped}: {summary.skipped}</Text>
             {summary.errors.length > 0 && (
               <View style={{ marginTop: 8 }}>
                 {summary.errors.map((rowError, index) => (
                   <Text key={`${rowError.line}-${index}`} style={{ color: colors.error, fontSize: 12 }}>
-                    Linha {rowError.line}: {rowError.error}
+                    {t.line} {rowError.line}: {rowError.error}
                   </Text>
                 ))}
               </View>

@@ -7,6 +7,7 @@ import { Modal } from './ui/Modal';
 import { Input } from './ui/Input';
 import { Select } from './ui/Select';
 import { useTheme } from '../hooks/useTheme';
+import { useLanguage } from '../contexts/LanguageContext';
 import { bulkGenerateSlots } from '../api/slots';
 import { useToast } from '../contexts/ToastContext';
 
@@ -20,15 +21,55 @@ interface SlotBulkGenerateModalProps {
   slug?: string;
 }
 
-const PERIOD_OPTIONS: { value: Period; label: string }[] = [
-  { value: 'day', label: 'Dia' },
-  { value: 'week', label: 'Semana' },
-  { value: 'month', label: 'Mês' },
-];
+const COPY = {
+  pt: {
+    locale: 'pt-PT',
+    periodDay: 'Dia',
+    periodWeek: 'Semana',
+    periodMonth: 'Mês',
+    intervalRangeError: 'O intervalo deve ser entre 15 e 480 minutos.',
+    generatedSuccess: (created: number, skipped: number) => `Horários gerados. Criados: ${created}, Ignorados: ${skipped}`,
+    errorTitle: 'Erro',
+    generateError: 'Não foi possível gerar os horários.',
+    title: 'Gerar Horários em Massa',
+    cancel: 'Cancelar',
+    generate: 'Gerar horários',
+    professional: 'Profissional',
+    select: 'Selecione...',
+    period: 'Período',
+    startDate: 'Data de início',
+    intervalMinutes: 'Intervalo (minutos)',
+  },
+  en: {
+    locale: 'en-US',
+    periodDay: 'Day',
+    periodWeek: 'Week',
+    periodMonth: 'Month',
+    intervalRangeError: 'The interval must be between 15 and 480 minutes.',
+    generatedSuccess: (created: number, skipped: number) => `Slots generated. Created: ${created}, Skipped: ${skipped}`,
+    errorTitle: 'Error',
+    generateError: 'Could not generate the slots.',
+    title: 'Bulk Generate Slots',
+    cancel: 'Cancel',
+    generate: 'Generate slots',
+    professional: 'Professional',
+    select: 'Select...',
+    period: 'Period',
+    startDate: 'Start date',
+    intervalMinutes: 'Interval (minutes)',
+  },
+} as const;
 
 export function SlotBulkGenerateModal({ visible, onClose, onSuccess, professionals, slug }: SlotBulkGenerateModalProps) {
   const { colors } = useTheme();
   const { showToast } = useToast();
+  const { language } = useLanguage();
+  const t = language === 'en' ? COPY.en : COPY.pt;
+  const PERIOD_OPTIONS: { value: Period; label: string }[] = [
+    { value: 'day', label: t.periodDay },
+    { value: 'week', label: t.periodWeek },
+    { value: 'month', label: t.periodMonth },
+  ];
   const [professionalId, setProfessionalId] = useState('');
   const [period, setPeriod] = useState<Period>('week');
   const [date, setDate] = useState(new Date());
@@ -53,7 +94,7 @@ export function SlotBulkGenerateModal({ visible, onClose, onSuccess, professiona
   };
 
   const formatDate = (value: Date) => {
-    return value.toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    return value.toLocaleDateString(t.locale, { day: '2-digit', month: '2-digit', year: 'numeric' });
   };
 
   const handleSubmit = async () => {
@@ -61,7 +102,7 @@ export function SlotBulkGenerateModal({ visible, onClose, onSuccess, professiona
 
     const parsedInterval = Number(intervalMinutes);
     if (!Number.isFinite(parsedInterval) || parsedInterval < 15 || parsedInterval > 480) {
-      setIntervalError('O intervalo deve ser entre 15 e 480 minutos.');
+      setIntervalError(t.intervalRangeError);
       return;
     }
     setIntervalError(null);
@@ -75,12 +116,12 @@ export function SlotBulkGenerateModal({ visible, onClose, onSuccess, professiona
         date: date.toISOString().split('T')[0],
         slug,
       });
-      showToast({ type: 'success', message: `Horários gerados. Criados: ${result.created}, Ignorados: ${result.skipped}` });
+      showToast({ type: 'success', message: t.generatedSuccess(result.created, result.skipped) });
       onSuccess();
       handleClose();
     } catch (error: any) {
       const detail = error?.response?.data?.detail;
-      Alert.alert('Erro', typeof detail === 'string' ? detail : 'Não foi possível gerar os horários.');
+      Alert.alert(t.errorTitle, typeof detail === 'string' ? detail : t.generateError);
     } finally {
       setBusy(false);
     }
@@ -90,33 +131,33 @@ export function SlotBulkGenerateModal({ visible, onClose, onSuccess, professiona
     <Modal
       visible={visible}
       onClose={handleClose}
-      title="Gerar Horários em Massa"
+      title={t.title}
       footer={
         <>
           <Button variant="link" onPress={handleClose} style={{ flex: 1 }}>
-            Cancelar
+            {t.cancel}
           </Button>
           <Button onPress={handleSubmit} loading={busy} disabled={busy || !professionalId} style={{ flex: 1 }}>
-            Gerar horários
+            {t.generate}
           </Button>
         </>
       }
     >
       <View style={styles.content}>
         <View style={styles.inputGroup}>
-          <Text style={[styles.label, { color: colors.textPrimary }]}>Profissional</Text>
+          <Text style={[styles.label, { color: colors.textPrimary }]}>{t.professional}</Text>
           <Select
             testID="bulk-generate-professional-picker"
             selectedValue={professionalId}
             onValueChange={setProfessionalId}
-            placeholder="Selecione..."
-            title="Profissional"
+            placeholder={t.select}
+            title={t.professional}
             options={professionals.map((prof) => ({ label: prof.name, value: String(prof.id) }))}
           />
         </View>
 
         <View style={styles.inputGroup}>
-          <Text style={[styles.label, { color: colors.textPrimary }]}>Período</Text>
+          <Text style={[styles.label, { color: colors.textPrimary }]}>{t.period}</Text>
           <View style={{ flexDirection: 'row', gap: 8 }}>
             {PERIOD_OPTIONS.map((option) => {
               const active = period === option.value;
@@ -139,7 +180,7 @@ export function SlotBulkGenerateModal({ visible, onClose, onSuccess, professiona
         </View>
 
         <View style={styles.inputGroup}>
-          <Text style={[styles.label, { color: colors.textPrimary }]}>Data de início</Text>
+          <Text style={[styles.label, { color: colors.textPrimary }]}>{t.startDate}</Text>
           <TouchableOpacity
             style={[styles.dateButton, { backgroundColor: colors.background, borderColor: colors.border }]}
             onPress={() => setShowDatePicker(true)}
@@ -163,7 +204,7 @@ export function SlotBulkGenerateModal({ visible, onClose, onSuccess, professiona
         </View>
 
         <Input
-          label="Intervalo (minutos)"
+          label={t.intervalMinutes}
           placeholder="30"
           value={intervalMinutes}
           onChangeText={(value) => {

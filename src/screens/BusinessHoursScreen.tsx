@@ -5,6 +5,7 @@ import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useTheme } from '../hooks/useTheme';
+import { useLanguage } from '../contexts/LanguageContext';
 import { useTenant } from '../hooks/useTenant';
 import { useAuth } from '../hooks/useAuth';
 import { fetchTenantBusinessHours, updateTenantBusinessHours } from '../api/tenant';
@@ -18,7 +19,30 @@ type DayHours = {
   is_active: boolean;
 };
 
-const DAY_LABELS = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
+const COPY = {
+  pt: {
+    dayLabels: ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'],
+    endBeforeStart: 'A hora de fecho deve ser depois da hora de abertura.',
+    updated: 'Horário de funcionamento atualizado.',
+    errorTitle: 'Erro',
+    saveError: 'Não foi possível guardar o horário de funcionamento.',
+    title: 'Horário de Funcionamento',
+    active: 'Ativo',
+    inactive: 'Inativo',
+    save: 'Guardar',
+  },
+  en: {
+    dayLabels: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
+    endBeforeStart: 'The closing time must be after the opening time.',
+    updated: 'Business hours updated.',
+    errorTitle: 'Error',
+    saveError: 'Could not save the business hours.',
+    title: 'Business Hours',
+    active: 'Active',
+    inactive: 'Inactive',
+    save: 'Save',
+  },
+} as const;
 
 const DEFAULT_DAY = (day_of_week: number): DayHours => ({
   day_of_week,
@@ -64,6 +88,8 @@ export default function BusinessHoursScreen() {
   const { slug } = useTenant();
   const { userInfo } = useAuth();
   const { showToast } = useToast();
+  const { language } = useLanguage();
+  const t = language === 'en' ? COPY.en : COPY.pt;
   const isAdmin = userInfo?.is_superuser || userInfo?.role === 'owner' || userInfo?.role === 'manager';
 
   const [days, setDays] = useState<DayHours[] | null>(null);
@@ -103,7 +129,7 @@ export default function BusinessHoursScreen() {
     const newErrors: Record<number, string> = {};
     days.forEach((entry) => {
       if (entry.is_active && entry.end_time <= entry.start_time) {
-        newErrors[entry.day_of_week] = 'A hora de fecho deve ser depois da hora de abertura.';
+        newErrors[entry.day_of_week] = t.endBeforeStart;
       }
     });
 
@@ -115,10 +141,10 @@ export default function BusinessHoursScreen() {
     setBusy(true);
     try {
       await updateTenantBusinessHours(days, { slug });
-      showToast({ type: 'success', message: 'Horário de funcionamento atualizado.' });
+      showToast({ type: 'success', message: t.updated });
     } catch (error: any) {
       const detail = error?.response?.data?.detail;
-      Alert.alert('Erro', typeof detail === 'string' ? detail : 'Não foi possível guardar o horário de funcionamento.');
+      Alert.alert(t.errorTitle, typeof detail === 'string' ? detail : t.saveError);
     } finally {
       setBusy(false);
     }
@@ -138,7 +164,7 @@ export default function BusinessHoursScreen() {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Horário de Funcionamento</Text>
+        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>{t.title}</Text>
         <View style={{ width: 38 }} />
       </View>
 
@@ -146,7 +172,7 @@ export default function BusinessHoursScreen() {
         {days.map((entry) => (
           <View key={entry.day_of_week} style={[styles.dayRow, { borderColor: colors.border, backgroundColor: colors.surface }]}>
             <View style={styles.dayHeader}>
-              <Text style={[styles.dayLabel, { color: colors.textPrimary }]}>{DAY_LABELS[entry.day_of_week]}</Text>
+              <Text style={[styles.dayLabel, { color: colors.textPrimary }]}>{t.dayLabels[entry.day_of_week]}</Text>
               {isAdmin ? (
                 <Switch
                   testID={`business-hours-active-switch-${entry.day_of_week}`}
@@ -155,7 +181,7 @@ export default function BusinessHoursScreen() {
                 />
               ) : (
                 <Text style={{ color: colors.textSecondary, fontSize: 12 }}>
-                  {entry.is_active ? 'Ativo' : 'Inativo'}
+                  {entry.is_active ? t.active : t.inactive}
                 </Text>
               )}
             </View>
@@ -205,7 +231,7 @@ export default function BusinessHoursScreen() {
 
         {isAdmin && (
           <Button onPress={handleSave} loading={busy} disabled={busy}>
-            Guardar
+            {t.save}
           </Button>
         )}
       </ScrollView>

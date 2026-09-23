@@ -38,6 +38,11 @@ jest.mock('expo-web-browser', () => ({
   openBrowserAsync: (...args: any[]) => mockOpenBrowserAsync(...args),
 }));
 
+let mockLanguage = 'pt';
+jest.mock('../../contexts/LanguageContext', () => ({
+  useLanguage: () => ({ language: mockLanguage, setLanguage: jest.fn() }),
+}));
+
 describe('TrialExpiredScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -46,6 +51,15 @@ describe('TrialExpiredScreen', () => {
     mockCreateCheckoutSession.mockResolvedValue({
       checkout_url: 'https://checkout.stripe.com/pay/cs_test_123',
     });
+    mockLanguage = 'pt';
+  });
+
+  it('shows English text when language is en', async () => {
+    mockLanguage = 'en';
+    const { findByText } = await render(<TrialExpiredScreen />);
+
+    expect(await findByText('Your trial period has ended')).toBeTruthy();
+    expect(await findByText('Subscribe now')).toBeTruthy();
   });
 
   it('owner: abre o checkout ao tocar em "Assinar agora"', async () => {

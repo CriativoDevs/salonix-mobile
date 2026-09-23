@@ -1,8 +1,11 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useTheme } from '../../hooks/useTheme';
+import { useLanguage } from '../../contexts/LanguageContext';
 import { Modal } from './Modal';
 import { Button } from './Button';
+
+const CANCEL_LABEL = { pt: 'Cancelar', en: 'Cancel' } as const;
 
 export interface ActionMenuOption {
   label: string;
@@ -37,10 +40,12 @@ export const ActionMenu: React.FC<ActionMenuProps> = ({
   title,
   description,
   options,
-  cancelLabel = 'Cancelar',
+  cancelLabel,
   testID,
 }) => {
   const { colors } = useTheme();
+  const { language } = useLanguage();
+  const resolvedCancelLabel = cancelLabel ?? (language === 'en' ? CANCEL_LABEL.en : CANCEL_LABEL.pt);
 
   const handleSelect = (option: ActionMenuOption) => {
     onClose();
@@ -56,7 +61,7 @@ export const ActionMenu: React.FC<ActionMenuProps> = ({
       size="sm"
       footer={
         <Button variant="link" onPress={onClose} style={{ flex: 1 }}>
-          {cancelLabel}
+          {resolvedCancelLabel}
         </Button>
       }
     >

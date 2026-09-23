@@ -3,6 +3,54 @@ import { View, StyleSheet, Alert } from 'react-native';
 import { Input } from './ui/Input';
 import { Button } from './ui/Button';
 import { Modal } from './ui/Modal';
+import { useLanguage } from '../contexts/LanguageContext';
+
+const COPY = {
+  pt: {
+    nameRequired: 'Nome do item é obrigatório',
+    unitRequired: 'Unidade é obrigatória',
+    invalidQuantity: 'Quantidade inválida',
+    invalidMinimum: 'Estoque mínimo inválido',
+    errorTitle: 'Erro',
+    saveError: 'Ocorreu um erro ao salvar o item.',
+    editTitle: 'Editar Item',
+    newTitle: 'Novo Item',
+    description: 'Cadastre o item e defina um estoque mínimo para saber quando repor.',
+    cancel: 'Cancelar',
+    save: 'Salvar',
+    name: 'Nome',
+    namePlaceholder: 'Ex.: Shampoo profissional 1L',
+    unit: 'Unidade',
+    unitPlaceholder: 'Ex.: un, ml, kg',
+    currentQuantity: 'Quantidade atual',
+    initialQuantity: 'Quantidade inicial',
+    minimumStock: 'Estoque mínimo',
+    optional: 'Opcional',
+    minimumStockDescription: 'Quando a quantidade ficar igual ou abaixo deste valor, o item entra em alerta.',
+  },
+  en: {
+    nameRequired: 'Item name is required',
+    unitRequired: 'Unit is required',
+    invalidQuantity: 'Invalid quantity',
+    invalidMinimum: 'Invalid minimum stock',
+    errorTitle: 'Error',
+    saveError: 'An error occurred while saving the item.',
+    editTitle: 'Edit Item',
+    newTitle: 'New Item',
+    description: 'Register the item and set a minimum stock to know when to restock.',
+    cancel: 'Cancel',
+    save: 'Save',
+    name: 'Name',
+    namePlaceholder: 'E.g.: Professional shampoo 1L',
+    unit: 'Unit',
+    unitPlaceholder: 'E.g.: unit, ml, kg',
+    currentQuantity: 'Current quantity',
+    initialQuantity: 'Initial quantity',
+    minimumStock: 'Minimum stock',
+    optional: 'Optional',
+    minimumStockDescription: 'When the quantity reaches or falls below this value, the item enters alert status.',
+  },
+} as const;
 
 interface InventoryItemFormData {
   id?: string | number;
@@ -36,6 +84,8 @@ interface InventoryItemFormModalProps {
 const EMPTY_FORM: InventoryItemFormData = { name: '', unit: '', quantity: '0', minimum_quantity: '' };
 
 export function InventoryItemFormModal({ visible, onClose, onSubmit, initialData, busy = false }: InventoryItemFormModalProps) {
+  const { language } = useLanguage();
+  const t = language === 'en' ? COPY.en : COPY.pt;
   const [form, setForm] = useState<InventoryItemFormData>(EMPTY_FORM);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
@@ -61,19 +111,19 @@ export function InventoryItemFormModal({ visible, onClose, onSubmit, initialData
     const newErrors: { [key: string]: string } = {};
 
     if (!form.name.trim()) {
-      newErrors.name = 'Nome do item é obrigatório';
+      newErrors.name = t.nameRequired;
     }
 
     if (!form.unit.trim()) {
-      newErrors.unit = 'Unidade é obrigatória';
+      newErrors.unit = t.unitRequired;
     }
 
     if (form.quantity.trim() !== '' && Number.isNaN(Number(form.quantity))) {
-      newErrors.quantity = 'Quantidade inválida';
+      newErrors.quantity = t.invalidQuantity;
     }
 
     if (form.minimum_quantity.trim() !== '' && Number.isNaN(Number(form.minimum_quantity))) {
-      newErrors.minimum_quantity = 'Estoque mínimo inválido';
+      newErrors.minimum_quantity = t.invalidMinimum;
     }
 
     setErrors(newErrors);
@@ -92,7 +142,7 @@ export function InventoryItemFormModal({ visible, onClose, onSubmit, initialData
       });
     } catch (error) {
       console.error(error);
-      Alert.alert('Erro', 'Ocorreu um erro ao salvar o item.');
+      Alert.alert(t.errorTitle, t.saveError);
     }
   };
 
@@ -100,15 +150,15 @@ export function InventoryItemFormModal({ visible, onClose, onSubmit, initialData
     <Modal
       visible={visible}
       onClose={onClose}
-      title={initialData ? 'Editar Item' : 'Novo Item'}
-      description="Cadastre o item e defina um estoque mínimo para saber quando repor."
+      title={initialData ? t.editTitle : t.newTitle}
+      description={t.description}
       footer={
         <>
           <Button variant="secondary" onPress={onClose} style={{ flex: 1 }}>
-            Cancelar
+            {t.cancel}
           </Button>
           <Button onPress={handleSubmit} loading={busy} disabled={busy} style={{ flex: 1 }}>
-            Salvar
+            {t.save}
           </Button>
         </>
       }
@@ -116,8 +166,8 @@ export function InventoryItemFormModal({ visible, onClose, onSubmit, initialData
       <View style={styles.formContent}>
         <View style={styles.inputGroup}>
           <Input
-            label="Nome"
-            placeholder="Ex.: Shampoo profissional 1L"
+            label={t.name}
+            placeholder={t.namePlaceholder}
             value={form.name}
             onChangeText={(text) => setForm({ ...form, name: text })}
             error={errors.name}
@@ -126,8 +176,8 @@ export function InventoryItemFormModal({ visible, onClose, onSubmit, initialData
 
         <View style={styles.inputGroup}>
           <Input
-            label="Unidade"
-            placeholder="Ex.: un, ml, kg"
+            label={t.unit}
+            placeholder={t.unitPlaceholder}
             value={form.unit}
             onChangeText={(text) => setForm({ ...form, unit: text })}
             error={errors.unit}
@@ -136,7 +186,7 @@ export function InventoryItemFormModal({ visible, onClose, onSubmit, initialData
 
         <View style={styles.inputGroup}>
           <Input
-            label={initialData ? 'Quantidade atual' : 'Quantidade inicial'}
+            label={initialData ? t.currentQuantity : t.initialQuantity}
             placeholder="0"
             value={form.quantity}
             onChangeText={(text) => setForm({ ...form, quantity: text })}
@@ -147,13 +197,13 @@ export function InventoryItemFormModal({ visible, onClose, onSubmit, initialData
 
         <View style={styles.inputGroup}>
           <Input
-            label="Estoque mínimo"
-            placeholder="Opcional"
+            label={t.minimumStock}
+            placeholder={t.optional}
             value={form.minimum_quantity}
             onChangeText={(text) => setForm({ ...form, minimum_quantity: text })}
             keyboardType="number-pad"
             error={errors.minimum_quantity}
-            description="Quando a quantidade ficar igual ou abaixo deste valor, o item entra em alerta."
+            description={t.minimumStockDescription}
           />
         </View>
       </View>

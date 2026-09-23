@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../hooks/useTheme';
+import { useLanguage } from '../contexts/LanguageContext';
 import { useTenant } from '../hooks/useTenant';
 import { useAuth } from '../hooks/useAuth';
 import { isOwner } from '../utils/permissions';
@@ -20,19 +21,102 @@ type TabKey = 'basic' | 'business' | 'insights';
 type IntervalKey = 'day' | 'week' | 'month';
 type SectionError = 'forbidden' | 'network' | null;
 
-const TABS: { key: TabKey; label: string }[] = [
-  { key: 'basic', label: 'Básicos' },
-  { key: 'business', label: 'Análise de Negócio' },
-  { key: 'insights', label: 'Insights' },
-];
-
-const INTERVAL_OPTIONS: { value: IntervalKey; label: string }[] = [
-  { value: 'day', label: 'Dia' },
-  { value: 'week', label: 'Semana' },
-  { value: 'month', label: 'Mês' },
-];
-
 const LIMIT_OPTIONS = [10, 25, 50, 100];
+
+const COPY = {
+  pt: {
+    tabBasic: 'Básicos',
+    tabBusiness: 'Análise de Negócio',
+    tabInsights: 'Insights',
+    intervalDay: 'Dia',
+    intervalWeek: 'Semana',
+    intervalMonth: 'Mês',
+    title: 'Relatórios',
+    filters: 'Filtros',
+    dateFrom: 'Data inicial',
+    dateTo: 'Data final',
+    selectDate: 'Selecione uma data',
+    professional: 'Profissional',
+    all: 'Todos',
+    service: 'Serviço',
+    timeInterval: 'Intervalo de Tempo',
+    itemsPerPage: 'Itens por Página',
+    clear: 'Limpar',
+    applyFilters: 'Aplicar filtros',
+    totalAppointments: 'Agendamentos Totais',
+    completedAppointments: 'Agendamentos Concluídos',
+    completionRate: (rate: string) => `Taxa de conclusão: ${rate}`,
+    totalRevenue: 'Receita Total',
+    avgTicket: 'Ticket Médio',
+    exportCsv: 'Exportar CSV',
+    loadError: 'Não foi possível carregar os dados desta aba.',
+    exportError: 'Não foi possível exportar o relatório.',
+    errorTitle: 'Erro',
+    businessPlanBlocked: 'O seu plano atual não inclui a Análise de Negócio.',
+    insightsPlanBlocked: 'O seu plano atual não inclui os Insights.',
+    viewPlans: 'Ver planos',
+    tryAgain: 'Tentar novamente',
+    topServices: 'Top Serviços',
+    noDataInPeriod: 'Nenhum dado no período selecionado.',
+    appointmentsSuffix: 'agendamentos',
+    revenueByInterval: (interval: string) => `Receita por ${interval}`,
+    defaultPeriod: 'período',
+    chart: 'Gráfico',
+    table: 'Tabela',
+    period: 'Período',
+    revenue: 'Receita',
+    appointmentsAbbrev: 'Agend.',
+    retentionRate: 'Taxa de Retenção',
+    newClients: 'Novos',
+    returningClients: 'Recorrentes',
+  },
+  en: {
+    tabBasic: 'Basic',
+    tabBusiness: 'Business Analysis',
+    tabInsights: 'Insights',
+    intervalDay: 'Day',
+    intervalWeek: 'Week',
+    intervalMonth: 'Month',
+    title: 'Reports',
+    filters: 'Filters',
+    dateFrom: 'Start date',
+    dateTo: 'End date',
+    selectDate: 'Select a date',
+    professional: 'Professional',
+    all: 'All',
+    service: 'Service',
+    timeInterval: 'Time Interval',
+    itemsPerPage: 'Items per Page',
+    clear: 'Clear',
+    applyFilters: 'Apply filters',
+    totalAppointments: 'Total Appointments',
+    completedAppointments: 'Completed Appointments',
+    completionRate: (rate: string) => `Completion rate: ${rate}`,
+    totalRevenue: 'Total Revenue',
+    avgTicket: 'Average Ticket',
+    exportCsv: 'Export CSV',
+    loadError: 'Could not load the data for this tab.',
+    exportError: 'Could not export the report.',
+    errorTitle: 'Error',
+    businessPlanBlocked: 'Your current plan does not include Business Analysis.',
+    insightsPlanBlocked: 'Your current plan does not include Insights.',
+    viewPlans: 'View plans',
+    tryAgain: 'Try again',
+    topServices: 'Top Services',
+    noDataInPeriod: 'No data in the selected period.',
+    appointmentsSuffix: 'appointments',
+    revenueByInterval: (interval: string) => `Revenue by ${interval}`,
+    defaultPeriod: 'period',
+    chart: 'Chart',
+    table: 'Table',
+    period: 'Period',
+    revenue: 'Revenue',
+    appointmentsAbbrev: 'Appts.',
+    retentionRate: 'Retention Rate',
+    newClients: 'New',
+    returningClients: 'Returning',
+  },
+} as const;
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat('pt-PT', { style: 'currency', currency: 'EUR' }).format(value || 0);
@@ -80,6 +164,20 @@ export default function ReportsScreen() {
   const { colors } = useTheme();
   const { slug } = useTenant();
   const { userInfo } = useAuth();
+  const { language } = useLanguage();
+  const t = language === 'en' ? COPY.en : COPY.pt;
+
+  const TABS: { key: TabKey; label: string }[] = [
+    { key: 'basic', label: t.tabBasic },
+    { key: 'business', label: t.tabBusiness },
+    { key: 'insights', label: t.tabInsights },
+  ];
+
+  const INTERVAL_OPTIONS: { value: IntervalKey; label: string }[] = [
+    { value: 'day', label: t.intervalDay },
+    { value: 'week', label: t.intervalWeek },
+    { value: 'month', label: t.intervalMonth },
+  ];
 
   useEffect(() => {
     if (!isOwner(userInfo)) {
@@ -137,7 +235,7 @@ export default function ReportsScreen() {
       setBasic(data.overview);
     }).catch(() => {
       if (!active) return;
-      Alert.alert('Erro', 'Não foi possível carregar os dados desta aba.');
+      Alert.alert(t.errorTitle, t.loadError);
     }).finally(() => {
       if (!active) return;
       setLoading(false);
@@ -174,7 +272,7 @@ export default function ReportsScreen() {
       const kind = getErrorKind(error);
       setBusinessError(kind);
       if (kind !== 'forbidden') {
-        Alert.alert('Erro', 'Não foi possível carregar os dados desta aba.');
+        Alert.alert(t.errorTitle, t.loadError);
       }
     } finally {
       setBusinessLoading(false);
@@ -204,7 +302,7 @@ export default function ReportsScreen() {
       const kind = getErrorKind(error);
       setInsightsError(kind);
       if (kind !== 'forbidden') {
-        Alert.alert('Erro', 'Não foi possível carregar os dados desta aba.');
+        Alert.alert(t.errorTitle, t.loadError);
       }
     } finally {
       setInsightsLoading(false);
@@ -237,7 +335,7 @@ export default function ReportsScreen() {
       await saveAndShareCSV(content, 'relatorio-basico.csv');
     } catch (error) {
       console.error('Error exporting basic report:', error);
-      Alert.alert('Erro', 'Não foi possível exportar o relatório.');
+      Alert.alert(t.errorTitle, t.exportError);
     } finally {
       setExporting(false);
     }
@@ -266,7 +364,7 @@ export default function ReportsScreen() {
     ? `${((retention.returning_clients.qty / totalRetention) * 100).toFixed(1)}%`
     : '0.0%';
 
-  const intervalLabel = INTERVAL_OPTIONS.find((option) => option.value === interval)?.label || 'período';
+  const intervalLabel = INTERVAL_OPTIONS.find((option) => option.value === interval)?.label || t.defaultPeriod;
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
@@ -274,7 +372,7 @@ export default function ReportsScreen() {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Relatórios</Text>
+        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>{t.title}</Text>
         <TouchableOpacity onPress={() => setFiltersOpen((prev) => !prev)} style={styles.backBtn} testID="toggle-filters">
           <Ionicons name="options-outline" size={22} color={colors.brandPrimary} />
         </TouchableOpacity>
@@ -300,32 +398,32 @@ export default function ReportsScreen() {
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
         {filtersOpen && (
           <View style={[styles.filtersBox, { borderColor: colors.border, backgroundColor: colors.surface }]}>
-            <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Filtros</Text>
+            <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>{t.filters}</Text>
 
             <DatePickerInput
-              label="Data inicial"
-              placeholder="Selecione uma data"
+              label={t.dateFrom}
+              placeholder={t.selectDate}
               value={draft.from}
               onDateChange={(date) => setDraft((prev) => ({ ...prev, from: date }))}
             />
             <DatePickerInput
-              label="Data final"
-              placeholder="Selecione uma data"
+              label={t.dateTo}
+              placeholder={t.selectDate}
               value={draft.to}
               onDateChange={(date) => setDraft((prev) => ({ ...prev, to: date }))}
             />
 
             {(activeTab === 'business' || activeTab === 'insights') && (
               <View style={styles.inputGroup}>
-                <Text style={[styles.filterLabel, { color: colors.textPrimary }]}>Profissional</Text>
+                <Text style={[styles.filterLabel, { color: colors.textPrimary }]}>{t.professional}</Text>
                 <Select
                   testID="reports-professional-picker"
                   selectedValue={draft.professionalId}
                   onValueChange={(value) => setDraft((prev) => ({ ...prev, professionalId: value }))}
-                  placeholder="Todos"
-                  title="Profissional"
+                  placeholder={t.all}
+                  title={t.professional}
                   options={[
-                    { label: 'Todos', value: '' },
+                    { label: t.all, value: '' },
                     ...professionals.map((prof: any) => ({ label: prof.name, value: String(prof.id) })),
                   ]}
                 />
@@ -334,15 +432,15 @@ export default function ReportsScreen() {
 
             {activeTab === 'business' && (
               <View style={styles.inputGroup}>
-                <Text style={[styles.filterLabel, { color: colors.textPrimary }]}>Serviço</Text>
+                <Text style={[styles.filterLabel, { color: colors.textPrimary }]}>{t.service}</Text>
                 <Select
                   testID="reports-service-picker"
                   selectedValue={draft.serviceId}
                   onValueChange={(value) => setDraft((prev) => ({ ...prev, serviceId: value }))}
-                  placeholder="Todos"
-                  title="Serviço"
+                  placeholder={t.all}
+                  title={t.service}
                   options={[
-                    { label: 'Todos', value: '' },
+                    { label: t.all, value: '' },
                     ...services.map((service: any) => ({ label: service.name, value: String(service.id) })),
                   ]}
                 />
@@ -352,7 +450,7 @@ export default function ReportsScreen() {
             {activeTab === 'business' && (
               <>
                 <View style={styles.inputGroup}>
-                  <Text style={[styles.filterLabel, { color: colors.textPrimary }]}>Intervalo de Tempo</Text>
+                  <Text style={[styles.filterLabel, { color: colors.textPrimary }]}>{t.timeInterval}</Text>
                   <View style={{ flexDirection: 'row', gap: 8 }}>
                     {INTERVAL_OPTIONS.map((option) => {
                       const active = draft.interval === option.value;
@@ -375,7 +473,7 @@ export default function ReportsScreen() {
                 </View>
 
                 <View style={styles.inputGroup}>
-                  <Text style={[styles.filterLabel, { color: colors.textPrimary }]}>Itens por Página</Text>
+                  <Text style={[styles.filterLabel, { color: colors.textPrimary }]}>{t.itemsPerPage}</Text>
                   <View style={{ flexDirection: 'row', gap: 8 }}>
                     {LIMIT_OPTIONS.map((option) => {
                       const active = draft.limit === option;
@@ -401,10 +499,10 @@ export default function ReportsScreen() {
 
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 4 }}>
               <TouchableOpacity onPress={handleClearFilters}>
-                <Text style={{ color: colors.textSecondary, fontSize: 13, fontWeight: '600' }}>Limpar</Text>
+                <Text style={{ color: colors.textSecondary, fontSize: 13, fontWeight: '600' }}>{t.clear}</Text>
               </TouchableOpacity>
               <TouchableOpacity onPress={handleApplyFilters}>
-                <Text style={{ color: colors.brandPrimary, fontSize: 13, fontWeight: '600' }}>Aplicar filtros</Text>
+                <Text style={{ color: colors.brandPrimary, fontSize: 13, fontWeight: '600' }}>{t.applyFilters}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -412,13 +510,13 @@ export default function ReportsScreen() {
 
         {activeTab === 'basic' && basic && (
           <>
-            <StatCard label="Agendamentos Totais" value={basic.appointments_total} />
-            <StatCard label="Agendamentos Concluídos" value={basic.appointments_completed} hint={`Taxa de conclusão: ${completionRate}`} />
-            <StatCard label="Receita Total" value={formatCurrency(basic.revenue_total)} isPrimary />
-            <StatCard label="Ticket Médio" value={formatCurrency(basic.avg_ticket)} />
+            <StatCard label={t.totalAppointments} value={basic.appointments_total} />
+            <StatCard label={t.completedAppointments} value={basic.appointments_completed} hint={t.completionRate(completionRate)} />
+            <StatCard label={t.totalRevenue} value={formatCurrency(basic.revenue_total)} isPrimary />
+            <StatCard label={t.avgTicket} value={formatCurrency(basic.avg_ticket)} />
 
             <Button onPress={handleExportCSV} loading={exporting} disabled={exporting}>
-              Exportar CSV
+              {t.exportCsv}
             </Button>
           </>
         )}
@@ -432,10 +530,10 @@ export default function ReportsScreen() {
             {!businessLoading && businessError === 'forbidden' && (
               <View style={[styles.banner, { backgroundColor: colors.warningBackground, borderColor: colors.border }]}>
                 <Text style={{ color: colors.textPrimary, fontSize: 13 }}>
-                  O seu plano atual não inclui a Análise de Negócio.
+                  {t.businessPlanBlocked}
                 </Text>
                 <TouchableOpacity onPress={() => navigation.navigate('CreditsPlan' as never)} style={{ marginTop: 8 }}>
-                  <Text style={{ color: colors.brandPrimary, fontWeight: '600', fontSize: 13 }}>Ver planos</Text>
+                  <Text style={{ color: colors.brandPrimary, fontWeight: '600', fontSize: 13 }}>{t.viewPlans}</Text>
                 </TouchableOpacity>
               </View>
             )}
@@ -443,37 +541,37 @@ export default function ReportsScreen() {
             {!businessLoading && businessError === 'network' && (
               <View style={[styles.banner, { backgroundColor: colors.errorBackground, borderColor: colors.border }]}>
                 <Text style={{ color: colors.textPrimary, fontSize: 13 }}>
-                  Não foi possível carregar os dados desta aba.
+                  {t.loadError}
                 </Text>
                 <TouchableOpacity onPress={fetchBusinessData} style={{ marginTop: 8 }}>
-                  <Text style={{ color: colors.brandPrimary, fontWeight: '600', fontSize: 13 }}>Tentar novamente</Text>
+                  <Text style={{ color: colors.brandPrimary, fontWeight: '600', fontSize: 13 }}>{t.tryAgain}</Text>
                 </TouchableOpacity>
               </View>
             )}
 
             {!businessLoading && !businessError && (
               <>
-                <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Top Serviços</Text>
+                <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>{t.topServices}</Text>
                 {topServices && topServices.length === 0 ? (
                   <Text style={{ color: colors.textSecondary, fontSize: 13, marginBottom: 16 }}>
-                    Nenhum dado no período selecionado.
+                    {t.noDataInPeriod}
                   </Text>
                 ) : (
                   topServices?.map((service) => (
                     <View key={service.service_name} style={[styles.serviceRow, { borderColor: colors.border, backgroundColor: colors.surface }]}>
                       <Text style={{ color: colors.textPrimary, fontWeight: '600' }}>{service.service_name}</Text>
                       <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 4 }}>
-                        <Text style={{ color: colors.textSecondary, fontSize: 13 }}>{service.qty} agendamentos</Text>
+                        <Text style={{ color: colors.textSecondary, fontSize: 13 }}>{service.qty} {t.appointmentsSuffix}</Text>
                         <Text style={{ color: colors.textSecondary, fontSize: 13 }}>{formatCurrency(service.revenue)}</Text>
                       </View>
                     </View>
                   ))
                 )}
 
-                <Text style={[styles.sectionTitle, { color: colors.textPrimary, marginTop: 16 }]}>Receita por {intervalLabel}</Text>
+                <Text style={[styles.sectionTitle, { color: colors.textPrimary, marginTop: 16 }]}>{t.revenueByInterval(intervalLabel)}</Text>
                 {revenueSeries && revenueSeries.length === 0 ? (
                   <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
-                    Nenhum dado no período selecionado.
+                    {t.noDataInPeriod}
                   </Text>
                 ) : (
                   <>
@@ -490,7 +588,7 @@ export default function ReportsScreen() {
                         ]}
                       >
                         <Text style={{ color: revenueView === 'chart' ? '#fff' : colors.textPrimary, fontWeight: '600', fontSize: 13 }}>
-                          Gráfico
+                          {t.chart}
                         </Text>
                       </TouchableOpacity>
                       <TouchableOpacity
@@ -505,7 +603,7 @@ export default function ReportsScreen() {
                         ]}
                       >
                         <Text style={{ color: revenueView === 'table' ? '#fff' : colors.textPrimary, fontWeight: '600', fontSize: 13 }}>
-                          Tabela
+                          {t.table}
                         </Text>
                       </TouchableOpacity>
                     </View>
@@ -537,10 +635,10 @@ export default function ReportsScreen() {
                     ) : (
                       <View style={[styles.table, { borderColor: colors.border, backgroundColor: colors.surface }]} testID="revenue-table">
                         <View style={[styles.tableRow, styles.tableHeaderRow, { borderColor: colors.border }]}>
-                          <Text style={[styles.tableCell, styles.tableHeaderCell, { color: colors.textSecondary, flex: 1.2 }]}>Período</Text>
-                          <Text style={[styles.tableCell, styles.tableHeaderCell, { color: colors.textSecondary, flex: 1 }]}>Receita</Text>
+                          <Text style={[styles.tableCell, styles.tableHeaderCell, { color: colors.textSecondary, flex: 1.2 }]}>{t.period}</Text>
+                          <Text style={[styles.tableCell, styles.tableHeaderCell, { color: colors.textSecondary, flex: 1 }]}>{t.revenue}</Text>
                           <Text style={[styles.tableCell, styles.tableHeaderCell, { color: colors.textSecondary, flex: 1, textAlign: 'right' }]}>
-                            Agend.
+                            {t.appointmentsAbbrev}
                           </Text>
                         </View>
                         {revenueSeries?.map((item) => (
@@ -574,10 +672,10 @@ export default function ReportsScreen() {
             {!insightsLoading && insightsError === 'forbidden' && (
               <View style={[styles.banner, { backgroundColor: colors.warningBackground, borderColor: colors.border }]}>
                 <Text style={{ color: colors.textPrimary, fontSize: 13 }}>
-                  O seu plano atual não inclui os Insights.
+                  {t.insightsPlanBlocked}
                 </Text>
                 <TouchableOpacity onPress={() => navigation.navigate('CreditsPlan' as never)} style={{ marginTop: 8 }}>
-                  <Text style={{ color: colors.brandPrimary, fontWeight: '600', fontSize: 13 }}>Ver planos</Text>
+                  <Text style={{ color: colors.brandPrimary, fontWeight: '600', fontSize: 13 }}>{t.viewPlans}</Text>
                 </TouchableOpacity>
               </View>
             )}
@@ -585,30 +683,30 @@ export default function ReportsScreen() {
             {!insightsLoading && insightsError === 'network' && (
               <View style={[styles.banner, { backgroundColor: colors.errorBackground, borderColor: colors.border }]}>
                 <Text style={{ color: colors.textPrimary, fontSize: 13 }}>
-                  Não foi possível carregar os dados desta aba.
+                  {t.loadError}
                 </Text>
                 <TouchableOpacity onPress={fetchInsightsData} style={{ marginTop: 8 }}>
-                  <Text style={{ color: colors.brandPrimary, fontWeight: '600', fontSize: 13 }}>Tentar novamente</Text>
+                  <Text style={{ color: colors.brandPrimary, fontWeight: '600', fontSize: 13 }}>{t.tryAgain}</Text>
                 </TouchableOpacity>
               </View>
             )}
 
             {!insightsLoading && !insightsError && (
               <>
-                <StatCard label="Taxa de Retenção" value={retentionRate} isPrimary />
+                <StatCard label={t.retentionRate} value={retentionRate} isPrimary />
                 {retention && totalRetention === 0 ? (
                   <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
-                    Nenhum dado no período selecionado.
+                    {t.noDataInPeriod}
                   </Text>
                 ) : retention ? (
                   <View style={{ flexDirection: 'row', gap: 12 }}>
                     <View style={[styles.retentionCard, { borderColor: colors.border, backgroundColor: colors.surface }]}>
-                      <Text style={{ color: colors.textSecondary, fontSize: 12 }}>Novos</Text>
+                      <Text style={{ color: colors.textSecondary, fontSize: 12 }}>{t.newClients}</Text>
                       <Text style={{ color: colors.textPrimary, fontSize: 18, fontWeight: '700' }}>{retention.new_clients.qty}</Text>
                       <Text style={{ color: colors.textSecondary, fontSize: 12 }}>{formatCurrency(retention.new_clients.revenue)}</Text>
                     </View>
                     <View style={[styles.retentionCard, { borderColor: colors.border, backgroundColor: colors.surface }]}>
-                      <Text style={{ color: colors.textSecondary, fontSize: 12 }}>Recorrentes</Text>
+                      <Text style={{ color: colors.textSecondary, fontSize: 12 }}>{t.returningClients}</Text>
                       <Text style={{ color: colors.textPrimary, fontSize: 18, fontWeight: '700' }}>{retention.returning_clients.qty}</Text>
                       <Text style={{ color: colors.textSecondary, fontSize: 12 }}>{formatCurrency(retention.returning_clients.revenue)}</Text>
                     </View>

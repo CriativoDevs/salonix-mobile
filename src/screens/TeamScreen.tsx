@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../hooks/useTheme';
+import { useLanguage } from '../contexts/LanguageContext';
 import { Input } from '../components/ui/Input';
 import { Card } from '../components/ui/Card';
 import { Avatar } from '../components/ui/Avatar';
@@ -19,12 +20,87 @@ import { resolveMediaUrl } from '../utils/env';
 import { useToast } from '../contexts/ToastContext';
 import { ActionMenu } from '../components/ui/ActionMenu';
 
+const COPY = {
+  pt: {
+    exportError: 'Não foi possível exportar a equipe.',
+    deleteError: 'Não foi possível excluir o profissional.',
+    inviteSuccess: 'Convite enviado com sucesso!',
+    saveErrorFallback: 'Não foi possível salvar.',
+    errorTitle: 'Erro',
+    deleteTitle: 'Excluir Profissional',
+    deleteMessage: (name: string) => `Tem certeza que deseja excluir ${name}?`,
+    cancel: 'Cancelar',
+    delete: 'Excluir',
+    resendMaintenance: 'Funcionalidade de reenviar convite em manutenção.',
+    noName: 'Sem Nome',
+    collaboratorFallback: 'Colaborador',
+    ownerRole: 'OWNER',
+    collaboratorRole: 'COLABORADOR',
+    statusInactive: 'INATIVO',
+    statusInvited: 'CONVITE',
+    statusDisabled: 'DESATIVADO',
+    statusActive: 'ATIVO',
+    manage: 'Gerenciar',
+    title: 'Equipe',
+    countSuffix: (n: number) => `${n} profissionais`,
+    filters: 'Filtros',
+    newProfessional: 'Novo profissional',
+    importExport: 'Importar/Exportar',
+    searchPlaceholder: 'Buscar profissional...',
+    withInactive: 'Com inativos',
+    onlyActive: 'Apenas ativos',
+    emptyTitle: 'Nenhum profissional encontrado.',
+    addNewProfessional: 'Adicionar novo profissional',
+    importCsv: 'Importar CSV',
+    exportCsv: 'Exportar CSV',
+    edit: 'Editar',
+    resendInvite: 'Reenviar Convite',
+  },
+  en: {
+    exportError: 'Could not export the team.',
+    deleteError: 'Could not delete the professional.',
+    inviteSuccess: 'Invite sent successfully!',
+    saveErrorFallback: 'Could not save.',
+    errorTitle: 'Error',
+    deleteTitle: 'Delete Professional',
+    deleteMessage: (name: string) => `Are you sure you want to delete ${name}?`,
+    cancel: 'Cancel',
+    delete: 'Delete',
+    resendMaintenance: 'Resend invite feature under maintenance.',
+    noName: 'No Name',
+    collaboratorFallback: 'Collaborator',
+    ownerRole: 'OWNER',
+    collaboratorRole: 'COLLABORATOR',
+    statusInactive: 'INACTIVE',
+    statusInvited: 'INVITED',
+    statusDisabled: 'DISABLED',
+    statusActive: 'ACTIVE',
+    manage: 'Manage',
+    title: 'Team',
+    countSuffix: (n: number) => `${n} professionals`,
+    filters: 'Filters',
+    newProfessional: 'New professional',
+    importExport: 'Import/Export',
+    searchPlaceholder: 'Search professional...',
+    withInactive: 'With inactive',
+    onlyActive: 'Active only',
+    emptyTitle: 'No professional found.',
+    addNewProfessional: 'Add new professional',
+    importCsv: 'Import CSV',
+    exportCsv: 'Export CSV',
+    edit: 'Edit',
+    resendInvite: 'Resend Invite',
+  },
+} as const;
+
 export default function TeamScreen() {
     const { colors } = useTheme();
     const navigation = useNavigation();
     const { slug } = useTenant();
     const { userInfo } = useAuth();
     const { showToast } = useToast();
+    const { language } = useLanguage();
+    const t = language === 'en' ? COPY.en : COPY.pt;
     const isAdmin = userInfo?.is_superuser || userInfo?.role === 'owner' || userInfo?.role === 'manager';
 
     const [professionals, setProfessionals] = useState<any[]>([]);
@@ -163,7 +239,7 @@ export default function TeamScreen() {
             await saveAndShareCSV(content, 'staff.csv');
         } catch (error) {
             console.error('Error exporting staff:', error);
-            Alert.alert('Erro', 'Não foi possível exportar a equipe.');
+            Alert.alert(t.errorTitle, t.exportError);
         }
     };
 
@@ -216,13 +292,13 @@ export default function TeamScreen() {
 
                 // Refresh completo para pegar o novo Staff e o novo Professional criado
                 loadData(true);
-                showToast({ type: 'success', message: 'Convite enviado com sucesso!' });
+                showToast({ type: 'success', message: t.inviteSuccess });
             }
             setModalVisible(false);
         } catch (error: any) {
             console.error('Error saving professional:', error);
-            const msg = error.response?.data?.detail || error.message || 'Não foi possível salvar.';
-            Alert.alert('Erro', msg);
+            const msg = error.response?.data?.detail || error.message || t.saveErrorFallback;
+            Alert.alert(t.errorTitle, msg);
         } finally {
             setActionLoading(false);
         }
@@ -230,12 +306,12 @@ export default function TeamScreen() {
 
     const handleDelete = (professional: any) => {
         Alert.alert(
-            'Excluir Profissional',
-            `Tem certeza que deseja excluir ${professional.name}?`,
+            t.deleteTitle,
+            t.deleteMessage(professional.name),
             [
-                { text: 'Cancelar', style: 'cancel' },
+                { text: t.cancel, style: 'cancel' },
                 {
-                    text: 'Excluir',
+                    text: t.delete,
                     style: 'destructive',
                     onPress: async () => {
                         try {
@@ -244,7 +320,7 @@ export default function TeamScreen() {
                             setTotalCount(prev => Math.max(0, prev - 1));
                         } catch (error) {
                             console.error('Error deleting professional:', error);
-                            Alert.alert('Erro', 'Não foi possível excluir o profissional.');
+                            Alert.alert(t.errorTitle, t.deleteError);
                         }
                     }
                 }
@@ -255,7 +331,7 @@ export default function TeamScreen() {
     const handleResendInvite = async (professional: any) => {
         // Placeholder se a funcionalidade de reenviar convite for necessária
         // Para implementar corretamente, precisamos de um endpoint específico de staff
-        showToast({ type: 'info', message: 'Funcionalidade de reenviar convite em manutenção.' });
+        showToast({ type: 'info', message: t.resendMaintenance });
     };
 
     const showOptions = (professional: any) => {
@@ -272,15 +348,15 @@ export default function TeamScreen() {
             ? `${staffMember.first_name || ''} ${staffMember.last_name || ''}`.trim() || staffMember.email
             : null;
 
-        const name = item.name || staffName || (item.user?.first_name ? `${item.user.first_name} ${item.user.last_name || ''}`.trim() : 'Sem Nome');
+        const name = item.name || staffName || (item.user?.first_name ? `${item.user.first_name} ${item.user.last_name || ''}`.trim() : t.noName);
 
         const email = item.email || staffMember?.email || item.user?.email || '—';
         const phone = item.phone_number || staffMember?.phone_number || item.user?.phone_number;
-        const jobTitle = item.job_title || item.specialization || 'Colaborador';
+        const jobTitle = item.job_title || item.specialization || t.collaboratorFallback;
 
         // Resolve Role and Status
         // If staff member exists, use their role/status. Otherwise fallback to professional data.
-        const role = staffMember?.role || item.role || (item.is_owner ? 'OWNER' : 'COLABORADOR');
+        const role = staffMember?.role || item.role || (item.is_owner ? t.ownerRole : t.collaboratorRole);
 
         // Status logic:
         // If staff member exists:
@@ -288,19 +364,19 @@ export default function TeamScreen() {
         // - of staff.status is 'disabled' -> DISABLED
         // - if staff.status is 'active' AND professional.is_active -> ACTIVE
         // - else -> DISABLED
-        let status = 'INATIVO';
+        let status: string = t.statusInactive;
         let isActive = false;
 
         if (staffMember) {
-            if (staffMember.status === 'invited') status = 'CONVITE';
-            else if (staffMember.status === 'disabled') status = 'DESATIVADO';
+            if (staffMember.status === 'invited') status = t.statusInvited;
+            else if (staffMember.status === 'disabled') status = t.statusDisabled;
             else if (staffMember.status === 'active' && item.is_active !== false) {
-                status = 'ATIVO';
+                status = t.statusActive;
                 isActive = true;
             }
         } else {
             if (item.is_active !== false) {
-                status = 'ATIVO';
+                status = t.statusActive;
                 isActive = true;
             }
         }
@@ -363,7 +439,7 @@ export default function TeamScreen() {
                             </View>
                             <View style={[styles.badge, { backgroundColor: isActive ? '#DCFCE7' : '#F3F4F6', marginLeft: 8 }]}>
                                 <Text style={[styles.badgeText, { color: isActive ? '#15803D' : '#374151' }]}>
-                                    {isActive ? 'ATIVO' : 'INATIVO'}
+                                    {isActive ? t.statusActive : t.statusInactive}
                                 </Text>
                             </View>
                         </View>
@@ -374,7 +450,7 @@ export default function TeamScreen() {
                             onPress={() => handleEdit(normalizedItem)}
                         >
                             <Text style={{ color: colors.brandPrimary, fontWeight: '600', fontSize: 14 }}>
-                                Gerenciar
+                                {t.manage}
                             </Text>
                         </TouchableOpacity>
                     </View>
@@ -391,10 +467,10 @@ export default function TeamScreen() {
             <View style={{ paddingHorizontal: 16 }}>
                 <View style={{ marginBottom: 16 }}>
                     <Text className="text-3xl font-bold" style={{ color: colors.textPrimary, marginBottom: 4 }}>
-                        Equipe
+                        {t.title}
                     </Text>
                     <Text style={{ color: colors.textSecondary, fontSize: 13, marginBottom: 12 }}>
-                        {totalCount} profissionais
+                        {t.countSuffix(totalCount)}
                     </Text>
 
                     <View style={{ flexDirection: 'row', marginTop: 12, gap: 16 }}>
@@ -413,7 +489,7 @@ export default function TeamScreen() {
                                 fontWeight: '600',
                                 marginLeft: 6
                             }}>
-                                Filtros
+                                {t.filters}
                             </Text>
                         </TouchableOpacity>
 
@@ -429,7 +505,7 @@ export default function TeamScreen() {
                                     fontWeight: '600',
                                     marginLeft: 6
                                 }}>
-                                    Novo profissional
+                                    {t.newProfessional}
                                 </Text>
                             </TouchableOpacity>
                         )}
@@ -446,7 +522,7 @@ export default function TeamScreen() {
                                     fontWeight: '600',
                                     marginLeft: 6
                                 }}>
-                                    Importar/Exportar
+                                    {t.importExport}
                                 </Text>
                             </TouchableOpacity>
                         )}
@@ -459,7 +535,7 @@ export default function TeamScreen() {
                 <View style={[styles.filters, { backgroundColor: colors.background, borderBottomColor: colors.border, borderBottomWidth: 1 }]}>
                     <View style={styles.searchInput}>
                         <Input
-                            placeholder="Buscar profissional..."
+                            placeholder={t.searchPlaceholder}
                             value={search}
                             onChangeText={setSearch}
                             onSubmitEditing={() => loadData(true)}
@@ -474,7 +550,7 @@ export default function TeamScreen() {
                             styles.filterText,
                             { color: showInactive ? colors.brandPrimary : colors.textSecondary }
                         ]}>
-                            {showInactive ? 'Com inativos' : 'Apenas ativos'}
+                            {showInactive ? t.withInactive : t.onlyActive}
                         </Text>
                     </TouchableOpacity>
                 </View>
@@ -500,11 +576,11 @@ export default function TeamScreen() {
                     !loading && (
                         <View style={styles.emptyState}>
                             <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-                                Nenhum profissional encontrado.
+                                {t.emptyTitle}
                             </Text>
                             <TouchableOpacity onPress={handleCreate} style={{ marginTop: 16 }}>
                                 <Text style={{ color: colors.brandPrimary, fontWeight: '600' }}>
-                                    Adicionar novo profissional
+                                    {t.addNewProfessional}
                                 </Text>
                             </TouchableOpacity>
                         </View>
@@ -530,10 +606,10 @@ export default function TeamScreen() {
             <ActionMenu
                 visible={importExportMenuVisible}
                 onClose={() => setImportExportMenuVisible(false)}
-                title="Importar/Exportar"
+                title={t.importExport}
                 options={[
-                    { label: 'Importar CSV', onPress: () => setImportModalVisible(true) },
-                    { label: 'Exportar CSV', onPress: handleExportStaffCSV },
+                    { label: t.importCsv, onPress: () => setImportModalVisible(true) },
+                    { label: t.exportCsv, onPress: handleExportStaffCSV },
                 ]}
             />
 
@@ -542,9 +618,9 @@ export default function TeamScreen() {
                 onClose={() => setOptionsMenuTarget(null)}
                 title={optionsMenuTarget?.name}
                 options={[
-                    { label: 'Editar', onPress: () => handleEdit(optionsMenuTarget) },
-                    { label: 'Reenviar Convite', onPress: () => handleResendInvite(optionsMenuTarget) },
-                    { label: 'Excluir', onPress: () => handleDelete(optionsMenuTarget), destructive: true },
+                    { label: t.edit, onPress: () => handleEdit(optionsMenuTarget) },
+                    { label: t.resendInvite, onPress: () => handleResendInvite(optionsMenuTarget) },
+                    { label: t.delete, onPress: () => handleDelete(optionsMenuTarget), destructive: true },
                 ]}
             />
         </SafeAreaView>

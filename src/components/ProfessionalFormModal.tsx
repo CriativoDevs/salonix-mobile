@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import { useTheme } from '../hooks/useTheme';
+import { useLanguage } from '../contexts/LanguageContext';
 import { Input } from './ui/Input';
 import { Button } from './ui/Button';
 import { Modal } from './ui/Modal'; // Importando o Modal genérico flutuante
@@ -15,6 +16,101 @@ import { useToast } from '../contexts/ToastContext';
 
 import { useTenant } from '../hooks/useTenant';
 import { fetchServices } from '../api/services';
+
+const COPY = {
+    pt: {
+        nameRequired: 'Nome é obrigatório',
+        contactRequired: 'Informe e-mail ou telefone',
+        errorTitle: 'Erro',
+        saveError: 'Ocorreu um erro ao salvar o profissional.',
+        unsupportedFormat: 'Formato não suportado. Use JPEG, PNG, GIF ou WEBP.',
+        fileTooLarge: 'O ficheiro deve ter no máximo 2MB.',
+        galleryPermission: 'Permissão de galeria necessária.',
+        cameraPermission: 'Permissão de câmara necessária.',
+        noLinkedUser: 'Este profissional não tem um usuário vinculado para gerenciar permissões.',
+        permissionsUpdated: 'Permissões atualizadas com sucesso.',
+        permissionsUpdateError: 'Não foi possível atualizar as permissões.',
+        editTitle: 'Editar Profissional',
+        newTitle: 'Novo Profissional',
+        cancel: 'Cancelar',
+        save: 'Salvar',
+        invite: 'Convidar',
+        savePermissions: 'Salvar Permissões',
+        professionalDataTab: 'Dados Profissionais',
+        permissionsTab: 'Permissões',
+        changePhoto: 'Alterar foto',
+        addPhoto: 'Adicionar foto',
+        name: 'Nome',
+        namePlaceholder: 'Nome completo',
+        email: 'E-mail',
+        phone: 'Telefone',
+        specialty: 'Especialidade',
+        specialtyPlaceholder: 'Ex: Cabeleireiro Senior',
+        bio: 'Bio / Observações',
+        bioPlaceholder: 'Breve descrição...',
+        servicesProvided: 'Serviços Prestados',
+        noServicesRegistered: 'Nenhum serviço cadastrado no salão.',
+        professionalInfo: 'Informações Profissionais',
+        nameLabel: 'Nome:',
+        emailLabel: 'E-mail:',
+        role: 'Papel',
+        collaborator: 'Colaborador',
+        manager: 'Gerente (Manager)',
+        statusAndAccess: 'Status e acesso',
+        statusHint: 'Alterar o status ajusta o acesso deste membro ao painel.',
+        activate: 'Ativar',
+        deactivate: 'Desativar',
+        photoMenuTitle: 'Foto do profissional',
+        chooseFromGallery: 'Escolher da galeria',
+        takePhoto: 'Tirar foto',
+    },
+    en: {
+        nameRequired: 'Name is required',
+        contactRequired: 'Provide an email or phone number',
+        errorTitle: 'Error',
+        saveError: 'An error occurred while saving the professional.',
+        unsupportedFormat: 'Unsupported format. Use JPEG, PNG, GIF or WEBP.',
+        fileTooLarge: 'The file must be at most 2MB.',
+        galleryPermission: 'Gallery permission required.',
+        cameraPermission: 'Camera permission required.',
+        noLinkedUser: 'This professional has no linked user to manage permissions.',
+        permissionsUpdated: 'Permissions updated successfully.',
+        permissionsUpdateError: 'Could not update the permissions.',
+        editTitle: 'Edit Professional',
+        newTitle: 'New Professional',
+        cancel: 'Cancel',
+        save: 'Save',
+        invite: 'Invite',
+        savePermissions: 'Save Permissions',
+        professionalDataTab: 'Professional Data',
+        permissionsTab: 'Permissions',
+        changePhoto: 'Change photo',
+        addPhoto: 'Add photo',
+        name: 'Name',
+        namePlaceholder: 'Full name',
+        email: 'Email',
+        phone: 'Phone',
+        specialty: 'Specialty',
+        specialtyPlaceholder: 'E.g.: Senior Hairdresser',
+        bio: 'Bio / Notes',
+        bioPlaceholder: 'Short description...',
+        servicesProvided: 'Services Provided',
+        noServicesRegistered: 'No service registered at this business.',
+        professionalInfo: 'Professional Information',
+        nameLabel: 'Name:',
+        emailLabel: 'Email:',
+        role: 'Role',
+        collaborator: 'Collaborator',
+        manager: 'Manager',
+        statusAndAccess: 'Status and access',
+        statusHint: "Changing the status adjusts this member's access to the dashboard.",
+        activate: 'Activate',
+        deactivate: 'Deactivate',
+        photoMenuTitle: 'Professional photo',
+        chooseFromGallery: 'Choose from gallery',
+        takePhoto: 'Take photo',
+    },
+} as const;
 
 const MAX_PHOTO_BYTES = 2 * 1024 * 1024;
 const ALLOWED_PHOTO_MIME_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
@@ -53,6 +149,8 @@ interface ProfessionalFormModalProps {
 
 export function ProfessionalFormModal({ visible, onClose, onSubmit, initialData, busy = false }: ProfessionalFormModalProps) {
     const { colors } = useTheme();
+    const { language } = useLanguage();
+    const t = language === 'en' ? COPY.en : COPY.pt;
     const { slug } = useTenant();
     const { showToast } = useToast();
     const [activeTab, setActiveTab] = useState<'details' | 'permissions'>('details');
@@ -144,11 +242,11 @@ export function ProfessionalFormModal({ visible, onClose, onSubmit, initialData,
         const newErrors: { [key: string]: string } = {};
 
         if (!form.name.trim()) {
-            newErrors.name = 'Nome é obrigatório';
+            newErrors.name = t.nameRequired;
         }
 
         if (!form.email.trim() && !form.phone_number.trim()) {
-            newErrors.contact = 'Informe e-mail ou telefone';
+            newErrors.contact = t.contactRequired;
         }
 
         setErrors(newErrors);
@@ -166,7 +264,7 @@ export function ProfessionalFormModal({ visible, onClose, onSubmit, initialData,
             });
         } catch (error) {
             console.error(error);
-            Alert.alert('Erro', 'Ocorreu um erro ao salvar o profissional.');
+            Alert.alert(t.errorTitle, t.saveError);
         }
     };
 
@@ -174,13 +272,13 @@ export function ProfessionalFormModal({ visible, onClose, onSubmit, initialData,
         const mimeType = asset.mimeType || 'image/jpeg';
 
         if (!ALLOWED_PHOTO_MIME_TYPES.includes(mimeType)) {
-            setPhotoError('Formato não suportado. Use JPEG, PNG, GIF ou WEBP.');
+            setPhotoError(t.unsupportedFormat);
             return;
         }
 
         const info = await FileSystem.getInfoAsync(asset.uri);
         if (info.exists && typeof info.size === 'number' && info.size > MAX_PHOTO_BYTES) {
-            setPhotoError('O ficheiro deve ter no máximo 2MB.');
+            setPhotoError(t.fileTooLarge);
             return;
         }
 
@@ -195,7 +293,7 @@ export function ProfessionalFormModal({ visible, onClose, onSubmit, initialData,
     const handlePickFromGallery = async () => {
         const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (!permission.granted) {
-            Alert.alert('Erro', 'Permissão de galeria necessária.');
+            Alert.alert(t.errorTitle, t.galleryPermission);
             return;
         }
 
@@ -211,7 +309,7 @@ export function ProfessionalFormModal({ visible, onClose, onSubmit, initialData,
     const handleTakePhoto = async () => {
         const permission = await ImagePicker.requestCameraPermissionsAsync();
         if (!permission.granted) {
-            Alert.alert('Erro', 'Permissão de câmara necessária.');
+            Alert.alert(t.errorTitle, t.cameraPermission);
             return;
         }
 
@@ -232,7 +330,7 @@ export function ProfessionalFormModal({ visible, onClose, onSubmit, initialData,
 
     const handleUpdatePermissions = async () => {
         if (!initialData?.user?.id && !initialData?.staff_member) {
-            showToast({ type: 'warning', message: 'Este profissional não tem um usuário vinculado para gerenciar permissões.' });
+            showToast({ type: 'warning', message: t.noLinkedUser });
             return;
         }
 
@@ -252,12 +350,12 @@ export function ProfessionalFormModal({ visible, onClose, onSubmit, initialData,
                         is_active: true
                     }, { slug });
                 }
-                showToast({ type: 'success', message: 'Permissões atualizadas com sucesso.' });
+                showToast({ type: 'success', message: t.permissionsUpdated });
                 onClose(); // Close modal on success or maybe just refresh data?
             }
         } catch (error) {
             console.error('Error updating permissions:', error);
-            Alert.alert('Erro', 'Não foi possível atualizar as permissões.');
+            Alert.alert(t.errorTitle, t.permissionsUpdateError);
         } finally {
             setPermissionLoading(false);
         }
@@ -268,7 +366,7 @@ export function ProfessionalFormModal({ visible, onClose, onSubmit, initialData,
         <Modal
             visible={visible}
             onClose={onClose}
-            title={initialData ? 'Editar Profissional' : 'Novo Profissional'}
+            title={initialData ? t.editTitle : t.newTitle}
             size="lg"
             footer={
                 <>
@@ -277,14 +375,14 @@ export function ProfessionalFormModal({ visible, onClose, onSubmit, initialData,
                         onPress={onClose}
                         style={{ flex: 1 }}
                     >
-                        Cancelar
+                        {t.cancel}
                     </Button>
                     <Button
                         onPress={activeTab === 'details' ? handleSubmit : handleUpdatePermissions}
                         loading={activeTab === 'details' ? busy : permissionLoading}
                         style={{ flex: 1 }}
                     >
-                        {activeTab === 'details' ? (initialData ? 'Salvar' : 'Convidar') : 'Salvar Permissões'}
+                        {activeTab === 'details' ? (initialData ? t.save : t.invite) : t.savePermissions}
                     </Button>
                 </>
             }
@@ -298,7 +396,7 @@ export function ProfessionalFormModal({ visible, onClose, onSubmit, initialData,
                             onPress={() => setActiveTab('details')}
                         >
                             <Text style={[styles.tabText, { color: activeTab === 'details' ? colors.brandPrimary : colors.textSecondary }]}>
-                                Dados Profissionais
+                                {t.professionalDataTab}
                             </Text>
                         </TouchableOpacity>
                         <TouchableOpacity
@@ -306,7 +404,7 @@ export function ProfessionalFormModal({ visible, onClose, onSubmit, initialData,
                             onPress={() => setActiveTab('permissions')}
                         >
                             <Text style={[styles.tabText, { color: activeTab === 'permissions' ? colors.brandPrimary : colors.textSecondary }]}>
-                                Permissões
+                                {t.permissionsTab}
                             </Text>
                         </TouchableOpacity>
                     </View>
@@ -320,7 +418,7 @@ export function ProfessionalFormModal({ visible, onClose, onSubmit, initialData,
                                     <Avatar testID="professional-form-avatar" uri={previewUri} name={form.name} size={72} />
                                     <TouchableOpacity onPress={handlePickPhoto}>
                                         <Text style={{ color: colors.brandPrimary, fontWeight: '600', marginTop: 8 }}>
-                                            {previewUri ? 'Alterar foto' : 'Adicionar foto'}
+                                            {previewUri ? t.changePhoto : t.addPhoto}
                                         </Text>
                                     </TouchableOpacity>
                                     {photoError && (
@@ -331,8 +429,8 @@ export function ProfessionalFormModal({ visible, onClose, onSubmit, initialData,
 
                             <View style={styles.inputGroup}>
                                 <Input
-                                    label="Nome"
-                                    placeholder="Nome completo"
+                                    label={t.name}
+                                    placeholder={t.namePlaceholder}
                                     value={form.name}
                                     onChangeText={(text) => setForm({ ...form, name: text })}
                                     error={errors.name}
@@ -341,7 +439,7 @@ export function ProfessionalFormModal({ visible, onClose, onSubmit, initialData,
 
                             <View style={styles.inputGroup}>
                                 <Input
-                                    label="E-mail"
+                                    label={t.email}
                                     placeholder="profissional@email.com"
                                     value={form.email}
                                     onChangeText={(text) => setForm({ ...form, email: text })}
@@ -354,7 +452,7 @@ export function ProfessionalFormModal({ visible, onClose, onSubmit, initialData,
                                 <>
                                     <View style={styles.inputGroup}>
                                         <Input
-                                            label="Telefone"
+                                            label={t.phone}
                                             placeholder="+351 912 345 678"
                                             value={form.phone_number}
                                             onChangeText={(text) => setForm({ ...form, phone_number: text })}
@@ -370,8 +468,8 @@ export function ProfessionalFormModal({ visible, onClose, onSubmit, initialData,
 
                                     <View style={styles.inputGroup}>
                                         <Input
-                                            label="Especialidade"
-                                            placeholder="Ex: Cabeleireiro Senior"
+                                            label={t.specialty}
+                                            placeholder={t.specialtyPlaceholder}
                                             value={form.job_title}
                                             onChangeText={(text) => setForm({ ...form, job_title: text })}
                                         />
@@ -379,8 +477,8 @@ export function ProfessionalFormModal({ visible, onClose, onSubmit, initialData,
 
                                     <View style={styles.inputGroup}>
                                         <Input
-                                            label="Bio / Observações"
-                                            placeholder="Breve descrição..."
+                                            label={t.bio}
+                                            placeholder={t.bioPlaceholder}
                                             value={form.bio}
                                             onChangeText={(text) => setForm({ ...form, bio: text })}
                                             multiline
@@ -390,7 +488,7 @@ export function ProfessionalFormModal({ visible, onClose, onSubmit, initialData,
                                     </View>
 
                                     <View style={styles.inputGroup}>
-                                        <Text style={[styles.filterLabel, { color: colors.textPrimary }]}>Serviços Prestados</Text>
+                                        <Text style={[styles.filterLabel, { color: colors.textPrimary }]}>{t.servicesProvided}</Text>
                                         <View style={styles.servicesGrid}>
                                             {allServices.map((service) => (
                                                 <TouchableOpacity
@@ -417,7 +515,7 @@ export function ProfessionalFormModal({ visible, onClose, onSubmit, initialData,
                                             ))}
                                             {allServices.length === 0 && !servicesLoading && (
                                                 <Text style={{ color: colors.textSecondary, fontSize: 12, fontStyle: 'italic' }}>
-                                                    Nenhum serviço cadastrado no salão.
+                                                    {t.noServicesRegistered}
                                                 </Text>
                                             )}
                                             {servicesLoading && <ActivityIndicator size="small" color={colors.brandPrimary} />}
@@ -429,16 +527,16 @@ export function ProfessionalFormModal({ visible, onClose, onSubmit, initialData,
                     ) : (
                         <View style={styles.permissionContainer}>
                             <View style={[styles.infoBox, { backgroundColor: colors.surfaceVariant }]}>
-                                <Text style={[styles.infoTitle, { color: colors.textPrimary }]}>Informações Profissionais</Text>
+                                <Text style={[styles.infoTitle, { color: colors.textPrimary }]}>{t.professionalInfo}</Text>
                                 <Text style={{ color: colors.textSecondary, marginTop: 4 }}>
-                                    <Text style={{ fontWeight: '600' }}>Nome:</Text> {form.name}
+                                    <Text style={{ fontWeight: '600' }}>{t.nameLabel}</Text> {form.name}
                                 </Text>
                                 <Text style={{ color: colors.textSecondary, marginTop: 2 }}>
-                                    <Text style={{ fontWeight: '600' }}>E-mail:</Text> {form.email || '—'}
+                                    <Text style={{ fontWeight: '600' }}>{t.emailLabel}</Text> {form.email || '—'}
                                 </Text>
                             </View>
 
-                            <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Papel</Text>
+                            <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>{t.role}</Text>
 
                             <TouchableOpacity
                                 style={[styles.radioOption, { borderColor: permissionsForm.role === 'collaborator' ? colors.brandPrimary : colors.border }]}
@@ -447,7 +545,7 @@ export function ProfessionalFormModal({ visible, onClose, onSubmit, initialData,
                                 <View style={[styles.radioCircle, { borderColor: permissionsForm.role === 'collaborator' ? colors.brandPrimary : colors.textSecondary }]}>
                                     {permissionsForm.role === 'collaborator' && <View style={[styles.radioDot, { backgroundColor: colors.brandPrimary }]} />}
                                 </View>
-                                <Text style={[styles.radioText, { color: colors.textPrimary }]}>Colaborador</Text>
+                                <Text style={[styles.radioText, { color: colors.textPrimary }]}>{t.collaborator}</Text>
                             </TouchableOpacity>
 
                             <TouchableOpacity
@@ -457,22 +555,22 @@ export function ProfessionalFormModal({ visible, onClose, onSubmit, initialData,
                                 <View style={[styles.radioCircle, { borderColor: permissionsForm.role === 'manager' ? colors.brandPrimary : colors.textSecondary }]}>
                                     {permissionsForm.role === 'manager' && <View style={[styles.radioDot, { backgroundColor: colors.brandPrimary }]} />}
                                 </View>
-                                <Text style={[styles.radioText, { color: colors.textPrimary }]}>Gerente (Manager)</Text>
+                                <Text style={[styles.radioText, { color: colors.textPrimary }]}>{t.manager}</Text>
                             </TouchableOpacity>
 
                             <View style={[styles.statusBox, { backgroundColor: colors.surfaceVariant, marginTop: 24 }]}>
                                 <View>
-                                    <Text style={[styles.infoTitle, { color: colors.textPrimary }]}>Status e acesso</Text>
+                                    <Text style={[styles.infoTitle, { color: colors.textPrimary }]}>{t.statusAndAccess}</Text>
                                     <Text style={{ color: colors.textSecondary, fontSize: 12, marginTop: 2 }}>
-                                        Alterar o status ajusta o acesso deste membro ao painel.
+                                        {t.statusHint}
                                     </Text>
                                 </View>
                                 <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 12, gap: 12 }}>
                                     <TouchableOpacity onPress={() => setPermissionsForm({ ...permissionsForm, is_active: true })}>
-                                        <Text style={{ color: permissionsForm.is_active ? colors.success : colors.textSecondary, fontWeight: '600' }}>Ativar</Text>
+                                        <Text style={{ color: permissionsForm.is_active ? colors.success : colors.textSecondary, fontWeight: '600' }}>{t.activate}</Text>
                                     </TouchableOpacity>
                                     <TouchableOpacity onPress={() => setPermissionsForm({ ...permissionsForm, is_active: false })}>
-                                        <Text style={{ color: !permissionsForm.is_active ? colors.error : colors.textSecondary, fontWeight: '600' }}>Desativar</Text>
+                                        <Text style={{ color: !permissionsForm.is_active ? colors.error : colors.textSecondary, fontWeight: '600' }}>{t.deactivate}</Text>
                                     </TouchableOpacity>
                                 </View>
                             </View>
@@ -485,10 +583,10 @@ export function ProfessionalFormModal({ visible, onClose, onSubmit, initialData,
         <ActionMenu
             visible={photoMenuVisible}
             onClose={() => setPhotoMenuVisible(false)}
-            title="Foto do profissional"
+            title={t.photoMenuTitle}
             options={[
-                { label: 'Escolher da galeria', onPress: handlePickFromGallery },
-                { label: 'Tirar foto', onPress: handleTakePhoto },
+                { label: t.chooseFromGallery, onPress: handlePickFromGallery },
+                { label: t.takePhoto, onPress: handleTakePhoto },
             ]}
         />
         </>

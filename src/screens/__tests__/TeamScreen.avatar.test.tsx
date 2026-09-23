@@ -46,8 +46,27 @@ jest.mock('../../api/staff', () => ({
   updateStaffContact: jest.fn(),
 }));
 
+let mockLanguage = 'pt';
+jest.mock('../../contexts/LanguageContext', () => ({
+  useLanguage: () => ({ language: mockLanguage, setLanguage: jest.fn() }),
+}));
+
 describe('TeamScreen - avatar', () => {
   afterEach(() => jest.clearAllMocks());
+  beforeEach(() => {
+    mockLanguage = 'pt';
+  });
+
+  it('shows English text when language is en', async () => {
+    mockLanguage = 'en';
+    mockFetchStaffMembers.mockResolvedValue([]);
+    mockFetchProfessionals.mockResolvedValue({ results: [], count: 0 });
+
+    const { getByText } = await render(<TeamScreen />);
+
+    await waitFor(() => expect(getByText('Team')).toBeTruthy());
+    expect(getByText('New professional')).toBeTruthy();
+  });
 
   it('renders an Avatar with the photo URL resolved for a professional whose staff member has a photo', async () => {
     mockFetchStaffMembers.mockResolvedValue([

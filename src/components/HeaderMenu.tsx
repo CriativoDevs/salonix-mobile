@@ -5,6 +5,29 @@ import { useTheme } from '../hooks/useTheme';
 import { ThemeToggle } from './ThemeToggle';
 import { LanguageToggle } from './LanguageToggle';
 
+const COPY = {
+    pt: {
+        title: 'Configurações',
+        darkTheme: 'Tema Escuro',
+        language: 'Idioma',
+        account: 'Conta',
+        settings: 'Definições',
+        logoutTitle: 'Sair',
+        logoutMessage: 'Tem certeza que deseja sair?',
+        cancel: 'Cancelar',
+    },
+    en: {
+        title: 'Settings',
+        darkTheme: 'Dark Theme',
+        language: 'Language',
+        account: 'Account',
+        settings: 'Settings',
+        logoutTitle: 'Log out',
+        logoutMessage: 'Are you sure you want to log out?',
+        cancel: 'Cancel',
+    },
+} as const;
+
 interface HeaderMenuProps {
     visible: boolean;
     onClose: () => void;
@@ -17,16 +40,17 @@ interface HeaderMenuProps {
 
 export function HeaderMenu({ visible, onClose, onLogout, onNavigateToAccount, onNavigateToSettings, language, onToggleLanguage }: HeaderMenuProps) {
     const { colors } = useTheme();
+    const t = language === 'en' ? COPY.en : COPY.pt;
 
     const handleLogout = () => {
         Alert.alert(
-            "Sair",
-            "Tem certeza que deseja sair?",
+            t.logoutTitle,
+            t.logoutMessage,
             [
-                { text: "Cancelar", style: "cancel" },
-                { 
-                    text: "Sair", 
-                    style: "destructive", 
+                { text: t.cancel, style: "cancel" },
+                {
+                    text: t.logoutTitle,
+                    style: "destructive",
                     onPress: () => {
                         onClose();
                         onLogout();
@@ -50,7 +74,7 @@ export function HeaderMenu({ visible, onClose, onLogout, onNavigateToAccount, on
             >
                 <View style={[styles.menuContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
                     <View style={[styles.header, { borderBottomColor: colors.border }]}>
-                        <Text style={[styles.title, { color: colors.textPrimary }]}>Configurações</Text>
+                        <Text style={[styles.title, { color: colors.textPrimary }]}>{t.title}</Text>
                         <TouchableOpacity onPress={onClose}>
                             <Ionicons name="close" size={24} color={colors.textSecondary} />
                         </TouchableOpacity>
@@ -61,19 +85,18 @@ export function HeaderMenu({ visible, onClose, onLogout, onNavigateToAccount, on
                         <View style={styles.menuItem}>
                             <View style={styles.itemInfo}>
                                 <Ionicons name="moon-outline" size={20} color={colors.textPrimary} />
-                                <Text style={[styles.itemText, { color: colors.textPrimary }]}>Tema Escuro</Text>
+                                <Text style={[styles.itemText, { color: colors.textPrimary }]}>{t.darkTheme}</Text>
                             </View>
                             <ThemeToggle size={24} />
                         </View>
 
-                        {/* Language Toggle — comentado até a auditoria de i18n (issue MOB-I18N-01) cobrir
-                            o app inteiro; hoje a maioria das telas ignora `language` e mostra texto
-                            fixo em pt, então o toggle não teria efeito visível na maior parte do app. */}
-                        {false && onToggleLanguage && (
+                        {/* Language Toggle — reativado após a auditoria de i18n (issue MOB-I18N-01)
+                            cobrir as telas principais do app. */}
+                        {onToggleLanguage && (
                             <View style={styles.menuItem}>
                                 <View style={styles.itemInfo}>
                                     <Ionicons name="language-outline" size={20} color={colors.textPrimary} />
-                                    <Text style={[styles.itemText, { color: colors.textPrimary }]}>Idioma</Text>
+                                    <Text style={[styles.itemText, { color: colors.textPrimary }]}>{t.language}</Text>
                                 </View>
                                 <LanguageToggle language={language} onToggle={onToggleLanguage} size={20} />
                             </View>
@@ -89,7 +112,7 @@ export function HeaderMenu({ visible, onClose, onLogout, onNavigateToAccount, on
                         >
                             <View style={styles.itemInfo}>
                                 <Ionicons name="person-outline" size={20} color={colors.textPrimary} />
-                                <Text style={[styles.itemText, { color: colors.textPrimary }]}>Conta</Text>
+                                <Text style={[styles.itemText, { color: colors.textPrimary }]}>{t.account}</Text>
                             </View>
                             <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
                         </TouchableOpacity>
@@ -104,7 +127,7 @@ export function HeaderMenu({ visible, onClose, onLogout, onNavigateToAccount, on
                         >
                             <View style={styles.itemInfo}>
                                 <Ionicons name="settings-outline" size={20} color={colors.textPrimary} />
-                                <Text style={[styles.itemText, { color: colors.textPrimary }]}>Definições</Text>
+                                <Text style={[styles.itemText, { color: colors.textPrimary }]}>{t.settings}</Text>
                             </View>
                             <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
                         </TouchableOpacity>
@@ -115,7 +138,7 @@ export function HeaderMenu({ visible, onClose, onLogout, onNavigateToAccount, on
                         <TouchableOpacity style={styles.menuItem} onPress={handleLogout}>
                             <View style={styles.itemInfo}>
                                 <Ionicons name="log-out-outline" size={20} color={colors.error} />
-                                <Text style={[styles.itemText, { color: colors.error }]}>Sair</Text>
+                                <Text style={[styles.itemText, { color: colors.error }]}>{t.logoutTitle}</Text>
                             </View>
                         </TouchableOpacity>
                     </View>

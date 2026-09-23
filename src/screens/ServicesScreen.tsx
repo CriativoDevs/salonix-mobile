@@ -13,6 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../hooks/useTheme';
+import { useLanguage } from '../contexts/LanguageContext';
 import { Card } from '../components/ui/Card';
 import { fetchAdminServices, createService, updateService, deleteService, exportServicesCSV } from '../api/services';
 import { ServiceFormModal } from '../components/ServiceFormModal';
@@ -23,11 +24,56 @@ import { isOwner } from '../utils/permissions';
 import { saveAndShareCSV } from '../utils/csvFileSharing';
 import { ActionMenu } from '../components/ui/ActionMenu';
 
+const COPY = {
+  pt: {
+    exportError: 'Não foi possível exportar os serviços.',
+    saveError: 'Não foi possível salvar o serviço.',
+    deleteTitle: 'Excluir Serviço',
+    deleteMessage: (name: string) => `Tem certeza que deseja excluir ${name}?`,
+    cancel: 'Cancelar',
+    delete: 'Excluir',
+    deleteError: 'Não foi possível excluir o serviço.',
+    errorTitle: 'Erro',
+    title: 'Serviços',
+    countSuffix: (n: number) => `${n} serviços`,
+    newService: 'Novo serviço',
+    importExport: 'Importar/Exportar',
+    emptyTitle: 'Nenhum serviço encontrado.',
+    addNewService: 'Adicionar novo serviço',
+    importCsv: 'Importar CSV',
+    exportCsv: 'Exportar CSV',
+    edit: 'Editar',
+    minutesSuffix: 'min',
+  },
+  en: {
+    exportError: 'Could not export the services.',
+    saveError: 'Could not save the service.',
+    deleteTitle: 'Delete Service',
+    deleteMessage: (name: string) => `Are you sure you want to delete ${name}?`,
+    cancel: 'Cancel',
+    delete: 'Delete',
+    deleteError: 'Could not delete the service.',
+    errorTitle: 'Error',
+    title: 'Services',
+    countSuffix: (n: number) => `${n} services`,
+    newService: 'New service',
+    importExport: 'Import/Export',
+    emptyTitle: 'No service found.',
+    addNewService: 'Add new service',
+    importCsv: 'Import CSV',
+    exportCsv: 'Export CSV',
+    edit: 'Edit',
+    minutesSuffix: 'min',
+  },
+} as const;
+
 export default function ServicesScreen() {
   const { colors } = useTheme();
   const navigation = useNavigation();
   const { slug } = useTenant();
   const { userInfo } = useAuth();
+  const { language } = useLanguage();
+  const t = language === 'en' ? COPY.en : COPY.pt;
   const isAdmin = userInfo?.is_superuser || userInfo?.role === 'owner' || userInfo?.role === 'manager';
 
   const [services, setServices] = useState<any[]>([]);
@@ -74,7 +120,7 @@ export default function ServicesScreen() {
       await saveAndShareCSV(content, 'servicos.csv');
     } catch (error) {
       console.error('Error exporting services:', error);
-      Alert.alert('Erro', 'Não foi possível exportar os serviços.');
+      Alert.alert(t.errorTitle, t.exportError);
     }
   };
 
@@ -111,17 +157,17 @@ export default function ServicesScreen() {
       setModalVisible(false);
     } catch (error) {
       console.error('Error saving service:', error);
-      Alert.alert('Erro', 'Não foi possível salvar o serviço.');
+      Alert.alert(t.errorTitle, t.saveError);
     } finally {
       setActionLoading(false);
     }
   };
 
   const handleDelete = (service: any) => {
-    Alert.alert('Excluir Serviço', `Tem certeza que deseja excluir ${service.name}?`, [
-      { text: 'Cancelar', style: 'cancel' },
+    Alert.alert(t.deleteTitle, t.deleteMessage(service.name), [
+      { text: t.cancel, style: 'cancel' },
       {
-        text: 'Excluir',
+        text: t.delete,
         style: 'destructive',
         onPress: async () => {
           try {
@@ -129,7 +175,7 @@ export default function ServicesScreen() {
             setServices((prev) => prev.filter((s) => s.id !== service.id));
           } catch (error) {
             console.error('Error deleting service:', error);
-            Alert.alert('Erro', 'Não foi possível excluir o serviço.');
+            Alert.alert(t.errorTitle, t.deleteError);
           }
         },
       },
@@ -155,7 +201,7 @@ export default function ServicesScreen() {
             {formatPrice(item.price_eur)}
           </Text>
           <Text style={[styles.metaText, { color: colors.textSecondary }]}>
-            {item.duration_minutes} min
+            {item.duration_minutes} {t.minutesSuffix}
           </Text>
         </View>
       </Card>
@@ -172,14 +218,14 @@ export default function ServicesScreen() {
         >
           <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Serviços</Text>
+        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>{t.title}</Text>
         <View style={{ width: 38 }} />
       </View>
 
       <View style={{ paddingHorizontal: 16 }}>
         <View style={{ marginBottom: 16 }}>
           <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
-            {services.length} serviços
+            {t.countSuffix(services.length)}
           </Text>
           <View style={{ flexDirection: 'row', marginTop: 12, gap: 16 }}>
             {isAdmin && (
@@ -189,7 +235,7 @@ export default function ServicesScreen() {
               >
                 <Ionicons name="add" size={18} color={colors.brandPrimary} />
                 <Text style={{ color: colors.brandPrimary, fontSize: 13, fontWeight: '600', marginLeft: 6 }}>
-                  Novo serviço
+                  {t.newService}
                 </Text>
               </TouchableOpacity>
             )}
@@ -201,7 +247,7 @@ export default function ServicesScreen() {
               >
                 <Ionicons name="swap-vertical-outline" size={18} color={colors.textSecondary} />
                 <Text style={{ color: colors.textSecondary, fontSize: 13, fontWeight: '600', marginLeft: 6 }}>
-                  Importar/Exportar
+                  {t.importExport}
                 </Text>
               </TouchableOpacity>
             )}
@@ -226,11 +272,11 @@ export default function ServicesScreen() {
           !loading ? (
             <View style={styles.emptyState}>
               <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-                Nenhum serviço encontrado.
+                {t.emptyTitle}
               </Text>
               <TouchableOpacity onPress={handleCreate} style={{ marginTop: 16 }}>
                 <Text style={{ color: colors.brandPrimary, fontWeight: '600' }}>
-                  Adicionar novo serviço
+                  {t.addNewService}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -256,10 +302,10 @@ export default function ServicesScreen() {
       <ActionMenu
         visible={importExportMenuVisible}
         onClose={() => setImportExportMenuVisible(false)}
-        title="Importar/Exportar"
+        title={t.importExport}
         options={[
-          { label: 'Importar CSV', onPress: () => setImportModalVisible(true) },
-          { label: 'Exportar CSV', onPress: handleExportServicesCSV },
+          { label: t.importCsv, onPress: () => setImportModalVisible(true) },
+          { label: t.exportCsv, onPress: handleExportServicesCSV },
         ]}
       />
 
@@ -268,8 +314,8 @@ export default function ServicesScreen() {
         onClose={() => setOptionsMenuTarget(null)}
         title={optionsMenuTarget?.name}
         options={[
-          { label: 'Editar', onPress: () => handleEdit(optionsMenuTarget) },
-          { label: 'Excluir', onPress: () => handleDelete(optionsMenuTarget), destructive: true },
+          { label: t.edit, onPress: () => handleEdit(optionsMenuTarget) },
+          { label: t.delete, onPress: () => handleDelete(optionsMenuTarget), destructive: true },
         ]}
       />
     </SafeAreaView>

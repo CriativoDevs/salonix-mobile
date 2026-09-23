@@ -85,6 +85,11 @@ const RETENTION = {
   returning_clients: { qty: 6, revenue: 280 },
 };
 
+let mockLanguage = 'pt';
+jest.mock('../../contexts/LanguageContext', () => ({
+  useLanguage: () => ({ language: mockLanguage, setLanguage: jest.fn() }),
+}));
+
 describe('ReportsScreen', () => {
   beforeEach(() => {
     mockUseAuthReturn = { userInfo: { id: 1, role: 'owner' } };
@@ -96,8 +101,20 @@ describe('ReportsScreen', () => {
     mockFetchRetention.mockResolvedValue(RETENTION);
     mockFetchProfessionals.mockResolvedValue({ results: [{ id: 1, name: 'Ana' }] });
     mockFetchServices.mockResolvedValue({ results: [{ id: 9, name: 'Corte' }] });
+    mockLanguage = 'pt';
   });
   afterEach(() => jest.clearAllMocks());
+
+  it('shows English labels when language is en', async () => {
+    mockLanguage = 'en';
+
+    const { getByText } = await render(<ReportsScreen />);
+
+    await waitFor(() => expect(mockFetchBasicReports).toHaveBeenCalled());
+    expect(getByText('Total Appointments')).toBeTruthy();
+    expect(getByText('Completed Appointments')).toBeTruthy();
+    expect(getByText('Total Revenue')).toBeTruthy();
+  });
 
   it('redirects back immediately when the user is not an owner', async () => {
     mockUseAuthReturn = { userInfo: { id: 2, role: 'manager' } };

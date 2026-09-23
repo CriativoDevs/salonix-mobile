@@ -51,11 +51,28 @@ const FULL_WEEK_ACTIVE = [
   { id: 7, day_of_week: 6, start_time: '09:00:00', end_time: '18:00:00', is_active: false },
 ];
 
+let mockLanguage = 'pt';
+jest.mock('../../contexts/LanguageContext', () => ({
+  useLanguage: () => ({ language: mockLanguage, setLanguage: jest.fn() }),
+}));
+
 describe('BusinessHoursScreen', () => {
   beforeEach(() => {
     mockUseAuthReturn = { userInfo: { id: 1, role: 'owner' } };
+    mockLanguage = 'pt';
   });
   afterEach(() => jest.clearAllMocks());
+
+  it('shows English labels when language is en', async () => {
+    mockLanguage = 'en';
+    mockFetchTenantBusinessHours.mockResolvedValue(FULL_WEEK_ACTIVE);
+
+    const { findByText } = await render(<BusinessHoursScreen />);
+
+    expect(await findByText('Business Hours')).toBeTruthy();
+    expect(await findByText('Monday')).toBeTruthy();
+    expect(await findByText('Save')).toBeTruthy();
+  });
 
   it('normalizes a partial response into 7 days with defaults for missing days', async () => {
     mockFetchTenantBusinessHours.mockResolvedValue([

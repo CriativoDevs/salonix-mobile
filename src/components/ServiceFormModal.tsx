@@ -3,6 +3,40 @@ import { View, StyleSheet, Alert } from 'react-native';
 import { Input } from './ui/Input';
 import { Button } from './ui/Button';
 import { Modal } from './ui/Modal';
+import { useLanguage } from '../contexts/LanguageContext';
+
+const COPY = {
+  pt: {
+    nameRequired: 'Nome do serviço é obrigatório',
+    priceInvalid: 'Preço deve ser maior que zero',
+    durationInvalid: 'Duração deve ser maior que zero',
+    errorTitle: 'Erro',
+    saveError: 'Ocorreu um erro ao salvar o serviço.',
+    editTitle: 'Editar Serviço',
+    newTitle: 'Novo Serviço',
+    cancel: 'Cancelar',
+    save: 'Salvar',
+    name: 'Nome',
+    namePlaceholder: 'Ex.: Corte de cabelo',
+    price: 'Preço (€)',
+    duration: 'Duração (min)',
+  },
+  en: {
+    nameRequired: 'Service name is required',
+    priceInvalid: 'Price must be greater than zero',
+    durationInvalid: 'Duration must be greater than zero',
+    errorTitle: 'Error',
+    saveError: 'An error occurred while saving the service.',
+    editTitle: 'Edit Service',
+    newTitle: 'New Service',
+    cancel: 'Cancel',
+    save: 'Save',
+    name: 'Name',
+    namePlaceholder: 'E.g.: Haircut',
+    price: 'Price (€)',
+    duration: 'Duration (min)',
+  },
+} as const;
 
 interface ServiceFormData {
   id?: string | number;
@@ -33,6 +67,8 @@ interface ServiceFormModalProps {
 const EMPTY_FORM: ServiceFormData = { name: '', price_eur: '', duration_minutes: '' };
 
 export function ServiceFormModal({ visible, onClose, onSubmit, initialData, busy = false }: ServiceFormModalProps) {
+  const { language } = useLanguage();
+  const t = language === 'en' ? COPY.en : COPY.pt;
   const [form, setForm] = useState<ServiceFormData>(EMPTY_FORM);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
@@ -56,17 +92,17 @@ export function ServiceFormModal({ visible, onClose, onSubmit, initialData, busy
     const newErrors: { [key: string]: string } = {};
 
     if (!form.name.trim()) {
-      newErrors.name = 'Nome do serviço é obrigatório';
+      newErrors.name = t.nameRequired;
     }
 
     const price = parseFloat(form.price_eur.replace(',', '.'));
     if (!form.price_eur.trim() || Number.isNaN(price) || price <= 0) {
-      newErrors.price_eur = 'Preço deve ser maior que zero';
+      newErrors.price_eur = t.priceInvalid;
     }
 
     const duration = parseInt(form.duration_minutes, 10);
     if (!form.duration_minutes.trim() || Number.isNaN(duration) || duration <= 0) {
-      newErrors.duration_minutes = 'Duração deve ser maior que zero';
+      newErrors.duration_minutes = t.durationInvalid;
     }
 
     setErrors(newErrors);
@@ -87,7 +123,7 @@ export function ServiceFormModal({ visible, onClose, onSubmit, initialData, busy
       });
     } catch (error) {
       console.error(error);
-      Alert.alert('Erro', 'Ocorreu um erro ao salvar o serviço.');
+      Alert.alert(t.errorTitle, t.saveError);
     }
   };
 
@@ -95,14 +131,14 @@ export function ServiceFormModal({ visible, onClose, onSubmit, initialData, busy
     <Modal
       visible={visible}
       onClose={onClose}
-      title={initialData ? 'Editar Serviço' : 'Novo Serviço'}
+      title={initialData ? t.editTitle : t.newTitle}
       footer={
         <>
           <Button variant="secondary" onPress={onClose} style={{ flex: 1 }}>
-            Cancelar
+            {t.cancel}
           </Button>
           <Button onPress={handleSubmit} loading={busy} disabled={busy} style={{ flex: 1 }}>
-            Salvar
+            {t.save}
           </Button>
         </>
       }
@@ -110,8 +146,8 @@ export function ServiceFormModal({ visible, onClose, onSubmit, initialData, busy
       <View style={styles.formContent}>
         <View style={styles.inputGroup}>
           <Input
-            label="Nome"
-            placeholder="Ex.: Corte de cabelo"
+            label={t.name}
+            placeholder={t.namePlaceholder}
             value={form.name}
             onChangeText={(text) => setForm({ ...form, name: text })}
             error={errors.name}
@@ -120,7 +156,7 @@ export function ServiceFormModal({ visible, onClose, onSubmit, initialData, busy
 
         <View style={styles.inputGroup}>
           <Input
-            label="Preço (€)"
+            label={t.price}
             placeholder="0.00"
             value={form.price_eur}
             onChangeText={(text) => setForm({ ...form, price_eur: text })}
@@ -131,7 +167,7 @@ export function ServiceFormModal({ visible, onClose, onSubmit, initialData, busy
 
         <View style={styles.inputGroup}>
           <Input
-            label="Duração (min)"
+            label={t.duration}
             placeholder="30"
             value={form.duration_minutes}
             onChangeText={(text) => setForm({ ...form, duration_minutes: text })}

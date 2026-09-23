@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { useTheme } from '../../hooks/useTheme';
+import { useLanguage } from '../../contexts/LanguageContext';
 import useBookingsRange from '../../hooks/useBookingsRange';
 import { getProfessionalColor } from '../../utils/professionalColor';
 import { BookingItem } from '../../hooks/bookingsShared';
@@ -28,7 +29,16 @@ function formatDateParam(date: Date): string {
   return `${year}-${month}-${day}`;
 }
 
-const WEEKDAY_HEADERS = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
+const COPY = {
+  pt: {
+    weekdayHeaders: ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'],
+    loading: 'A carregar...',
+  },
+  en: {
+    weekdayHeaders: ['S', 'M', 'T', 'W', 'T', 'F', 'S'],
+    loading: 'Loading...',
+  },
+} as const;
 
 type MonthViewProps = {
   referenceDate: Date;
@@ -37,6 +47,8 @@ type MonthViewProps = {
 
 export function MonthView({ referenceDate, onSelectDay }: MonthViewProps) {
   const { colors } = useTheme();
+  const { language } = useLanguage();
+  const t = language === 'en' ? COPY.en : COPY.pt;
 
   const gridStart = useMemo(() => startOfMonthGrid(referenceDate), [referenceDate]);
   const gridDays = useMemo(() => Array.from({ length: 42 }, (_, i) => addDays(gridStart, i)), [gridStart]);
@@ -62,14 +74,14 @@ export function MonthView({ referenceDate, onSelectDay }: MonthViewProps) {
   return (
     <View style={{ flex: 1 }}>
       <View style={styles.weekdayRow}>
-        {WEEKDAY_HEADERS.map((label, index) => (
+        {t.weekdayHeaders.map((label, index) => (
           <Text key={`${label}-${index}`} style={[styles.weekdayLabel, { color: colors.textSecondary }]}>
             {label}
           </Text>
         ))}
       </View>
       {loading ? (
-        <Text style={{ color: colors.textSecondary, padding: 16 }}>A carregar...</Text>
+        <Text style={{ color: colors.textSecondary, padding: 16 }}>{t.loading}</Text>
       ) : (
         <View style={styles.grid}>
           {gridDays.map((day) => {

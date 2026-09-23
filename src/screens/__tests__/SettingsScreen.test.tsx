@@ -25,12 +25,30 @@ jest.mock('../../hooks/useAuth', () => ({
   useAuth: () => mockUseAuthReturn,
 }));
 
+let mockLanguage = 'pt';
+jest.mock('../../contexts/LanguageContext', () => ({
+  useLanguage: () => ({ language: mockLanguage, setLanguage: jest.fn() }),
+}));
+
 describe('SettingsScreen', () => {
   beforeEach(() => {
     mockUseAuthReturn = { userInfo: { email: 'owner@acme.pt', role: 'owner' } };
     mockNavigate.mockClear();
+    mockLanguage = 'pt';
   });
   afterEach(() => jest.clearAllMocks());
+
+  it('shows English labels when language is en', async () => {
+    mockLanguage = 'en';
+
+    const { getByText } = await render(<SettingsScreen />);
+
+    await waitFor(() => expect(getByText('General')).toBeTruthy());
+    expect(getByText('Notifications')).toBeTruthy();
+    expect(getByText('Credits and Plan')).toBeTruthy();
+    expect(getByText('Branding')).toBeTruthy();
+    expect(getByText('How it works')).toBeTruthy();
+  });
 
   it('shows every link for an owner, grouped by section, and navigates to the correct routes', async () => {
     const { getByText, queryByText } = await render(<SettingsScreen />);

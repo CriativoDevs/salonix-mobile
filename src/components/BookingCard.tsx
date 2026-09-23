@@ -2,6 +2,7 @@ import React, { memo, useMemo, useState } from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../hooks/useTheme';
+import { useLanguage } from '../contexts/LanguageContext';
 
 type BookingStatus = 'scheduled' | 'completed' | 'paid' | 'cancelled' | string;
 
@@ -18,15 +19,39 @@ type BookingCardProps = {
   onAction?: (action: 'details' | 'cancel') => void;
 };
 
-const STATUS_LABELS: Record<string, string> = {
-  scheduled: 'Agendado',
-  completed: 'Concluido',
-  paid: 'Pago',
-  cancelled: 'Cancelado',
-};
+const COPY = {
+  pt: {
+    status: {
+      scheduled: 'Agendado',
+      completed: 'Concluido',
+      paid: 'Pago',
+      cancelled: 'Cancelado',
+    },
+    client: 'Cliente',
+    service: 'Servico',
+    professional: 'Profissional',
+    viewDetails: 'Ver detalhes',
+    cancel: 'Cancelar',
+  },
+  en: {
+    status: {
+      scheduled: 'Scheduled',
+      completed: 'Completed',
+      paid: 'Paid',
+      cancelled: 'Cancelled',
+    },
+    client: 'Client',
+    service: 'Service',
+    professional: 'Professional',
+    viewDetails: 'View details',
+    cancel: 'Cancel',
+  },
+} as const;
 
 export const BookingCard = memo(({ appointment, onPress, onAction }: BookingCardProps) => {
   const { colors } = useTheme();
+  const { language } = useLanguage();
+  const t = language === 'en' ? COPY.en : COPY.pt;
   const [showActions, setShowActions] = useState(false);
 
   const statusKey = String(appointment.status || 'scheduled').toLowerCase();
@@ -62,7 +87,8 @@ export const BookingCard = memo(({ appointment, onPress, onAction }: BookingCard
   }, [colors, statusKey]);
 
   const canCancel = statusKey === 'scheduled';
-  const statusLabel = STATUS_LABELS[statusKey] || appointment.status || 'Agendado';
+  const statusLabel =
+    (t.status as Record<string, string>)[statusKey] || appointment.status || t.status.scheduled;
 
   return (
     <View style={{ marginBottom: 12 }}>
@@ -104,10 +130,10 @@ export const BookingCard = memo(({ appointment, onPress, onAction }: BookingCard
         </View>
 
         <Text style={{ color: colors.textPrimary, fontSize: 15, fontWeight: '600', marginTop: 10 }}>
-          {appointment.customerName || 'Cliente'}
+          {appointment.customerName || t.client}
         </Text>
         <Text style={{ color: colors.textSecondary, fontSize: 13, marginTop: 4 }}>
-          {[appointment.serviceName || 'Servico', appointment.professionalName || 'Profissional']
+          {[appointment.serviceName || t.service, appointment.professionalName || t.professional]
             .filter(Boolean)
             .join('  •  ')}
         </Text>
@@ -133,7 +159,7 @@ export const BookingCard = memo(({ appointment, onPress, onAction }: BookingCard
             style={{ paddingVertical: 6 }}
           >
             <Text style={{ color: colors.textPrimary, fontSize: 13, fontWeight: '500' }}>
-              Ver detalhes
+              {t.viewDetails}
             </Text>
           </TouchableOpacity>
           {canCancel && (
@@ -145,7 +171,7 @@ export const BookingCard = memo(({ appointment, onPress, onAction }: BookingCard
               style={{ paddingVertical: 6 }}
             >
               <Text style={{ color: colors.error, fontSize: 13, fontWeight: '500' }}>
-                Cancelar
+                {t.cancel}
               </Text>
             </TouchableOpacity>
           )}

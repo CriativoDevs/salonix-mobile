@@ -57,8 +57,26 @@ jest.mock('../../components/ShareRegistrationLinkModal', () => ({
   ShareRegistrationLinkModal: () => null,
 }));
 
+let mockLanguage = 'pt';
+jest.mock('../../contexts/LanguageContext', () => ({
+  useLanguage: () => ({ language: mockLanguage, setLanguage: jest.fn() }),
+}));
+
 describe('CustomersScreen - avatar', () => {
   afterEach(() => jest.clearAllMocks());
+  beforeEach(() => {
+    mockLanguage = 'pt';
+  });
+
+  it('shows English text when language is en', async () => {
+    mockLanguage = 'en';
+    mockFetchCustomers.mockResolvedValue({ count: 0, results: [] });
+
+    const { getByText } = await render(<CustomersScreen />);
+
+    await waitFor(() => expect(getByText('Customers')).toBeTruthy());
+    expect(getByText('New customer')).toBeTruthy();
+  });
 
   it('renders the photo when the customer has one', async () => {
     mockFetchCustomers.mockResolvedValue({

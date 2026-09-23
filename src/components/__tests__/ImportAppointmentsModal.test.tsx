@@ -32,6 +32,26 @@ jest.mock('../../utils/csvFileSharing', () => ({
   saveAndShareCSV: (...args: any[]) => mockSaveAndShareCSV(...args),
 }));
 
+let mockLanguage = 'pt';
+jest.mock('../../contexts/LanguageContext', () => ({
+  useLanguage: () => ({ language: mockLanguage, setLanguage: jest.fn() }),
+}));
+
+beforeEach(() => {
+  mockLanguage = 'pt';
+});
+
+describe('ImportAppointmentsModal - language', () => {
+  it('shows English text when language is en', async () => {
+    mockLanguage = 'en';
+    const { getByText } = await render(
+      <ImportAppointmentsModal visible onClose={jest.fn()} onSuccess={jest.fn()} />
+    );
+    expect(getByText('Import Appointments')).toBeTruthy();
+    expect(getByText('Choose CSV file')).toBeTruthy();
+  });
+});
+
 describe('ImportAppointmentsModal', () => {
   afterEach(() => jest.clearAllMocks());
 

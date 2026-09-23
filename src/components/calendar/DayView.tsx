@@ -2,11 +2,31 @@ import React, { useMemo } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../../hooks/useTheme';
+import { useLanguage } from '../../contexts/LanguageContext';
 import HourGrid, { HourGridColumn } from './HourGrid';
 import useTenantBusinessHours from '../../hooks/useTenantBusinessHours';
 import useBookingsRange from '../../hooks/useBookingsRange';
 import useProfessionals from '../../hooks/useProfessionals';
 import { BookingItem } from '../../hooks/bookingsShared';
+
+const COPY = {
+  pt: {
+    professionalFallback: 'Profissional',
+    prevDay: '< Dia anterior',
+    today: 'Hoje',
+    nextDay: 'Próximo dia >',
+    loading: 'A carregar...',
+    noProfessionals: 'Nenhum profissional cadastrado',
+  },
+  en: {
+    professionalFallback: 'Professional',
+    prevDay: '< Previous day',
+    today: 'Today',
+    nextDay: 'Next day >',
+    loading: 'Loading...',
+    noProfessionals: 'No professionals registered',
+  },
+} as const;
 
 function addDays(date: Date, amount: number): Date {
   const d = new Date(date);
@@ -29,6 +49,8 @@ type DayViewProps = {
 
 export function DayView({ referenceDate, onChangeReferenceDate, onPressAppointment }: DayViewProps) {
   const { colors } = useTheme();
+  const { language } = useLanguage();
+  const t = language === 'en' ? COPY.en : COPY.pt;
   const navigation = useNavigation<any>();
   const dayKey = formatDateParam(referenceDate);
   const { range } = useTenantBusinessHours();
@@ -43,11 +65,11 @@ export function DayView({ referenceDate, onChangeReferenceDate, onPressAppointme
       );
       return {
         key,
-        label: professional.name || 'Profissional',
+        label: professional.name || t.professionalFallback,
         appointments: professionalAppointments,
       };
     });
-  }, [professionals, appointments]);
+  }, [professionals, appointments, t]);
 
   const handlePressEmptyCell = (column: HourGridColumn) => {
     navigation.navigate('BookingCreate', { date: dayKey, professionalId: column.key });
@@ -59,19 +81,19 @@ export function DayView({ referenceDate, onChangeReferenceDate, onPressAppointme
     <View style={{ flex: 1 }}>
       <View style={styles.navRow}>
         <Pressable onPress={() => onChangeReferenceDate(addDays(referenceDate, -1))}>
-          <Text style={{ color: colors.brandPrimary }}>{'< Dia anterior'}</Text>
+          <Text style={{ color: colors.brandPrimary }}>{t.prevDay}</Text>
         </Pressable>
         <Pressable onPress={() => onChangeReferenceDate(new Date())}>
-          <Text style={{ color: colors.textPrimary, fontWeight: '600' }}>Hoje</Text>
+          <Text style={{ color: colors.textPrimary, fontWeight: '600' }}>{t.today}</Text>
         </Pressable>
         <Pressable onPress={() => onChangeReferenceDate(addDays(referenceDate, 1))}>
-          <Text style={{ color: colors.brandPrimary }}>{'Próximo dia >'}</Text>
+          <Text style={{ color: colors.brandPrimary }}>{t.nextDay}</Text>
         </Pressable>
       </View>
       {isLoading ? (
-        <Text style={{ color: colors.textSecondary, padding: 16 }}>A carregar...</Text>
+        <Text style={{ color: colors.textSecondary, padding: 16 }}>{t.loading}</Text>
       ) : columns.length === 0 ? (
-        <Text style={{ color: colors.textSecondary, padding: 16 }}>Nenhum profissional cadastrado</Text>
+        <Text style={{ color: colors.textSecondary, padding: 16 }}>{t.noProfessionals}</Text>
       ) : (
         <HourGrid
           columns={columns}

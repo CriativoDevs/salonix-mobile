@@ -5,7 +5,31 @@ import * as Clipboard from 'expo-clipboard';
 import { Button } from './ui/Button';
 import { Modal } from './ui/Modal';
 import { useTheme } from '../hooks/useTheme';
+import { useLanguage } from '../contexts/LanguageContext';
 import { getRegistrationLink } from '../utils/env';
+
+const COPY = {
+  pt: {
+    copiedTitle: 'Copiado',
+    copiedMessage: 'Link copiado para a área de transferência.',
+    errorTitle: 'Erro',
+    copyError: 'Não foi possível copiar o link.',
+    title: 'QR Code de registo',
+    close: 'Fechar',
+    copyLink: 'Copiar link',
+    unavailable: 'Link indisponível.',
+  },
+  en: {
+    copiedTitle: 'Copied',
+    copiedMessage: 'Link copied to clipboard.',
+    errorTitle: 'Error',
+    copyError: 'Could not copy the link.',
+    title: 'Registration QR Code',
+    close: 'Close',
+    copyLink: 'Copy link',
+    unavailable: 'Link unavailable.',
+  },
+} as const;
 
 interface ShareRegistrationLinkModalProps {
   visible: boolean;
@@ -19,15 +43,17 @@ export function ShareRegistrationLinkModal({
   slug,
 }: ShareRegistrationLinkModalProps) {
   const { colors } = useTheme();
+  const { language } = useLanguage();
+  const t = language === 'en' ? COPY.en : COPY.pt;
   const link = slug ? getRegistrationLink(slug) : '';
 
   const handleCopy = async () => {
     try {
       await Clipboard.setStringAsync(link);
-      Alert.alert('Copiado', 'Link copiado para a área de transferência.');
+      Alert.alert(t.copiedTitle, t.copiedMessage);
     } catch (error) {
       console.error('Error copying registration link:', error);
-      Alert.alert('Erro', 'Não foi possível copiar o link.');
+      Alert.alert(t.errorTitle, t.copyError);
     }
   };
 
@@ -35,10 +61,10 @@ export function ShareRegistrationLinkModal({
     <Modal
       visible={visible}
       onClose={onClose}
-      title="QR Code de registo"
+      title={t.title}
       footer={
         <Button onPress={onClose} style={{ flex: 1 }}>
-          Fechar
+          {t.close}
         </Button>
       }
     >
@@ -59,11 +85,11 @@ export function ShareRegistrationLinkModal({
               {link}
             </Text>
             <Button variant="secondary" onPress={handleCopy}>
-              Copiar link
+              {t.copyLink}
             </Button>
           </>
         ) : (
-          <Text style={{ color: colors.textSecondary }}>Link indisponível.</Text>
+          <Text style={{ color: colors.textSecondary }}>{t.unavailable}</Text>
         )}
       </View>
     </Modal>

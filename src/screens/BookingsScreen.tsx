@@ -19,6 +19,7 @@ import { BookingListHeader } from '../components/BookingListHeader';
 import client from '../api/client';
 import { useTenant } from '../hooks/useTenant';
 import { useAuth } from '../hooks/useAuth';
+import { useLanguage } from '../contexts/LanguageContext';
 import { isOwner } from '../utils/permissions';
 import { WeekView } from '../components/calendar/WeekView';
 import { DayView } from '../components/calendar/DayView';
@@ -37,11 +38,58 @@ interface BookingFiltersState {
   customerId?: string | number;
 }
 
+const COPY = {
+  pt: {
+    exportError: 'Erro',
+    exportErrorMessage: 'Não foi possível exportar os agendamentos.',
+    cancelSuccess: 'Agendamento cancelado com sucesso',
+    cancelError: 'Erro',
+    cancelErrorMessage: 'Falha ao cancelar agendamento',
+    emptyTitle: 'Nenhum agendamento encontrado',
+    emptyHintFiltered: 'Tente ajustar os filtros',
+    emptyHintDefault: 'Clique em + para criar um novo agendamento',
+    viewAgenda: 'Agenda',
+    viewDay: 'Dia',
+    viewWeek: 'Semana',
+    viewMonth: 'Mês',
+    cancelModalTitle: 'Cancelar Agendamento',
+    cancelModalMessage: 'Tem certeza que deseja cancelar este agendamento? Esta ação não pode ser desfeita.',
+    no: 'Não',
+    yesCancel: 'Sim, Cancelar',
+    importExportTitle: 'Importar/Exportar',
+    importCsv: 'Importar CSV',
+    exportCsv: 'Exportar CSV',
+  },
+  en: {
+    exportError: 'Error',
+    exportErrorMessage: 'Could not export the appointments.',
+    cancelSuccess: 'Appointment cancelled successfully',
+    cancelError: 'Error',
+    cancelErrorMessage: 'Failed to cancel appointment',
+    emptyTitle: 'No appointments found',
+    emptyHintFiltered: 'Try adjusting the filters',
+    emptyHintDefault: 'Tap + to create a new appointment',
+    viewAgenda: 'Agenda',
+    viewDay: 'Day',
+    viewWeek: 'Week',
+    viewMonth: 'Month',
+    cancelModalTitle: 'Cancel Appointment',
+    cancelModalMessage: 'Are you sure you want to cancel this appointment? This action cannot be undone.',
+    no: 'No',
+    yesCancel: 'Yes, Cancel',
+    importExportTitle: 'Import/Export',
+    importCsv: 'Import CSV',
+    exportCsv: 'Export CSV',
+  },
+} as const;
+
 const BookingsScreen = ({ navigation }: any) => {
   const { colors } = useTheme();
   const { slug } = useTenant();
   const { userInfo } = useAuth();
   const { showToast } = useToast();
+  const { language } = useLanguage();
+  const t = language === 'en' ? COPY.en : COPY.pt;
 
   // Filter state
   const [showFilters, setShowFilters] = useState(false);
@@ -79,7 +127,7 @@ const BookingsScreen = ({ navigation }: any) => {
       await saveAndShareCSV(content, 'agendamentos.csv');
     } catch (err) {
       console.error('Error exporting appointments:', err);
-      Alert.alert('Erro', 'Não foi possível exportar os agendamentos.');
+      Alert.alert(t.exportError, t.exportErrorMessage);
     }
   };
 
@@ -144,10 +192,10 @@ const BookingsScreen = ({ navigation }: any) => {
       // Refresh the list
       refetch();
 
-      showToast({ type: 'success', message: 'Agendamento cancelado com sucesso' });
+      showToast({ type: 'success', message: t.cancelSuccess });
     } catch (err) {
       console.error('Error cancelling appointment:', err);
-      Alert.alert('Erro', 'Falha ao cancelar agendamento');
+      Alert.alert(t.cancelError, t.cancelErrorMessage);
     } finally {
       setCancellingAppointmentId(null);
       setShowCancelModal(false);
@@ -182,10 +230,10 @@ const BookingsScreen = ({ navigation }: any) => {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', minHeight: 300 }}>
         <Text style={{ color: colors.textSecondary, fontSize: 16, marginBottom: 8 }}>
-          Nenhum agendamento encontrado
+          {t.emptyTitle}
         </Text>
         <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
-          {hasActiveFilters ? 'Tente ajustar os filtros' : 'Clique em + para criar um novo agendamento'}
+          {hasActiveFilters ? t.emptyHintFiltered : t.emptyHintDefault}
         </Text>
       </View>
     );
@@ -231,7 +279,8 @@ const BookingsScreen = ({ navigation }: any) => {
       {/* Calendar view mode toggle */}
       <View style={styles.viewModeRow}>
         {(['agenda', 'day', 'week', 'month'] as CalendarViewMode[]).map((mode) => {
-          const label = mode === 'agenda' ? 'Agenda' : mode === 'day' ? 'Dia' : mode === 'week' ? 'Semana' : 'Mês';
+          const label =
+            mode === 'agenda' ? t.viewAgenda : mode === 'day' ? t.viewDay : mode === 'week' ? t.viewWeek : t.viewMonth;
           const active = viewMode === mode;
           return (
             <Pressable
@@ -320,10 +369,10 @@ const BookingsScreen = ({ navigation }: any) => {
             }}
           >
             <Text style={{ fontSize: 18, fontWeight: 'bold', color: colors.textPrimary, marginBottom: 12 }}>
-              Cancelar Agendamento
+              {t.cancelModalTitle}
             </Text>
             <Text style={{ fontSize: 14, color: colors.textSecondary, marginBottom: 20 }}>
-              Tem certeza que deseja cancelar este agendamento? Esta ação não pode ser desfeita.
+              {t.cancelModalMessage}
             </Text>
 
             <View style={{ flexDirection: 'row', gap: 12 }}>
@@ -342,7 +391,7 @@ const BookingsScreen = ({ navigation }: any) => {
                 disabled={cancellingAppointmentId !== null}
               >
                 <Text style={{ textAlign: 'center', color: colors.textPrimary, fontWeight: '600' }}>
-                  Não
+                  {t.no}
                 </Text>
               </Pressable>
 
@@ -362,7 +411,7 @@ const BookingsScreen = ({ navigation }: any) => {
                   <ActivityIndicator size="small" color={colors.surface} />
                 ) : (
                   <Text style={{ textAlign: 'center', color: colors.surface, fontWeight: '600' }}>
-                    Sim, Cancelar
+                    {t.yesCancel}
                   </Text>
                 )}
               </Pressable>
@@ -381,10 +430,10 @@ const BookingsScreen = ({ navigation }: any) => {
       <ActionMenu
         visible={importExportMenuVisible}
         onClose={() => setImportExportMenuVisible(false)}
-        title="Importar/Exportar"
+        title={t.importExportTitle}
         options={[
-          { label: 'Importar CSV', onPress: () => setImportModalVisible(true) },
-          { label: 'Exportar CSV', onPress: handleExportCSV },
+          { label: t.importCsv, onPress: () => setImportModalVisible(true) },
+          { label: t.exportCsv, onPress: handleExportCSV },
         ]}
       />
     </SafeAreaView>

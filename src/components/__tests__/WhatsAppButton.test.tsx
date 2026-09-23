@@ -12,11 +12,34 @@ const baseAppointment = {
   slotStart: '2026-10-01T15:30:00Z',
 };
 
+let mockLanguage = 'pt';
+jest.mock('../../contexts/LanguageContext', () => ({
+  useLanguage: () => ({ language: mockLanguage, setLanguage: jest.fn() }),
+}));
+
 describe('WhatsAppButton', () => {
   beforeEach(() => {
     jest.spyOn(Linking, 'canOpenURL').mockResolvedValue(true);
     jest.spyOn(Linking, 'openURL').mockResolvedValue(true as any);
     jest.spyOn(Alert, 'alert').mockImplementation(() => {});
+    mockLanguage = 'pt';
+  });
+
+  it('shows the English alert when WhatsApp cannot be opened and language is en', async () => {
+    mockLanguage = 'en';
+    (Linking.canOpenURL as jest.Mock).mockResolvedValue(false);
+    const { getByRole } = await render(
+      <WhatsAppButton appointment={baseAppointment} eventType="reminder" label="Send reminder" />
+    );
+
+    fireEvent.press(getByRole('button', { name: 'Send reminder' }));
+
+    await waitFor(() => {
+      expect(Alert.alert).toHaveBeenCalledWith(
+        'WhatsApp unavailable',
+        'Could not open WhatsApp on this device.'
+      );
+    });
   });
 
   afterEach(() => {

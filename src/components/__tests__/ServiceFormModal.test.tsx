@@ -15,6 +15,26 @@ jest.mock('../../hooks/useTheme', () => ({
   }),
 }));
 
+let mockLanguage = 'pt';
+jest.mock('../../contexts/LanguageContext', () => ({
+  useLanguage: () => ({ language: mockLanguage, setLanguage: jest.fn() }),
+}));
+
+beforeEach(() => {
+  mockLanguage = 'pt';
+});
+
+describe('ServiceFormModal - language', () => {
+  it('shows English text when language is en', async () => {
+    mockLanguage = 'en';
+    const { getByText } = await render(
+      <ServiceFormModal visible onClose={jest.fn()} onSubmit={jest.fn()} initialData={null} />
+    );
+    expect(getByText('New Service')).toBeTruthy();
+    expect(getByText('Save')).toBeTruthy();
+  });
+});
+
 describe('ServiceFormModal', () => {
   it('shows a validation error when the name is empty', async () => {
     const onSubmit = jest.fn();

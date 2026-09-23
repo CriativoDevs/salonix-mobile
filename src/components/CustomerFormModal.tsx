@@ -4,12 +4,66 @@ import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import { useTheme } from '../hooks/useTheme';
+import { useLanguage } from '../contexts/LanguageContext';
 import { Input } from './ui/Input';
 import { Button } from './ui/Button';
 import { Modal } from './ui/Modal';
 import { Avatar } from './ui/Avatar';
 import { ActionMenu } from './ui/ActionMenu';
 import { resolveMediaUrl } from '../utils/env';
+
+const COPY = {
+    pt: {
+        nameRequired: 'Nome é obrigatório',
+        contactRequired: 'Informe e-mail ou telefone',
+        errorTitle: 'Erro',
+        saveError: 'Ocorreu um erro ao salvar o cliente.',
+        unsupportedFormat: 'Formato não suportado. Use JPEG, PNG, GIF ou WEBP.',
+        fileTooLarge: 'O ficheiro deve ter no máximo 2MB.',
+        galleryPermission: 'Permissão de galeria necessária.',
+        cameraPermission: 'Permissão de câmara necessária.',
+        editTitle: 'Editar Cliente',
+        newTitle: 'Novo Cliente',
+        cancel: 'Cancelar',
+        save: 'Salvar',
+        changePhoto: 'Alterar foto',
+        addPhoto: 'Adicionar foto',
+        name: 'Nome',
+        namePlaceholder: 'Nome completo',
+        email: 'E-mail',
+        phone: 'Telefone',
+        notes: 'Notas',
+        notesPlaceholder: 'Preferências, observações...',
+        photoMenuTitle: 'Foto do cliente',
+        chooseFromGallery: 'Escolher da galeria',
+        takePhoto: 'Tirar foto',
+    },
+    en: {
+        nameRequired: 'Name is required',
+        contactRequired: 'Provide an email or phone number',
+        errorTitle: 'Error',
+        saveError: 'An error occurred while saving the customer.',
+        unsupportedFormat: 'Unsupported format. Use JPEG, PNG, GIF or WEBP.',
+        fileTooLarge: 'The file must be at most 2MB.',
+        galleryPermission: 'Gallery permission required.',
+        cameraPermission: 'Camera permission required.',
+        editTitle: 'Edit Customer',
+        newTitle: 'New Customer',
+        cancel: 'Cancel',
+        save: 'Save',
+        changePhoto: 'Change photo',
+        addPhoto: 'Add photo',
+        name: 'Name',
+        namePlaceholder: 'Full name',
+        email: 'Email',
+        phone: 'Phone',
+        notes: 'Notes',
+        notesPlaceholder: 'Preferences, notes...',
+        photoMenuTitle: 'Customer photo',
+        chooseFromGallery: 'Choose from gallery',
+        takePhoto: 'Take photo',
+    },
+} as const;
 
 const MAX_PHOTO_BYTES = 2 * 1024 * 1024;
 const ALLOWED_PHOTO_MIME_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
@@ -40,6 +94,8 @@ interface CustomerFormModalProps {
 
 export function CustomerFormModal({ visible, onClose, onSubmit, initialData, busy = false }: CustomerFormModalProps) {
     const { colors } = useTheme();
+    const { language } = useLanguage();
+    const t = language === 'en' ? COPY.en : COPY.pt;
 
     const [form, setForm] = useState<CustomerData>({
         name: '',
@@ -82,11 +138,11 @@ export function CustomerFormModal({ visible, onClose, onSubmit, initialData, bus
         const newErrors: { [key: string]: string } = {};
 
         if (!form.name.trim()) {
-            newErrors.name = 'Nome é obrigatório';
+            newErrors.name = t.nameRequired;
         }
 
         if (!form.email.trim() && !form.phone_number.trim()) {
-            newErrors.contact = 'Informe e-mail ou telefone';
+            newErrors.contact = t.contactRequired;
         }
 
         setErrors(newErrors);
@@ -100,7 +156,7 @@ export function CustomerFormModal({ visible, onClose, onSubmit, initialData, bus
             await onSubmit(pickedPhoto ? { ...form, photoFile: pickedPhoto } : form);
         } catch (error) {
             console.error(error);
-            Alert.alert('Erro', 'Ocorreu um erro ao salvar o cliente.');
+            Alert.alert(t.errorTitle, t.saveError);
         }
     };
 
@@ -108,13 +164,13 @@ export function CustomerFormModal({ visible, onClose, onSubmit, initialData, bus
         const mimeType = asset.mimeType || 'image/jpeg';
 
         if (!ALLOWED_PHOTO_MIME_TYPES.includes(mimeType)) {
-            setPhotoError('Formato não suportado. Use JPEG, PNG, GIF ou WEBP.');
+            setPhotoError(t.unsupportedFormat);
             return;
         }
 
         const info = await FileSystem.getInfoAsync(asset.uri);
         if (info.exists && typeof info.size === 'number' && info.size > MAX_PHOTO_BYTES) {
-            setPhotoError('O ficheiro deve ter no máximo 2MB.');
+            setPhotoError(t.fileTooLarge);
             return;
         }
 
@@ -129,7 +185,7 @@ export function CustomerFormModal({ visible, onClose, onSubmit, initialData, bus
     const handlePickFromGallery = async () => {
         const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (!permission.granted) {
-            Alert.alert('Erro', 'Permissão de galeria necessária.');
+            Alert.alert(t.errorTitle, t.galleryPermission);
             return;
         }
 
@@ -145,7 +201,7 @@ export function CustomerFormModal({ visible, onClose, onSubmit, initialData, bus
     const handleTakePhoto = async () => {
         const permission = await ImagePicker.requestCameraPermissionsAsync();
         if (!permission.granted) {
-            Alert.alert('Erro', 'Permissão de câmara necessária.');
+            Alert.alert(t.errorTitle, t.cameraPermission);
             return;
         }
 
@@ -169,7 +225,7 @@ export function CustomerFormModal({ visible, onClose, onSubmit, initialData, bus
         <Modal
             visible={visible}
             onClose={onClose}
-            title={initialData ? 'Editar Cliente' : 'Novo Cliente'}
+            title={initialData ? t.editTitle : t.newTitle}
             footer={
                 <>
                     <Button
@@ -177,7 +233,7 @@ export function CustomerFormModal({ visible, onClose, onSubmit, initialData, bus
                         onPress={onClose}
                         style={{ flex: 1 }}
                     >
-                        Cancelar
+                        {t.cancel}
                     </Button>
                     <Button
                         onPress={handleSubmit}
@@ -185,7 +241,7 @@ export function CustomerFormModal({ visible, onClose, onSubmit, initialData, bus
                         disabled={busy}
                         style={{ flex: 1 }}
                     >
-                        Salvar
+                        {t.save}
                     </Button>
                 </>
             }
@@ -195,7 +251,7 @@ export function CustomerFormModal({ visible, onClose, onSubmit, initialData, bus
                     <Avatar testID="customer-form-avatar" uri={previewUri} name={form.name} size={72} />
                     <TouchableOpacity onPress={handlePickPhoto}>
                         <Text style={{ color: colors.brandPrimary, fontWeight: '600', marginTop: 8 }}>
-                            {previewUri ? 'Alterar foto' : 'Adicionar foto'}
+                            {previewUri ? t.changePhoto : t.addPhoto}
                         </Text>
                     </TouchableOpacity>
                     {photoError && (
@@ -205,8 +261,8 @@ export function CustomerFormModal({ visible, onClose, onSubmit, initialData, bus
 
                 <View style={styles.inputGroup}>
                     <Input
-                        label="Nome"
-                        placeholder="Nome completo"
+                        label={t.name}
+                        placeholder={t.namePlaceholder}
                         value={form.name}
                         onChangeText={(text) => setForm({ ...form, name: text })}
                         error={errors.name}
@@ -215,7 +271,7 @@ export function CustomerFormModal({ visible, onClose, onSubmit, initialData, bus
 
                 <View style={styles.inputGroup}>
                     <Input
-                        label="E-mail"
+                        label={t.email}
                         placeholder="cliente@email.com"
                         value={form.email}
                         onChangeText={(text) => setForm({ ...form, email: text })}
@@ -226,7 +282,7 @@ export function CustomerFormModal({ visible, onClose, onSubmit, initialData, bus
 
                 <View style={styles.inputGroup}>
                     <Input
-                        label="Telefone"
+                        label={t.phone}
                         placeholder="+351 912 345 678"
                         value={form.phone_number}
                         onChangeText={(text) => setForm({ ...form, phone_number: text })}
@@ -242,8 +298,8 @@ export function CustomerFormModal({ visible, onClose, onSubmit, initialData, bus
 
                 <View style={styles.inputGroup}>
                     <Input
-                        label="Notas"
-                        placeholder="Preferências, observações..."
+                        label={t.notes}
+                        placeholder={t.notesPlaceholder}
                         value={form.notes}
                         onChangeText={(text) => setForm({ ...form, notes: text })}
                         multiline
@@ -257,10 +313,10 @@ export function CustomerFormModal({ visible, onClose, onSubmit, initialData, bus
         <ActionMenu
             visible={photoMenuVisible}
             onClose={() => setPhotoMenuVisible(false)}
-            title="Foto do cliente"
+            title={t.photoMenuTitle}
             options={[
-                { label: 'Escolher da galeria', onPress: handlePickFromGallery },
-                { label: 'Tirar foto', onPress: handleTakePhoto },
+                { label: t.chooseFromGallery, onPress: handlePickFromGallery },
+                { label: t.takePhoto, onPress: handleTakePhoto },
             ]}
         />
         </>
