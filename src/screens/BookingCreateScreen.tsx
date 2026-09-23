@@ -26,10 +26,11 @@ import { Button } from '../components/ui/Button';
 import { useAuth } from '../hooks/useAuth';
 import useProfessionals from '../hooks/useProfessionals';
 import { useToast } from '../contexts/ToastContext';
+import WhatsAppButton from '../components/WhatsAppButton';
 
 const BookingCreateScreen = ({ navigation, route }: any) => {
   const { colors } = useTheme();
-  const { slug } = useTenant();
+  const { slug, tenant } = useTenant();
   const { userInfo } = useAuth();
   const { showToast } = useToast();
 
@@ -222,7 +223,7 @@ const BookingCreateScreen = ({ navigation, route }: any) => {
       };
       await createAppointment(payload, { slug: slug as string });
       showToast({ type: 'success', message: 'Agendamento criado com sucesso!' });
-      navigation.popToTop();
+      setStep(5);
     } catch (error) {
       console.error('Error creating appointment:', error);
       Alert.alert('Erro', 'Não foi possível criar o agendamento.');
@@ -235,13 +236,13 @@ const BookingCreateScreen = ({ navigation, route }: any) => {
     <View style={styles.header}>
       <TouchableOpacity
         testID="booking-create-back-button"
-        onPress={step === 0 ? () => navigation.goBack() : prevStep}
+        onPress={step === 5 ? () => navigation.popToTop() : step === 0 ? () => navigation.goBack() : prevStep}
         style={styles.backButton}
       >
         <Ionicons name="chevron-back" size={24} color={colors.textPrimary} />
       </TouchableOpacity>
       <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>
-        {step === 4 ? 'Resumo' : 'Novo Agendamento'}
+        {step === 4 ? 'Resumo' : step === 5 ? 'Agendamento Criado' : 'Novo Agendamento'}
       </Text>
       <View style={{ width: 40 }} />
     </View>
@@ -551,6 +552,37 @@ const BookingCreateScreen = ({ navigation, route }: any) => {
     );
   };
 
+  const renderSuccessStep = () => {
+    const whatsAppAppointment = {
+      customerName: selectedCustomer?.name || '',
+      customerPhone: selectedCustomer?.phone_number || '',
+      serviceName: selectedService?.name || '',
+      professionalName: selectedProfessional?.name || '',
+      salonName: tenant?.name || '',
+      slotStart: selectedSlot?.start_time || null,
+    };
+
+    return (
+      <View style={[styles.stepContainer, styles.successContainer]}>
+        <Ionicons name="checkmark-circle" size={64} color={colors.success ?? colors.brandPrimary} />
+        <Text style={[styles.stepTitle, styles.successTitle, { color: colors.textPrimary }]}>
+          Agendamento criado!
+        </Text>
+        <Text style={[styles.successSubtitle, { color: colors.textSecondary }]}>
+          O agendamento de {selectedCustomer?.name} foi criado com sucesso.
+        </Text>
+
+        <View style={styles.successActions}>
+          <WhatsAppButton
+            appointment={whatsAppAppointment}
+            eventType="confirmation"
+            label="Enviar confirmação via WhatsApp"
+          />
+        </View>
+      </View>
+    );
+  };
+
   const isNextDisabled = () => {
     if (step === 0) return !selectedService;
     if (step === 1) return !selectedProfessional;
@@ -569,11 +601,25 @@ const BookingCreateScreen = ({ navigation, route }: any) => {
         {step === 2 && renderDateSlotStep()}
         {step === 3 && renderCustomerStep()}
         {step === 4 && renderSummaryStep()}
+        {step === 5 && renderSuccessStep()}
       </View>
 
       {/* Footer Navigation */}
       <View style={[styles.footer, { backgroundColor: colors.background, borderTopColor: colors.border }]}>
-        {step < 4 ? (
+        {step === 5 ? (
+          <Button
+            onPress={() => navigation.popToTop()}
+            variant="link"
+            size="lg"
+            style={{ alignSelf: 'center' }}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <Text style={{ color: colors.brandPrimary, fontWeight: '600', fontSize: 16 }}>
+                Concluir
+              </Text>
+            </View>
+          </Button>
+        ) : step < 4 ? (
           <Button
             onPress={nextStep}
             disabled={isNextDisabled()}
@@ -727,6 +773,24 @@ const styles = StyleSheet.create({
   footer: {
     padding: 16,
     borderTopWidth: 1,
+  },
+  successContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  successTitle: {
+    marginTop: 16,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  successSubtitle: {
+    fontSize: 15,
+    textAlign: 'center',
+    marginBottom: 32,
+  },
+  successActions: {
+    width: '100%',
+    alignItems: 'center',
   },
 });
 
