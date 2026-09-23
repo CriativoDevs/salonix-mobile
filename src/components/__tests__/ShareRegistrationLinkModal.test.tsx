@@ -32,6 +32,26 @@ jest.mock('../../utils/env', () => ({
   getRegistrationLink: (slug: string) => `https://timelyone.today/join/${slug}`,
 }));
 
+let mockLanguage = 'pt';
+jest.mock('../../contexts/LanguageContext', () => ({
+  useLanguage: () => ({ language: mockLanguage, setLanguage: jest.fn() }),
+}));
+
+beforeEach(() => {
+  mockLanguage = 'pt';
+});
+
+describe('ShareRegistrationLinkModal - language', () => {
+  it('shows English text when language is en', async () => {
+    mockLanguage = 'en';
+    const { getByText } = await render(
+      <ShareRegistrationLinkModal visible onClose={jest.fn()} slug="acme" />
+    );
+    expect(getByText('Registration QR Code')).toBeTruthy();
+    expect(getByText('Copy link')).toBeTruthy();
+  });
+});
+
 describe('ShareRegistrationLinkModal', () => {
   afterEach(() => jest.clearAllMocks());
 

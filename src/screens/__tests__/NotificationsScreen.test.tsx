@@ -56,14 +56,28 @@ const TRIALING_BILLING = { current_subscription: { status: 'trialing' } };
 const SUFFICIENT_CREDIT = { current_balance: '15.00' };
 const INSUFFICIENT_CREDIT = { current_balance: '0.50' };
 
+let mockLanguage = 'pt';
+jest.mock('../../contexts/LanguageContext', () => ({
+  useLanguage: () => ({ language: mockLanguage, setLanguage: jest.fn() }),
+}));
+
 describe('NotificationsScreen', () => {
   beforeEach(() => {
     mockUseAuthReturn = { userInfo: { id: 1, role: 'owner' } };
     mockFetchTenantNotifications.mockResolvedValue(NOTIFICATIONS);
     mockFetchBillingOverview.mockResolvedValue(ACTIVE_BILLING);
     mockFetchCreditBalance.mockResolvedValue(SUFFICIENT_CREDIT);
+    mockLanguage = 'pt';
   });
   afterEach(() => jest.clearAllMocks());
+
+  it('shows English labels when language is en', async () => {
+    mockLanguage = 'en';
+    const { findByText } = await render(<NotificationsScreen />);
+
+    expect(await findByText('Notifications')).toBeTruthy();
+    expect(await findByText('Push Mobile')).toBeTruthy();
+  });
 
   it('loads and shows the current channel states', async () => {
     const { getByText, getByTestId } = await render(<NotificationsScreen />);

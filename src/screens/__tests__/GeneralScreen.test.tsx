@@ -57,12 +57,26 @@ const TENANT_META = {
   feature_flags: { modules: { pwa_client_enabled: true } },
 };
 
+let mockLanguage = 'pt';
+jest.mock('../../contexts/LanguageContext', () => ({
+  useLanguage: () => ({ language: mockLanguage, setLanguage: jest.fn() }),
+}));
+
 describe('GeneralScreen', () => {
   beforeEach(() => {
     mockUseAuthReturn = { userInfo: { id: 1, role: 'owner' } };
     mockFetchTenantMeta.mockResolvedValue(TENANT_META);
+    mockLanguage = 'pt';
   });
   afterEach(() => jest.clearAllMocks());
+
+  it('shows English labels when language is en', async () => {
+    mockLanguage = 'en';
+    const { findByText } = await render(<GeneralScreen />);
+
+    expect(await findByText('General')).toBeTruthy();
+    expect(await findByText('Client PWA')).toBeTruthy();
+  });
 
   it('loads and shows the read-only summary', async () => {
     const { getByText } = await render(<GeneralScreen />);

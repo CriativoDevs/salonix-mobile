@@ -59,8 +59,24 @@ jest.mock('../../components/ServiceFormModal', () => {
   };
 });
 
+let mockLanguage = 'pt';
+jest.mock('../../contexts/LanguageContext', () => ({
+  useLanguage: () => ({ language: mockLanguage, setLanguage: jest.fn() }),
+}));
+
 describe('ServicesScreen', () => {
   afterEach(() => jest.clearAllMocks());
+  beforeEach(() => {
+    mockLanguage = 'pt';
+  });
+
+  it('shows English text when language is en', async () => {
+    mockLanguage = 'en';
+    mockFetchAdminServices.mockResolvedValue([]);
+    const { findByText } = await render(<ServicesScreen />);
+    expect(await findByText('Services')).toBeTruthy();
+    expect(await findByText('New service')).toBeTruthy();
+  });
 
   it('renders services fetched from the API', async () => {
     mockFetchAdminServices.mockResolvedValue([

@@ -13,6 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../hooks/useTheme';
+import { useLanguage } from '../contexts/LanguageContext';
 import { Card } from '../components/ui/Card';
 import {
   fetchInventoryItems,
@@ -26,6 +27,51 @@ import { InventoryItemFormModal } from '../components/InventoryItemFormModal';
 import { StockMovementModal } from '../components/StockMovementModal';
 import { useTenant } from '../hooks/useTenant';
 import { ActionMenu } from '../components/ui/ActionMenu';
+
+const COPY = {
+  pt: {
+    saveError: 'Não foi possível salvar o item.',
+    deleteTitle: 'Remover Item',
+    deleteMessage: (name: string) => `Tem certeza que deseja remover ${name}?`,
+    cancel: 'Cancelar',
+    remove: 'Remover',
+    deleteError: 'Não foi possível remover o item.',
+    movementError: 'Não foi possível registrar a movimentação.',
+    errorTitle: 'Erro',
+    title: 'Estoque',
+    lowStock: 'Estoque baixo',
+    minimum: 'Mínimo',
+    stockAlerts: (n: number) => `Alertas de estoque (${n})`,
+    minAbbrev: 'mín.',
+    itemsSuffix: 'itens',
+    newItem: 'Novo item',
+    emptyTitle: 'Nenhum item de estoque cadastrado.',
+    addFirstItem: 'Adicionar primeiro item',
+    edit: 'Editar',
+    registerMovement: 'Registrar movimentação',
+  },
+  en: {
+    saveError: 'Could not save the item.',
+    deleteTitle: 'Remove Item',
+    deleteMessage: (name: string) => `Are you sure you want to remove ${name}?`,
+    cancel: 'Cancel',
+    remove: 'Remove',
+    deleteError: 'Could not remove the item.',
+    movementError: 'Could not register the movement.',
+    errorTitle: 'Error',
+    title: 'Inventory',
+    lowStock: 'Low stock',
+    minimum: 'Minimum',
+    stockAlerts: (n: number) => `Stock alerts (${n})`,
+    minAbbrev: 'min.',
+    itemsSuffix: 'items',
+    newItem: 'New item',
+    emptyTitle: 'No inventory item registered.',
+    addFirstItem: 'Add first item',
+    edit: 'Edit',
+    registerMovement: 'Register movement',
+  },
+} as const;
 
 function extractErrorMessage(error: any, fallback: string): string {
   const data = error?.response?.data;
@@ -45,6 +91,8 @@ export default function InventoryScreen() {
   const navigation = useNavigation();
   const route = useRoute<any>();
   const { slug } = useTenant();
+  const { language } = useLanguage();
+  const t = language === 'en' ? COPY.en : COPY.pt;
 
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -132,17 +180,17 @@ export default function InventoryScreen() {
       loadAlerts();
     } catch (error) {
       console.error('Error saving inventory item:', error);
-      Alert.alert('Erro', 'Não foi possível salvar o item.');
+      Alert.alert(t.errorTitle, t.saveError);
     } finally {
       setActionLoading(false);
     }
   };
 
   const handleDelete = (item: any) => {
-    Alert.alert('Remover Item', `Tem certeza que deseja remover ${item.name}?`, [
-      { text: 'Cancelar', style: 'cancel' },
+    Alert.alert(t.deleteTitle, t.deleteMessage(item.name), [
+      { text: t.cancel, style: 'cancel' },
       {
-        text: 'Remover',
+        text: t.remove,
         style: 'destructive',
         onPress: async () => {
           try {
@@ -151,7 +199,7 @@ export default function InventoryScreen() {
             loadAlerts();
           } catch (error) {
             console.error('Error deleting inventory item:', error);
-            Alert.alert('Erro', 'Não foi possível remover o item.');
+            Alert.alert(t.errorTitle, t.deleteError);
           }
         },
       },
@@ -189,7 +237,7 @@ export default function InventoryScreen() {
     } catch (error) {
       console.error('Error creating stock movement:', error);
       setMovementError(
-        extractErrorMessage(error, 'Não foi possível registrar a movimentação.')
+        extractErrorMessage(error, t.movementError)
       );
     } finally {
       setMovementBusy(false);
@@ -215,7 +263,7 @@ export default function InventoryScreen() {
             {lowStock && (
               <View style={[styles.badge, { backgroundColor: colors.error + '22' }]}>
                 <Ionicons name="alert-circle-outline" size={12} color={colors.error} />
-                <Text style={[styles.badgeText, { color: colors.error }]}>Estoque baixo</Text>
+                <Text style={[styles.badgeText, { color: colors.error }]}>{t.lowStock}</Text>
               </View>
             )}
           </View>
@@ -225,7 +273,7 @@ export default function InventoryScreen() {
             </Text>
             {item.minimum_quantity != null && (
               <Text style={[styles.metaText, { color: colors.textSecondary }]}>
-                Mínimo: {item.minimum_quantity} {item.unit}
+                {t.minimum}: {item.minimum_quantity} {item.unit}
               </Text>
             )}
           </View>
@@ -244,7 +292,7 @@ export default function InventoryScreen() {
         >
           <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Estoque</Text>
+        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>{t.title}</Text>
         <View style={{ width: 38 }} />
       </View>
 
@@ -260,7 +308,7 @@ export default function InventoryScreen() {
             <View style={styles.alertsHeader}>
               <Ionicons name="warning-outline" size={16} color={colors.error} />
               <Text style={[styles.alertsTitle, { color: colors.error }]}>
-                Alertas de estoque ({alerts.length})
+                {t.stockAlerts(alerts.length)}
               </Text>
             </View>
             {alerts.map((alert) => (
@@ -269,7 +317,7 @@ export default function InventoryScreen() {
                   {alert.name}
                 </Text>
                 <Text style={[styles.alertItemQty, { color: colors.error }]}>
-                  {alert.quantity} / mín. {alert.minimum_quantity} {alert.unit}
+                  {alert.quantity} / {t.minAbbrev} {alert.minimum_quantity} {alert.unit}
                 </Text>
               </View>
             ))}
@@ -277,7 +325,7 @@ export default function InventoryScreen() {
         )}
 
         <View style={{ marginBottom: 16, marginTop: 16 }}>
-          <Text style={{ color: colors.textSecondary, fontSize: 13 }}>{items.length} itens</Text>
+          <Text style={{ color: colors.textSecondary, fontSize: 13 }}>{items.length} {t.itemsSuffix}</Text>
           <View style={{ flexDirection: 'row', marginTop: 12, gap: 16 }}>
             <TouchableOpacity
               onPress={handleCreate}
@@ -285,7 +333,7 @@ export default function InventoryScreen() {
             >
               <Ionicons name="add" size={18} color={colors.brandPrimary} />
               <Text style={{ color: colors.brandPrimary, fontSize: 13, fontWeight: '600', marginLeft: 6 }}>
-                Novo item
+                {t.newItem}
               </Text>
             </TouchableOpacity>
           </View>
@@ -309,11 +357,11 @@ export default function InventoryScreen() {
           !loading ? (
             <View style={styles.emptyState}>
               <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-                Nenhum item de estoque cadastrado.
+                {t.emptyTitle}
               </Text>
               <TouchableOpacity onPress={handleCreate} style={{ marginTop: 16 }}>
                 <Text style={{ color: colors.brandPrimary, fontWeight: '600' }}>
-                  Adicionar primeiro item
+                  {t.addFirstItem}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -334,9 +382,9 @@ export default function InventoryScreen() {
         onClose={() => setOptionsMenuTarget(null)}
         title={optionsMenuTarget?.name}
         options={[
-          { label: 'Editar', onPress: () => handleEdit(optionsMenuTarget) },
-          { label: 'Registrar movimentação', onPress: () => handleOpenMovement(optionsMenuTarget) },
-          { label: 'Remover', onPress: () => handleDelete(optionsMenuTarget), destructive: true },
+          { label: t.edit, onPress: () => handleEdit(optionsMenuTarget) },
+          { label: t.registerMovement, onPress: () => handleOpenMovement(optionsMenuTarget) },
+          { label: t.remove, onPress: () => handleDelete(optionsMenuTarget), destructive: true },
         ]}
       />
 

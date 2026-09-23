@@ -5,6 +5,7 @@ import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../hooks/useTheme';
 import { useAuth } from '../hooks/useAuth';
+import { useLanguage } from '../contexts/LanguageContext';
 import { isOwner } from '../utils/permissions';
 
 const COPY = {
@@ -69,7 +70,8 @@ export default function SettingsScreen() {
   const navigation = useNavigation();
   const { colors } = useTheme();
   const { userInfo } = useAuth() as any;
-  const t = COPY.pt;
+  const { language } = useLanguage();
+  const t = language === 'en' ? COPY.en : COPY.pt;
 
   const isAdmin = userInfo?.is_superuser || userInfo?.role === 'owner' || userInfo?.role === 'manager';
 

@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../hooks/useTheme';
+import { useLanguage } from '../contexts/LanguageContext';
 import { Input } from './ui/Input';
 
 type DatePickerInputProps = {
@@ -27,7 +28,20 @@ const getFirstDayOfMonth = (year: number, month: number) => {
   return new Date(year, month, 1).getDay();
 };
 
-const MONTHS = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+const COPY = {
+  pt: {
+    months: ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'],
+    weekDays: ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab'],
+    cancel: 'Cancelar',
+    confirm: 'Confirmar',
+  },
+  en: {
+    months: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
+    weekDays: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+    cancel: 'Cancel',
+    confirm: 'Confirm',
+  },
+} as const;
 
 export const DatePickerInput: React.FC<DatePickerInputProps> = ({
   label,
@@ -36,6 +50,8 @@ export const DatePickerInput: React.FC<DatePickerInputProps> = ({
   onDateChange,
 }) => {
   const { colors } = useTheme();
+  const { language } = useLanguage();
+  const t = language === 'en' ? COPY.en : COPY.pt;
   const [showCalendar, setShowCalendar] = useState(false);
 
   const now = new Date();
@@ -146,7 +162,7 @@ export const DatePickerInput: React.FC<DatePickerInputProps> = ({
                     fontWeight: '600',
                   }}
                 >
-                  {MONTHS[selectedMonth]} {selectedYear}
+                  {t.months[selectedMonth]} {selectedYear}
                 </Text>
 
                 <TouchableOpacity onPress={handleNextMonth} style={{ padding: 8 }}>
@@ -156,7 +172,7 @@ export const DatePickerInput: React.FC<DatePickerInputProps> = ({
 
               {/* Dias da semana */}
               <View style={{ flexDirection: 'row', marginBottom: 8 }}>
-                {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab'].map((day) => (
+                {t.weekDays.map((day) => (
                   <Text
                     key={day}
                     style={{
@@ -227,7 +243,7 @@ export const DatePickerInput: React.FC<DatePickerInputProps> = ({
                       paddingVertical: 12,
                     }}
                   >
-                    Cancelar
+                    {t.cancel}
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
@@ -243,7 +259,7 @@ export const DatePickerInput: React.FC<DatePickerInputProps> = ({
                       paddingVertical: 12,
                     }}
                   >
-                    Confirmar
+                    {t.confirm}
                   </Text>
                 </TouchableOpacity>
               </View>

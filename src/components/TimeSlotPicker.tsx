@@ -1,7 +1,19 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, FlatList, StyleSheet, ActivityIndicator } from 'react-native';
 import { useTheme } from '../hooks/useTheme';
+import { useLanguage } from '../contexts/LanguageContext';
 import { parseSlotDate } from '../utils/date';
+
+const COPY = {
+    pt: {
+        locale: 'pt-BR',
+        noSlots: 'Nenhum horário disponível para esta data.',
+    },
+    en: {
+        locale: 'en-US',
+        noSlots: 'No time slot available for this date.',
+    },
+} as const;
 
 interface TimeSlot {
     id: number;
@@ -19,6 +31,8 @@ interface TimeSlotPickerProps {
 
 const TimeSlotPicker = ({ slots, selectedSlotId, onSlotSelect, loading }: TimeSlotPickerProps) => {
     const { colors } = useTheme();
+    const { language } = useLanguage();
+    const t = language === 'en' ? COPY.en : COPY.pt;
 
     if (loading) {
         return (
@@ -32,7 +46,7 @@ const TimeSlotPicker = ({ slots, selectedSlotId, onSlotSelect, loading }: TimeSl
         return (
             <View style={styles.center}>
                 <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
-                    Nenhum horário disponível para esta data.
+                    {t.noSlots}
                 </Text>
             </View>
         );
@@ -40,7 +54,7 @@ const TimeSlotPicker = ({ slots, selectedSlotId, onSlotSelect, loading }: TimeSl
 
     const renderItem = ({ item }: { item: TimeSlot }) => {
         const startDate = parseSlotDate(item.start_time);
-        const timeLabel = startDate ? new Intl.DateTimeFormat('pt-BR', {
+        const timeLabel = startDate ? new Intl.DateTimeFormat(t.locale, {
             hour: '2-digit',
             minute: '2-digit',
             hour12: false,

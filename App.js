@@ -7,6 +7,7 @@ import { RateLimitProvider } from "./src/contexts/RateLimitContext";
 import { ToastProvider } from "./src/contexts/ToastContext";
 import { ThemeProvider } from "./src/contexts/ThemeContext";
 import { LanguageProvider } from "./src/contexts/LanguageContext";
+import { useTheme } from "./src/hooks/useTheme";
 import { initializeTokens } from "./src/utils/authStorage";
 import { initializeClientTokens } from "./src/utils/clientAuthStorage";
 import RootVariantNavigator from "./src/navigation/RootVariantNavigator";
@@ -26,6 +27,11 @@ import TestModal from "./src/components/TestModal";
 import TestAlert from "./src/components/TestAlert";
 import TestTheme from "./TestTheme";
 import TestComponents from "./TestComponents";
+
+function ThemedStatusBar() {
+  const { theme } = useTheme();
+  return <StatusBar style={theme === "dark" ? "light" : "dark"} />;
+}
 
 export default function App() {
   const [fontsLoaded] = useFonts({
@@ -218,7 +224,7 @@ export default function App() {
               <AuthProvider>
                 <RateLimitProvider>
                   <NavigationContainer>
-                    <StatusBar style="auto" />
+                    <ThemedStatusBar />
                     <RootVariantNavigator />
                   </NavigationContainer>
                 </RateLimitProvider>

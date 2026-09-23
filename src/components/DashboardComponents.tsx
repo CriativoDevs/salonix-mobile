@@ -1,7 +1,23 @@
 import React, { memo } from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { useTheme } from '../hooks/useTheme';
+import { useLanguage } from '../contexts/LanguageContext';
 import { Ionicons } from '@expo/vector-icons';
+
+const STATUS_LABELS = {
+  pt: {
+    scheduled: 'Agendado',
+    cancelled: 'Cancelado',
+    pending: 'Pendente',
+    completed: 'Concluído',
+  },
+  en: {
+    scheduled: 'Scheduled',
+    cancelled: 'Cancelled',
+    pending: 'Pending',
+    completed: 'Completed',
+  },
+} as const;
 
 interface StatCardProps {
   label: string;
@@ -117,21 +133,23 @@ interface AppointmentCardProps {
 
 export const AppointmentCard = memo(({ appointment, onPress }: AppointmentCardProps) => {
   const { colors } = useTheme();
-  
+  const { language } = useLanguage();
+  const labels = language === 'en' ? STATUS_LABELS.en : STATUS_LABELS.pt;
+
   const getStatusLabel = (status: string) => {
     const normalizedStatus = String(status || '').toLowerCase();
     switch (normalizedStatus) {
       case 'confirmed':
       case 'scheduled':
-        return 'Agendado';
+        return labels.scheduled;
       case 'cancelled':
-        return 'Cancelado';
+        return labels.cancelled;
       case 'pending':
-        return 'Pendente';
+        return labels.pending;
       case 'completed':
-        return 'Concluído';
+        return labels.completed;
       default:
-        return 'Agendado';
+        return labels.scheduled;
     }
   };
 

@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../hooks/useTheme';
+import { useLanguage } from '../contexts/LanguageContext';
 import { Input } from '../components/ui/Input';
 import { Card } from '../components/ui/Card';
 import { fetchCustomers, createCustomer, updateCustomer, deleteCustomer, resendCustomerInvite, exportCustomersCSV } from '../api/customers';
@@ -19,12 +20,75 @@ import { isOwner } from '../utils/permissions';
 import { useToast } from '../contexts/ToastContext';
 import { ActionMenu } from '../components/ui/ActionMenu';
 
+const COPY = {
+  pt: {
+    exportError: 'Não foi possível exportar os clientes.',
+    saveError: 'Não foi possível salvar o cliente.',
+    deleteError: 'Não foi possível excluir o cliente.',
+    resendError: 'Não foi possível reenviar o convite.',
+    resendSuccess: 'Convite reenviado com sucesso.',
+    errorTitle: 'Erro',
+    deleteTitle: 'Excluir Cliente',
+    deleteMessage: (name: string) => `Tem certeza que deseja excluir ${name}?`,
+    cancel: 'Cancelar',
+    delete: 'Excluir',
+    inactive: 'Inativo',
+    title: 'Clientes',
+    countSuffix: (n: number) => `${n} clientes`,
+    filters: 'Filtros',
+    newCustomer: 'Novo cliente',
+    importExport: 'Importar/Exportar',
+    shareLink: 'Partilhar link',
+    generateQrCode: 'Gerar QR Code',
+    searchPlaceholder: 'Buscar cliente...',
+    withInactive: 'Com inativos',
+    onlyActive: 'Apenas ativos',
+    emptyTitle: 'Nenhum cliente encontrado.',
+    addNewCustomer: 'Adicionar novo cliente',
+    importCsv: 'Importar CSV',
+    exportCsv: 'Exportar CSV',
+    edit: 'Editar',
+    resendInvite: 'Reenviar Convite',
+  },
+  en: {
+    exportError: 'Could not export the customers.',
+    saveError: 'Could not save the customer.',
+    deleteError: 'Could not delete the customer.',
+    resendError: 'Could not resend the invite.',
+    resendSuccess: 'Invite resent successfully.',
+    errorTitle: 'Error',
+    deleteTitle: 'Delete Customer',
+    deleteMessage: (name: string) => `Are you sure you want to delete ${name}?`,
+    cancel: 'Cancel',
+    delete: 'Delete',
+    inactive: 'Inactive',
+    title: 'Customers',
+    countSuffix: (n: number) => `${n} customers`,
+    filters: 'Filters',
+    newCustomer: 'New customer',
+    importExport: 'Import/Export',
+    shareLink: 'Share link',
+    generateQrCode: 'Generate QR Code',
+    searchPlaceholder: 'Search customer...',
+    withInactive: 'With inactive',
+    onlyActive: 'Active only',
+    emptyTitle: 'No customer found.',
+    addNewCustomer: 'Add new customer',
+    importCsv: 'Import CSV',
+    exportCsv: 'Export CSV',
+    edit: 'Edit',
+    resendInvite: 'Resend Invite',
+  },
+} as const;
+
 export default function CustomersScreen() {
     const { colors } = useTheme();
     const navigation = useNavigation();
     const { slug } = useTenant();
     const { userInfo } = useAuth();
     const { showToast } = useToast();
+    const { language } = useLanguage();
+    const t = language === 'en' ? COPY.en : COPY.pt;
 
     const [customers, setCustomers] = useState<any[]>([]);
     const [totalCount, setTotalCount] = useState(0);
@@ -54,7 +118,7 @@ export default function CustomersScreen() {
             await saveAndShareCSV(content, 'clientes.csv');
         } catch (error) {
             console.error('Error exporting customers:', error);
-            Alert.alert('Erro', 'Não foi possível exportar os clientes.');
+            Alert.alert(t.errorTitle, t.exportError);
         }
     };
 
@@ -171,7 +235,7 @@ export default function CustomersScreen() {
             setModalVisible(false);
         } catch (error) {
             console.error('Error saving customer:', error);
-            Alert.alert('Erro', 'Não foi possível salvar o cliente.');
+            Alert.alert(t.errorTitle, t.saveError);
         } finally {
             setActionLoading(false);
         }
@@ -179,12 +243,12 @@ export default function CustomersScreen() {
 
     const handleDelete = (customer: any) => {
         Alert.alert(
-            'Excluir Cliente',
-            `Tem certeza que deseja excluir ${customer.name}?`,
+            t.deleteTitle,
+            t.deleteMessage(customer.name),
             [
-                { text: 'Cancelar', style: 'cancel' },
+                { text: t.cancel, style: 'cancel' },
                 {
-                    text: 'Excluir',
+                    text: t.delete,
                     style: 'destructive',
                     onPress: async () => {
                         try {
@@ -193,7 +257,7 @@ export default function CustomersScreen() {
                             setTotalCount(prev => Math.max(0, prev - 1));
                         } catch (error) {
                             console.error('Error deleting customer:', error);
-                            Alert.alert('Erro', 'Não foi possível excluir o cliente.');
+                            Alert.alert(t.errorTitle, t.deleteError);
                         }
                     }
                 }
@@ -204,10 +268,10 @@ export default function CustomersScreen() {
     const handleResendInvite = async (customer: any) => {
         try {
             await resendCustomerInvite(customer.id);
-            showToast({ type: 'success', message: 'Convite reenviado com sucesso.' });
+            showToast({ type: 'success', message: t.resendSuccess });
         } catch (error) {
             console.error('Error resending invite:', error);
-            Alert.alert('Erro', 'Não foi possível reenviar o convite.');
+            Alert.alert(t.errorTitle, t.resendError);
         }
     };
 
@@ -236,7 +300,7 @@ export default function CustomersScreen() {
                             </Text>
                             {!item.is_active && (
                                 <View style={[styles.badge, { backgroundColor: colors.surfaceVariant, borderColor: colors.border }]}>
-                                    <Text style={[styles.badgeText, { color: colors.textSecondary }]}>Inativo</Text>
+                                    <Text style={[styles.badgeText, { color: colors.textSecondary }]}>{t.inactive}</Text>
                                 </View>
                             )}
                         </View>
@@ -271,10 +335,10 @@ export default function CustomersScreen() {
 
                 <View style={{ marginBottom: 16 }}>
                     <Text className="text-3xl font-bold" style={{ color: colors.textPrimary, marginBottom: 4 }}>
-                        Clientes
+                        {t.title}
                     </Text>
                     <Text style={{ color: colors.textSecondary, fontSize: 13, marginBottom: 12 }}>
-                        {totalCount} clientes
+                        {t.countSuffix(totalCount)}
                     </Text>
 
                     <ScrollView
@@ -297,7 +361,7 @@ export default function CustomersScreen() {
                                 fontWeight: '600',
                                 marginLeft: 6
                             }}>
-                                Filtros
+                                {t.filters}
                             </Text>
                         </TouchableOpacity>
 
@@ -312,7 +376,7 @@ export default function CustomersScreen() {
                                 fontWeight: '600',
                                 marginLeft: 6
                             }}>
-                                Novo cliente
+                                {t.newCustomer}
                             </Text>
                         </TouchableOpacity>
 
@@ -328,7 +392,7 @@ export default function CustomersScreen() {
                                   fontWeight: '600',
                                   marginLeft: 6
                               }}>
-                                  Importar/Exportar
+                                  {t.importExport}
                               </Text>
                           </TouchableOpacity>
                         )}
@@ -344,7 +408,7 @@ export default function CustomersScreen() {
                                 fontWeight: '600',
                                 marginLeft: 6
                             }}>
-                                Partilhar link
+                                {t.shareLink}
                             </Text>
                         </TouchableOpacity>
 
@@ -359,7 +423,7 @@ export default function CustomersScreen() {
                                 fontWeight: '600',
                                 marginLeft: 6
                             }}>
-                                Gerar QR Code
+                                {t.generateQrCode}
                             </Text>
                         </TouchableOpacity>
                     </ScrollView>
@@ -371,7 +435,7 @@ export default function CustomersScreen() {
                 <View style={[styles.filters, { backgroundColor: colors.background, borderBottomColor: colors.border, borderBottomWidth: 1 }]}>
                     <View style={styles.searchInput}>
                         <Input
-                            placeholder="Buscar cliente..."
+                            placeholder={t.searchPlaceholder}
                             value={search}
                             onChangeText={setSearch}
                             onSubmitEditing={() => loadCustomers(true)}
@@ -386,7 +450,7 @@ export default function CustomersScreen() {
                             styles.filterText,
                             { color: showInactive ? colors.brandPrimary : colors.textSecondary }
                         ]}>
-                            {showInactive ? 'Com inativos' : 'Apenas ativos'}
+                            {showInactive ? t.withInactive : t.onlyActive}
                         </Text>
                     </TouchableOpacity>
                 </View>
@@ -412,11 +476,11 @@ export default function CustomersScreen() {
                     !loading && (
                         <View style={styles.emptyState}>
                             <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-                                Nenhum cliente encontrado.
+                                {t.emptyTitle}
                             </Text>
                             <TouchableOpacity onPress={handleCreate} style={{ marginTop: 16 }}>
                                 <Text style={{ color: colors.brandPrimary, fontWeight: '600' }}>
-                                    Adicionar novo cliente
+                                    {t.addNewCustomer}
                                 </Text>
                             </TouchableOpacity>
                         </View>
@@ -448,10 +512,10 @@ export default function CustomersScreen() {
             <ActionMenu
                 visible={importExportMenuVisible}
                 onClose={() => setImportExportMenuVisible(false)}
-                title="Importar/Exportar"
+                title={t.importExport}
                 options={[
-                    { label: 'Importar CSV', onPress: () => setImportModalVisible(true) },
-                    { label: 'Exportar CSV', onPress: handleExportCSV },
+                    { label: t.importCsv, onPress: () => setImportModalVisible(true) },
+                    { label: t.exportCsv, onPress: handleExportCSV },
                 ]}
             />
 
@@ -460,9 +524,9 @@ export default function CustomersScreen() {
                 onClose={() => setOptionsMenuTarget(null)}
                 title={optionsMenuTarget?.name}
                 options={[
-                    { label: 'Editar', onPress: () => handleEdit(optionsMenuTarget) },
-                    { label: 'Reenviar Convite', onPress: () => handleResendInvite(optionsMenuTarget) },
-                    { label: 'Excluir', onPress: () => handleDelete(optionsMenuTarget), destructive: true },
+                    { label: t.edit, onPress: () => handleEdit(optionsMenuTarget) },
+                    { label: t.resendInvite, onPress: () => handleResendInvite(optionsMenuTarget) },
+                    { label: t.delete, onPress: () => handleDelete(optionsMenuTarget), destructive: true },
                 ]}
             />
         </SafeAreaView>

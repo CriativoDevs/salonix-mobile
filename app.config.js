@@ -14,7 +14,7 @@ const VARIANT = {
     notificationIcon: "./assets/notification-icon.png",
     notificationColor: "#2563EB",
     easProjectId: "6642ca0c-7940-4fd3-b2a9-1af204db242b",
-    version: "2.4.0",
+    version: "2.4.2",
     photoLibraryUsageDescription:
       "TimelyOne usa a tua biblioteca de fotos para escolheres uma imagem e defini-la como logotipo do teu negócio ou como foto de perfil de um profissional ou cliente.",
   },

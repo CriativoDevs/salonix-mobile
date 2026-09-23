@@ -111,6 +111,11 @@ const PACKAGES = {
   ],
 };
 
+let mockLanguage = 'pt';
+jest.mock('../../contexts/LanguageContext', () => ({
+  useLanguage: () => ({ language: mockLanguage, setLanguage: jest.fn() }),
+}));
+
 describe('CreditsPlanScreen', () => {
   beforeEach(() => {
     mockUseAuthReturn = { userInfo: { id: 1, role: 'owner' } };
@@ -119,8 +124,19 @@ describe('CreditsPlanScreen', () => {
     mockFetchCreditBalance.mockResolvedValue(BALANCE);
     mockFetchCreditHistory.mockResolvedValue(HISTORY);
     mockFetchCreditPackages.mockResolvedValue(PACKAGES);
+    mockLanguage = 'pt';
   });
   afterEach(() => jest.clearAllMocks());
+
+  it('shows English labels when language is en', async () => {
+    mockLanguage = 'en';
+
+    const { findByText } = await render(<CreditsPlanScreen />);
+
+    expect(await findByText('Credits and Plan')).toBeTruthy();
+    expect(await findByText('Available plans')).toBeTruthy();
+    expect(await findByText('Credits')).toBeTruthy();
+  });
 
   it('redirects back immediately when the user is not an owner', async () => {
     mockUseAuthReturn = { userInfo: { id: 2, role: 'manager' } };

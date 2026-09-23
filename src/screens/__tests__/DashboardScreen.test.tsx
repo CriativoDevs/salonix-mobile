@@ -22,8 +22,9 @@ jest.mock('../../hooks/useTenant', () => ({
   useTenant: () => ({ tenant: { name: 'Acme Salon' }, slug: 'acme' }),
 }));
 
+let mockLanguage = 'pt';
 jest.mock('../../contexts/LanguageContext', () => ({
-  useLanguage: () => ({ language: 'pt', setLanguage: jest.fn() }),
+  useLanguage: () => ({ language: mockLanguage, setLanguage: jest.fn() }),
 }));
 
 const mockRefetch = jest.fn(() => Promise.resolve());
@@ -68,6 +69,17 @@ jest.mock('../../components/ThemeToggle', () => ({
 describe('DashboardScreen', () => {
   beforeEach(() => {
     mockUseAuthReturn = { userInfo: { id: 1, role: 'owner' }, logout: jest.fn() };
+    mockLanguage = 'pt';
+  });
+
+  it('shows English text when language is en', async () => {
+    mockLanguage = 'en';
+
+    const { getByText } = await render(<DashboardScreen navigation={{}} />);
+
+    await waitFor(() => expect(getByText('Credits')).toBeTruthy());
+    expect(getByText('Appointments (today)')).toBeTruthy();
+    expect(getByText('Clients')).toBeTruthy();
   });
 
   it('shows the Créditos card for an owner', async () => {

@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import { useTheme } from '../hooks/useTheme';
+import { useLanguage } from '../contexts/LanguageContext';
 import { useTenant } from '../hooks/useTenant';
 import { useAuth } from '../hooks/useAuth';
 import { Input } from '../components/ui/Input';
@@ -14,16 +15,50 @@ import { resolveMediaUrl } from '../utils/env';
 import { Button } from '../components/ui/Button';
 import { useToast } from '../contexts/ToastContext';
 
-const ADDRESS_FIELDS: { key: string; label: string }[] = [
-  { key: 'address_street', label: 'Rua' },
-  { key: 'address_number', label: 'Número' },
-  { key: 'address_complement', label: 'Complemento' },
-  { key: 'address_neighborhood', label: 'Freguesia' },
-  { key: 'address_city', label: 'Localidade' },
-  { key: 'address_state', label: 'Distrito' },
-  { key: 'address_zip', label: 'Código Postal' },
-  { key: 'address_country', label: 'País' },
-];
+const COPY = {
+  pt: {
+    addressStreet: 'Rua',
+    addressNumber: 'Número',
+    addressComplement: 'Complemento',
+    addressNeighborhood: 'Freguesia',
+    addressCity: 'Localidade',
+    addressState: 'Distrito',
+    addressZip: 'Código Postal',
+    addressCountry: 'País',
+    errorTitle: 'Erro',
+    loadError: 'Não foi possível carregar a marca.',
+    galleryPermission: 'Permissão de galeria necessária.',
+    unsupportedFormat: 'Formato não suportado. Use JPEG, PNG, GIF ou WEBP.',
+    fileTooLarge: 'O ficheiro deve ter no máximo 2MB.',
+    invalidZip: 'CP inválido. Use 9999-999.',
+    brandUpdated: 'Marca atualizada.',
+    saveError: 'Não foi possível guardar a marca.',
+    title: 'Marca',
+    changeLogo: 'Alterar logo',
+    save: 'Guardar',
+  },
+  en: {
+    addressStreet: 'Street',
+    addressNumber: 'Number',
+    addressComplement: 'Complement',
+    addressNeighborhood: 'Neighborhood',
+    addressCity: 'City',
+    addressState: 'State',
+    addressZip: 'Postal Code',
+    addressCountry: 'Country',
+    errorTitle: 'Error',
+    loadError: 'Could not load the branding.',
+    galleryPermission: 'Gallery permission required.',
+    unsupportedFormat: 'Unsupported format. Use JPEG, PNG, GIF or WEBP.',
+    fileTooLarge: 'The file must be at most 2MB.',
+    invalidZip: 'Invalid postal code. Use 9999-999.',
+    brandUpdated: 'Branding updated.',
+    saveError: 'Could not save the branding.',
+    title: 'Branding',
+    changeLogo: 'Change logo',
+    save: 'Save',
+  },
+} as const;
 
 const ZIP_REGEX = /^\d{4}-\d{3}$/;
 const MAX_LOGO_BYTES = 2 * 1024 * 1024;
@@ -37,7 +72,20 @@ export default function BrandingScreen() {
   const { slug } = useTenant();
   const { userInfo } = useAuth();
   const { showToast } = useToast();
+  const { language } = useLanguage();
+  const t = language === 'en' ? COPY.en : COPY.pt;
   const isAdmin = userInfo?.is_superuser || userInfo?.role === 'owner' || userInfo?.role === 'manager';
+
+  const ADDRESS_FIELDS: { key: string; label: string }[] = [
+    { key: 'address_street', label: t.addressStreet },
+    { key: 'address_number', label: t.addressNumber },
+    { key: 'address_complement', label: t.addressComplement },
+    { key: 'address_neighborhood', label: t.addressNeighborhood },
+    { key: 'address_city', label: t.addressCity },
+    { key: 'address_state', label: t.addressState },
+    { key: 'address_zip', label: t.addressZip },
+    { key: 'address_country', label: t.addressCountry },
+  ];
 
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
@@ -63,7 +111,7 @@ export default function BrandingScreen() {
       if (!active) return;
       setLoadError(true);
       setLoading(false);
-      Alert.alert('Erro', 'Não foi possível carregar a marca.');
+      Alert.alert(t.errorTitle, t.loadError);
     });
     return () => {
       active = false;
@@ -73,7 +121,7 @@ export default function BrandingScreen() {
   const handlePickLogo = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
-      Alert.alert('Erro', 'Permissão de galeria necessária.');
+      Alert.alert(t.errorTitle, t.galleryPermission);
       return;
     }
 
@@ -87,13 +135,13 @@ export default function BrandingScreen() {
     const mimeType = asset.mimeType || 'image/jpeg';
 
     if (!ALLOWED_MIME_TYPES.includes(mimeType)) {
-      setFileError('Formato não suportado. Use JPEG, PNG, GIF ou WEBP.');
+      setFileError(t.unsupportedFormat);
       return;
     }
 
     const info = await FileSystem.getInfoAsync(asset.uri);
     if (info.exists && typeof info.size === 'number' && info.size > MAX_LOGO_BYTES) {
-      setFileError('O ficheiro deve ter no máximo 2MB.');
+      setFileError(t.fileTooLarge);
       return;
     }
 
@@ -103,7 +151,7 @@ export default function BrandingScreen() {
 
   const handleSave = async () => {
     if (address.address_zip && !ZIP_REGEX.test(address.address_zip)) {
-      setZipError('CP inválido. Use 9999-999.');
+      setZipError(t.invalidZip);
       return;
     }
     setZipError(null);
@@ -117,10 +165,10 @@ export default function BrandingScreen() {
       } as any);
       setLogoUrl(resolveMediaUrl(result.logo_url));
       setPickedLogo(null);
-      showToast({ type: 'success', message: 'Marca atualizada.' });
+      showToast({ type: 'success', message: t.brandUpdated });
     } catch (error: any) {
       const detail = error?.response?.data?.detail;
-      Alert.alert('Erro', typeof detail === 'string' ? detail : 'Não foi possível guardar a marca.');
+      Alert.alert(t.errorTitle, typeof detail === 'string' ? detail : t.saveError);
     } finally {
       setBusy(false);
     }
@@ -142,14 +190,14 @@ export default function BrandingScreen() {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Marca</Text>
+        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>{t.title}</Text>
         <View style={{ width: 38 }} />
       </View>
 
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
         {loadError ? (
           <Text style={{ color: colors.textSecondary, fontSize: 14 }}>
-            Não foi possível carregar a marca.
+            {t.loadError}
           </Text>
         ) : (
           <>
@@ -164,7 +212,7 @@ export default function BrandingScreen() {
 
               {isAdmin && (
                 <TouchableOpacity onPress={handlePickLogo}>
-                  <Text style={{ color: colors.brandPrimary, fontWeight: '600' }}>Alterar logo</Text>
+                  <Text style={{ color: colors.brandPrimary, fontWeight: '600' }}>{t.changeLogo}</Text>
                 </TouchableOpacity>
               )}
               {fileError && <Text style={{ color: colors.error, fontSize: 12, marginTop: 4 }}>{fileError}</Text>}
@@ -193,7 +241,7 @@ export default function BrandingScreen() {
 
             {isAdmin && (
               <Button onPress={handleSave} loading={busy} disabled={busy}>
-                Guardar
+                {t.save}
               </Button>
             )}
           </>

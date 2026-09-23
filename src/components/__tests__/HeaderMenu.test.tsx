@@ -73,22 +73,26 @@ describe('HeaderMenu', () => {
     alertSpy.mockRestore();
   });
 
-  // Language toggle está desativado (comentado no HeaderMenu) até a auditoria
-  // de i18n do app inteiro (issue MOB-I18N-01) — a maioria das telas ainda
-  // ignora `language` e mostra texto fixo em pt, então o toggle não teria
-  // efeito visível hoje. Reativar este teste junto com o toggle.
-  it('does not render the language toggle even when onToggleLanguage is provided (disabled pending i18n audit)', async () => {
-    const { queryByLabelText } = await render(
+  // Language toggle reativado após a auditoria de i18n (issue MOB-I18N-01)
+  // cobrir as telas principais do app.
+  it('shows the language toggle and calls onToggleLanguage when pressed', async () => {
+    const onToggleLanguage = jest.fn();
+    const { getByLabelText } = await render(
       <HeaderMenu
         visible
         onClose={jest.fn()}
         onLogout={jest.fn()}
         language="pt"
-        onToggleLanguage={jest.fn()}
+        onToggleLanguage={onToggleLanguage}
       />
     );
 
-    expect(queryByLabelText('toggle-language')).toBeNull();
+    const toggle = getByLabelText('toggle-language');
+    expect(toggle).toBeTruthy();
+
+    await fireEvent.press(toggle);
+
+    expect(onToggleLanguage).toHaveBeenCalled();
   });
 
   it('does not render the language toggle when onToggleLanguage is not provided', async () => {

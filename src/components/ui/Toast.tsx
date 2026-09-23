@@ -2,6 +2,9 @@ import React, { useEffect, useRef } from 'react';
 import { View, Text, Pressable, Animated, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
+import { useLanguage } from '../../contexts/LanguageContext';
+
+const CLOSE_LABEL = { pt: 'Fechar notificação', en: 'Close notification' } as const;
 
 type ToastType = 'success' | 'error' | 'warning' | 'info';
 type ToastPosition = 'top-right' | 'top-left' | 'top-center' | 'bottom-right' | 'bottom-left' | 'bottom-center';
@@ -24,6 +27,8 @@ export const Toast: React.FC<ToastProps> = ({
   onClose,
 }) => {
   const { colors } = useTheme();
+  const { language } = useLanguage();
+  const closeLabel = language === 'en' ? CLOSE_LABEL.en : CLOSE_LABEL.pt;
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -139,7 +144,7 @@ export const Toast: React.FC<ToastProps> = ({
         <Text style={styles.message}>{message}</Text>
         <Pressable 
           onPress={handleClose}
-          accessibilityLabel="Fechar notificação"
+          accessibilityLabel={closeLabel}
           accessibilityRole="button"
         >
           <Ionicons name="close" size={16} color={currentColors.icon} />

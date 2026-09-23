@@ -79,6 +79,26 @@ async function pickZip(getByText: any, entries: Record<string, string>) {
   await waitFor(() => expect(getByText('dados.zip')).toBeTruthy());
 }
 
+let mockLanguage = 'pt';
+jest.mock('../../contexts/LanguageContext', () => ({
+  useLanguage: () => ({ language: mockLanguage, setLanguage: jest.fn() }),
+}));
+
+beforeEach(() => {
+  mockLanguage = 'pt';
+});
+
+describe('BulkImportExportModal - language', () => {
+  it('shows English text when language is en', async () => {
+    mockLanguage = 'en';
+    const { getByText } = await render(
+      <BulkImportExportModal visible onClose={jest.fn()} onSuccess={jest.fn()} slug="acme" />
+    );
+    expect(getByText('Import All')).toBeTruthy();
+    expect(getByText('Choose ZIP file')).toBeTruthy();
+  });
+});
+
 describe('BulkImportExportModal', () => {
   afterEach(() => jest.clearAllMocks());
 

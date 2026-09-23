@@ -50,15 +50,33 @@ const scheduledAppointment = {
   slot: { start_time: '2026-10-01T15:30:00Z', end_time: '2026-10-01T16:00:00Z' },
 };
 
+let mockLanguage = 'pt';
+jest.mock('../../contexts/LanguageContext', () => ({
+  useLanguage: () => ({ language: mockLanguage, setLanguage: jest.fn() }),
+}));
+
 describe('BookingDetailScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     jest.spyOn(Linking, 'canOpenURL').mockResolvedValue(true);
     jest.spyOn(Linking, 'openURL').mockResolvedValue(true as any);
+    mockLanguage = 'pt';
   });
 
   afterEach(() => {
     jest.restoreAllMocks();
+  });
+
+  it('shows English text when language is en', async () => {
+    mockLanguage = 'en';
+    mockFetchAppointmentDetail.mockResolvedValue(scheduledAppointment);
+
+    const { findByText } = await render(
+      <BookingDetailScreen navigation={makeNavigation()} route={{ params: { id: 1 } }} />
+    );
+
+    expect(await findByText('Mark as Completed')).toBeTruthy();
+    expect(await findByText('Cancel Appointment')).toBeTruthy();
   });
 
   it('shows the "Enviar lembrete via WhatsApp" button when the customer has a phone number', async () => {

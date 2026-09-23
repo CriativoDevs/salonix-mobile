@@ -43,6 +43,32 @@ const PROFESSIONALS = [
   { id: 2, name: 'Bruno' },
 ];
 
+let mockLanguage = 'pt';
+jest.mock('../../contexts/LanguageContext', () => ({
+  useLanguage: () => ({ language: mockLanguage, setLanguage: jest.fn() }),
+}));
+
+beforeEach(() => {
+  mockLanguage = 'pt';
+});
+
+describe('SlotBulkGenerateModal - language', () => {
+  it('shows English text when language is en', async () => {
+    mockLanguage = 'en';
+    const { getByText } = await render(
+      <SlotBulkGenerateModal
+        visible
+        onClose={jest.fn()}
+        onSuccess={jest.fn()}
+        professionals={PROFESSIONALS}
+        slug="acme"
+      />
+    );
+    expect(getByText('Bulk Generate Slots')).toBeTruthy();
+    expect(getByText('Generate slots')).toBeTruthy();
+  });
+});
+
 describe('SlotBulkGenerateModal', () => {
   afterEach(() => jest.clearAllMocks());
 

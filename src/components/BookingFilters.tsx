@@ -3,14 +3,40 @@ import { Text, TouchableOpacity, View } from 'react-native';
 import { Input } from './ui/Input';
 import { DatePickerInput } from './DatePickerInput';
 import { useTheme } from '../hooks/useTheme';
+import { useLanguage } from '../contexts/LanguageContext';
 
-const STATUS_OPTIONS = [
-  { value: '', label: 'Todos' },
-  { value: 'scheduled', label: 'Agendado' },
-  { value: 'completed', label: 'Concluido' },
-  { value: 'paid', label: 'Pago' },
-  { value: 'cancelled', label: 'Cancelado' },
-];
+const COPY = {
+  pt: {
+    statusAll: 'Todos',
+    statusScheduled: 'Agendado',
+    statusCompleted: 'Concluido',
+    statusPaid: 'Pago',
+    statusCancelled: 'Cancelado',
+    filters: 'Filtros',
+    dateFrom: 'Data inicial',
+    dateTo: 'Data final',
+    selectDate: 'Selecione uma data',
+    client: 'Cliente',
+    searchClient: 'Buscar cliente',
+    clear: 'Limpar',
+    applyFilters: 'Aplicar filtros',
+  },
+  en: {
+    statusAll: 'All',
+    statusScheduled: 'Scheduled',
+    statusCompleted: 'Completed',
+    statusPaid: 'Paid',
+    statusCancelled: 'Cancelled',
+    filters: 'Filters',
+    dateFrom: 'Start date',
+    dateTo: 'End date',
+    selectDate: 'Select a date',
+    client: 'Client',
+    searchClient: 'Search client',
+    clear: 'Clear',
+    applyFilters: 'Apply filters',
+  },
+} as const;
 
 type BookingFiltersState = {
   status?: string;
@@ -35,6 +61,15 @@ export const BookingFilters: React.FC<BookingFiltersProps> = ({
   onClear,
 }) => {
   const { colors } = useTheme();
+  const { language } = useLanguage();
+  const t = language === 'en' ? COPY.en : COPY.pt;
+  const STATUS_OPTIONS = [
+    { value: '', label: t.statusAll },
+    { value: 'scheduled', label: t.statusScheduled },
+    { value: 'completed', label: t.statusCompleted },
+    { value: 'paid', label: t.statusPaid },
+    { value: 'cancelled', label: t.statusCancelled },
+  ];
   const [customerQuery, setCustomerQuery] = useState('');
   const [showCustomers, setShowCustomers] = useState(false);
 
@@ -82,7 +117,7 @@ export const BookingFilters: React.FC<BookingFiltersProps> = ({
       }}
     >
       <Text style={{ color: colors.textPrimary, fontSize: 14, fontWeight: '600', marginBottom: 10 }}>
-        Filtros
+        {t.filters}
       </Text>
 
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
@@ -111,25 +146,25 @@ export const BookingFilters: React.FC<BookingFiltersProps> = ({
 
       {/* Date Fields */}
       <DatePickerInput
-        label="Data inicial"
-        placeholder="Selecione uma data"
+        label={t.dateFrom}
+        placeholder={t.selectDate}
         value={filters.dateFrom || ''}
         onDateChange={(date) => updateFilters({ dateFrom: date })}
       />
 
       <DatePickerInput
-        label="Data final"
-        placeholder="Selecione uma data"
+        label={t.dateTo}
+        placeholder={t.selectDate}
         value={filters.dateTo || ''}
         onDateChange={(date) => updateFilters({ dateTo: date })}
       />
 
       <View style={{ marginBottom: 12 }}>
         <Text style={{ color: colors.textPrimary, fontSize: 14, fontWeight: '500', marginBottom: 6 }}>
-          Cliente
+          {t.client}
         </Text>
         <Input
-          placeholder="Buscar cliente"
+          placeholder={t.searchClient}
           value={selectedCustomer?.name || customerQuery}
           onChangeText={(value) => {
             setCustomerQuery(value);
@@ -176,14 +211,14 @@ export const BookingFilters: React.FC<BookingFiltersProps> = ({
           onPress={handleClear}
         >
           <Text style={{ color: colors.textSecondary, fontSize: 13, fontWeight: '600' }}>
-            Limpar
+            {t.clear}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
           onPress={onApply}
         >
           <Text style={{ color: colors.brandPrimary, fontSize: 13, fontWeight: '600' }}>
-            Aplicar filtros
+            {t.applyFilters}
           </Text>
         </TouchableOpacity>
       </View>

@@ -7,6 +7,40 @@ import { Button } from './ui/Button';
 import { Modal } from './ui/Modal';
 import { Select } from './ui/Select';
 import { useAuth } from '../hooks/useAuth';
+import { useLanguage } from '../contexts/LanguageContext';
+
+const COPY = {
+    pt: {
+        locale: 'pt-PT',
+        selectProfessional: 'Selecione um profissional',
+        endAfterStart: 'Horário de término deve ser após o início',
+        errorTitle: 'Erro',
+        createError: 'Ocorreu um erro ao criar o horário.',
+        title: 'Criar Horário Disponível',
+        cancel: 'Cancelar',
+        create: 'Criar',
+        professional: 'Profissional',
+        select: 'Selecione...',
+        date: 'Data',
+        startTime: 'Horário de Início',
+        endTime: 'Horário de Término',
+    },
+    en: {
+        locale: 'en-US',
+        selectProfessional: 'Select a professional',
+        endAfterStart: 'End time must be after the start time',
+        errorTitle: 'Error',
+        createError: 'An error occurred while creating the slot.',
+        title: 'Create Available Slot',
+        cancel: 'Cancel',
+        create: 'Create',
+        professional: 'Professional',
+        select: 'Select...',
+        date: 'Date',
+        startTime: 'Start Time',
+        endTime: 'End Time',
+    },
+} as const;
 
 interface SlotFormModalProps {
     visible: boolean;
@@ -19,6 +53,8 @@ interface SlotFormModalProps {
 export function SlotFormModal({ visible, onClose, onSubmit, professionals, busy = false }: SlotFormModalProps) {
     const { colors } = useTheme();
     const { userInfo } = useAuth();
+    const { language } = useLanguage();
+    const t = language === 'en' ? COPY.en : COPY.pt;
 
     const [form, setForm] = useState({
         professional_id: '',
@@ -74,11 +110,11 @@ export function SlotFormModal({ visible, onClose, onSubmit, professionals, busy 
         const newErrors: { [key: string]: string } = {};
 
         if (!form.professional_id) {
-            newErrors.professional = 'Selecione um profissional';
+            newErrors.professional = t.selectProfessional;
         }
 
         if (form.end_time <= form.start_time) {
-            newErrors.time = 'Horário de término deve ser após o início';
+            newErrors.time = t.endAfterStart;
         }
 
         setErrors(newErrors);
@@ -102,23 +138,23 @@ export function SlotFormModal({ visible, onClose, onSubmit, professionals, busy 
             });
         } catch (error) {
             console.error(error);
-            Alert.alert('Erro', 'Ocorreu um erro ao criar o horário.');
+            Alert.alert(t.errorTitle, t.createError);
         }
     };
 
     const formatTime = (date: Date) => {
-        return date.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' });
+        return date.toLocaleTimeString(t.locale, { hour: '2-digit', minute: '2-digit' });
     };
 
     const formatDate = (date: Date) => {
-        return date.toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        return date.toLocaleDateString(t.locale, { day: '2-digit', month: '2-digit', year: 'numeric' });
     };
 
     return (
         <Modal
             visible={visible}
             onClose={onClose}
-            title="Criar Horário Disponível"
+            title={t.title}
             footer={
                 <>
                     <Button
@@ -126,7 +162,7 @@ export function SlotFormModal({ visible, onClose, onSubmit, professionals, busy 
                         onPress={onClose}
                         style={{ flex: 1 }}
                     >
-                        Cancelar
+                        {t.cancel}
                     </Button>
                     <Button
                         onPress={handleSubmit}
@@ -134,20 +170,20 @@ export function SlotFormModal({ visible, onClose, onSubmit, professionals, busy 
                         disabled={busy}
                         style={{ flex: 1 }}
                     >
-                        Criar
+                        {t.create}
                     </Button>
                 </>
             }
         >
             <View style={styles.formContent}>
                 <View style={styles.inputGroup}>
-                    <Text style={[styles.label, { color: colors.textPrimary }]}>Profissional</Text>
+                    <Text style={[styles.label, { color: colors.textPrimary }]}>{t.professional}</Text>
                     <Select
                         testID="slot-form-professional-picker"
                         selectedValue={form.professional_id}
                         onValueChange={(value) => setForm({ ...form, professional_id: value })}
-                        placeholder="Selecione..."
-                        title="Profissional"
+                        placeholder={t.select}
+                        title={t.professional}
                         disabled={availableProfessionals.length <= 1}
                         options={availableProfessionals.map((prof) => ({ label: prof.name, value: String(prof.id) }))}
                     />
@@ -160,7 +196,7 @@ export function SlotFormModal({ visible, onClose, onSubmit, professionals, busy 
 
                 {/* Date Picker */}
                 <View style={styles.inputGroup}>
-                    <Text style={[styles.label, { color: colors.textPrimary }]}>Data</Text>
+                    <Text style={[styles.label, { color: colors.textPrimary }]}>{t.date}</Text>
                     <TouchableOpacity
                         style={[styles.dateButton, { backgroundColor: colors.background, borderColor: colors.border }]}
                         onPress={() => setShowDatePicker(true)}
@@ -185,7 +221,7 @@ export function SlotFormModal({ visible, onClose, onSubmit, professionals, busy 
 
                 {/* Start Time */}
                 <View style={styles.inputGroup}>
-                    <Text style={[styles.label, { color: colors.textPrimary }]}>Horário de Início</Text>
+                    <Text style={[styles.label, { color: colors.textPrimary }]}>{t.startTime}</Text>
                     <TouchableOpacity
                         style={[styles.dateButton, { backgroundColor: colors.background, borderColor: colors.border }]}
                         onPress={() => setShowStartTimePicker(true)}
@@ -210,7 +246,7 @@ export function SlotFormModal({ visible, onClose, onSubmit, professionals, busy 
 
                 {/* End Time */}
                 <View style={styles.inputGroup}>
-                    <Text style={[styles.label, { color: colors.textPrimary }]}>Horário de Término</Text>
+                    <Text style={[styles.label, { color: colors.textPrimary }]}>{t.endTime}</Text>
                     <TouchableOpacity
                         style={[styles.dateButton, { backgroundColor: colors.background, borderColor: colors.border }]}
                         onPress={() => setShowEndTimePicker(true)}

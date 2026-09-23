@@ -18,6 +18,27 @@ jest.mock('../../hooks/useTheme', () => ({
   }),
 }));
 
+let mockLanguage = 'pt';
+jest.mock('../../contexts/LanguageContext', () => ({
+  useLanguage: () => ({ language: mockLanguage, setLanguage: jest.fn() }),
+}));
+
+beforeEach(() => {
+  mockLanguage = 'pt';
+});
+
+describe('StockMovementModal - language', () => {
+  it('shows English text when language is en', async () => {
+    mockLanguage = 'en';
+    const { getByText } = await render(
+      <StockMovementModal visible onClose={jest.fn()} onSubmit={jest.fn()} item={{ id: 1, name: 'Shampoo' }} />
+    );
+    expect(getByText('Register movement')).toBeTruthy();
+    expect(getByText('Entry')).toBeTruthy();
+    expect(getByText('Exit')).toBeTruthy();
+  });
+});
+
 describe('StockMovementModal', () => {
   it('shows a validation error when quantity is empty or zero', async () => {
     const onSubmit = jest.fn();

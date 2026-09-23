@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../../hooks/useTheme';
+import { useLanguage } from '../../contexts/LanguageContext';
 import HourGrid, { HourGridColumn } from './HourGrid';
 import useTenantBusinessHours from '../../hooks/useTenantBusinessHours';
 import useBookingsRange from '../../hooks/useBookingsRange';
@@ -29,7 +30,22 @@ function formatDateParam(date: Date): string {
   return `${year}-${month}-${day}`;
 }
 
-const WEEKDAY_LABELS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+const COPY = {
+  pt: {
+    weekdayLabels: ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'],
+    prevWeek: '< Semana anterior',
+    today: 'Hoje',
+    nextWeek: 'Próxima semana >',
+    loading: 'A carregar...',
+  },
+  en: {
+    weekdayLabels: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+    prevWeek: '< Previous week',
+    today: 'Today',
+    nextWeek: 'Next week >',
+    loading: 'Loading...',
+  },
+} as const;
 
 type WeekViewProps = {
   referenceDate: Date;
@@ -39,6 +55,8 @@ type WeekViewProps = {
 
 export function WeekView({ referenceDate, onChangeReferenceDate, onPressAppointment }: WeekViewProps) {
   const { colors } = useTheme();
+  const { language } = useLanguage();
+  const t = language === 'en' ? COPY.en : COPY.pt;
   const navigation = useNavigation<any>();
   const weekStart = useMemo(() => startOfWeek(referenceDate), [referenceDate]);
   const weekDays = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)), [weekStart]);
@@ -54,11 +72,11 @@ export function WeekView({ referenceDate, onChangeReferenceDate, onPressAppointm
       const dayAppointments = appointments.filter((a) => a.start && formatDateParam(a.start) === dayKey);
       return {
         key: dayKey,
-        label: `${WEEKDAY_LABELS[day.getDay()]} ${day.getDate()}`,
+        label: `${t.weekdayLabels[day.getDay()]} ${day.getDate()}`,
         appointments: dayAppointments,
       };
     });
-  }, [weekDays, appointments]);
+  }, [weekDays, appointments, t]);
 
   const handlePressEmptyCell = (column: HourGridColumn) => {
     navigation.navigate('BookingCreate', { date: column.key });
@@ -68,17 +86,17 @@ export function WeekView({ referenceDate, onChangeReferenceDate, onPressAppointm
     <View style={{ flex: 1 }}>
       <View style={styles.navRow}>
         <Pressable onPress={() => onChangeReferenceDate(addDays(referenceDate, -7))}>
-          <Text style={{ color: colors.brandPrimary }}>{'< Semana anterior'}</Text>
+          <Text style={{ color: colors.brandPrimary }}>{t.prevWeek}</Text>
         </Pressable>
         <Pressable onPress={() => onChangeReferenceDate(new Date())}>
-          <Text style={{ color: colors.textPrimary, fontWeight: '600' }}>Hoje</Text>
+          <Text style={{ color: colors.textPrimary, fontWeight: '600' }}>{t.today}</Text>
         </Pressable>
         <Pressable onPress={() => onChangeReferenceDate(addDays(referenceDate, 7))}>
-          <Text style={{ color: colors.brandPrimary }}>{'Próxima semana >'}</Text>
+          <Text style={{ color: colors.brandPrimary }}>{t.nextWeek}</Text>
         </Pressable>
       </View>
       {loading ? (
-        <Text style={{ color: colors.textSecondary, padding: 16 }}>A carregar...</Text>
+        <Text style={{ color: colors.textSecondary, padding: 16 }}>{t.loading}</Text>
       ) : (
         <HourGrid
           columns={columns}

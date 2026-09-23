@@ -67,7 +67,25 @@ jest.mock('../../components/calendar/MonthView', () => {
   };
 });
 
+let mockLanguage = 'pt';
+jest.mock('../../contexts/LanguageContext', () => ({
+  useLanguage: () => ({ language: mockLanguage, setLanguage: jest.fn() }),
+}));
+
 describe('BookingsScreen - segmented control de vistas', () => {
+  beforeEach(() => {
+    mockLanguage = 'pt';
+  });
+
+  it('shows English labels when language is en', async () => {
+    mockLanguage = 'en';
+    const { getByText } = await render(<BookingsScreen navigation={{ navigate: jest.fn() }} />);
+    expect(getByText('Agenda')).toBeTruthy();
+    expect(getByText('Day')).toBeTruthy();
+    expect(getByText('Week')).toBeTruthy();
+    expect(getByText('Month')).toBeTruthy();
+  });
+
   it('mostra o segmented control Agenda | Dia | Semana | Mês', async () => {
     const { getByText } = await render(<BookingsScreen navigation={{ navigate: jest.fn() }} />);
     expect(getByText('Agenda')).toBeTruthy();

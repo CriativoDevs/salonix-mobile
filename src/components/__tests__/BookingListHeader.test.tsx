@@ -8,7 +8,26 @@ jest.mock('../../hooks/useTheme', () => ({
   }),
 }));
 
+let mockLanguage = 'pt';
+jest.mock('../../contexts/LanguageContext', () => ({
+  useLanguage: () => ({ language: mockLanguage, setLanguage: jest.fn() }),
+}));
+
 describe('BookingListHeader', () => {
+  beforeEach(() => {
+    mockLanguage = 'pt';
+  });
+
+  it('shows English text when language is en', async () => {
+    mockLanguage = 'en';
+    const { getByText } = await render(
+      <BookingListHeader totalCount={3} onImportExport={jest.fn()} showImportExport />
+    );
+    expect(getByText('Appointments')).toBeTruthy();
+    expect(getByText('3 appointments')).toBeTruthy();
+    expect(getByText('Import/Export')).toBeTruthy();
+  });
+
   it('calls onImportExport when the action is pressed and showImportExport is true', async () => {
     const onImportExport = jest.fn();
     const { getByText } = await render(

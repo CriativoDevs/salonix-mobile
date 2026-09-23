@@ -5,6 +5,7 @@ import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useTheme } from '../hooks/useTheme';
+import { useLanguage } from '../contexts/LanguageContext';
 import { useTenant } from '../hooks/useTenant';
 import { Card } from '../components/ui/Card';
 import { Select } from '../components/ui/Select';
@@ -15,11 +16,72 @@ import { SlotFormModal } from '../components/SlotFormModal';
 import { SlotBulkGenerateModal } from '../components/SlotBulkGenerateModal';
 import { useAuth } from '../hooks/useAuth';
 
+const COPY = {
+  pt: {
+    locale: 'pt-PT',
+    noDate: 'Sem data',
+    createError: 'Não foi possível criar o horário.',
+    deleteTitle: 'Excluir Horário',
+    deleteMessage: 'Tem certeza que deseja excluir este horário?',
+    cancel: 'Cancelar',
+    delete: 'Excluir',
+    deleteError: 'Não foi possível excluir o horário.',
+    errorTitle: 'Erro',
+    title: 'Horários',
+    availableCountSuffix: (n: number) => `${n} horários disponíveis`,
+    filters: 'Filtros',
+    newSlot: 'Novo horário',
+    bulkGenerate: 'Gerar em massa',
+    professional: 'Profissional',
+    all: 'Todos',
+    date: 'Data',
+    selectDate: 'Selecione uma data',
+    clearDate: 'Limpar data',
+    onlyAvailable: '✓ Apenas disponíveis',
+    allSlots: 'Todos os horários',
+    loadMore: 'Carregar mais',
+    allLoaded: 'Todos os horários foram carregados.',
+    emptyTitle: 'Nenhum horário encontrado.',
+    addNewSlot: 'Adicionar novo horário',
+    options: 'Opções',
+  },
+  en: {
+    locale: 'en-US',
+    noDate: 'No date',
+    createError: 'Could not create the slot.',
+    deleteTitle: 'Delete Slot',
+    deleteMessage: 'Are you sure you want to delete this slot?',
+    cancel: 'Cancel',
+    delete: 'Delete',
+    deleteError: 'Could not delete the slot.',
+    errorTitle: 'Error',
+    title: 'Slots',
+    availableCountSuffix: (n: number) => `${n} available slots`,
+    filters: 'Filters',
+    newSlot: 'New slot',
+    bulkGenerate: 'Bulk generate',
+    professional: 'Professional',
+    all: 'All',
+    date: 'Date',
+    selectDate: 'Select a date',
+    clearDate: 'Clear date',
+    onlyAvailable: '✓ Available only',
+    allSlots: 'All slots',
+    loadMore: 'Load more',
+    allLoaded: 'All slots have been loaded.',
+    emptyTitle: 'No slot found.',
+    addNewSlot: 'Add new slot',
+    options: 'Options',
+  },
+} as const;
+
 export default function SlotsScreen() {
     const { colors } = useTheme();
     const navigation = useNavigation();
     const { slug } = useTenant();
     const { userInfo } = useAuth();
+    const { language } = useLanguage();
+    const t = language === 'en' ? COPY.en : COPY.pt;
     const isAdmin = userInfo?.is_superuser || userInfo?.role === 'owner' || userInfo?.role === 'manager';
 
     const [slots, setSlots] = useState<any[]>([]);
@@ -170,7 +232,7 @@ export default function SlotsScreen() {
             loadData(true);
         } catch (error) {
             console.error('Error creating slot:', error);
-            Alert.alert('Erro', 'Não foi possível criar o horário.');
+            Alert.alert(t.errorTitle, t.createError);
         } finally {
             setActionLoading(false);
         }
@@ -178,12 +240,12 @@ export default function SlotsScreen() {
 
     const handleDelete = (slot: any) => {
         Alert.alert(
-            'Excluir Horário',
-            `Tem certeza que deseja excluir este horário?`,
+            t.deleteTitle,
+            t.deleteMessage,
             [
-                { text: 'Cancelar', style: 'cancel' },
+                { text: t.cancel, style: 'cancel' },
                 {
-                    text: 'Excluir',
+                    text: t.delete,
                     style: 'destructive',
                     onPress: async () => {
                         try {
@@ -192,7 +254,7 @@ export default function SlotsScreen() {
                             setTotalCount(prev => Math.max(0, prev - 1));
                         } catch (error) {
                             console.error('Error deleting slot:', error);
-                            Alert.alert('Erro', 'Não foi possível excluir o horário.');
+                            Alert.alert(t.errorTitle, t.deleteError);
                         }
                     }
                 }
@@ -209,7 +271,7 @@ export default function SlotsScreen() {
         const groups: { [key: string]: any[] } = {};
 
         slots.forEach(slot => {
-            const date = slot.start_time?.slice(0, 10) || 'Sem data';
+            const date = slot.start_time?.slice(0, 10) || t.noDate;
             if (!groups[date]) {
                 groups[date] = [];
             }
@@ -217,10 +279,10 @@ export default function SlotsScreen() {
         });
 
         return Object.entries(groups).sort((a, b) => b[0].localeCompare(a[0]));
-    }, [slots]);
+    }, [slots, t]);
 
     const formatDate = (dateStr: string) => {
-        if (dateStr === 'Sem data') return dateStr;
+        if (dateStr === t.noDate) return dateStr;
         const [year, month, day] = dateStr.split('-');
         return `${day}/${month}/${year}`;
     };
@@ -297,14 +359,14 @@ export default function SlotsScreen() {
                 >
                     <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
                 </TouchableOpacity>
-                <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Horários</Text>
+                <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>{t.title}</Text>
                 <View style={{ width: 38 }} />
             </View>
 
             <View style={{ paddingHorizontal: 16 }}>
                 <View style={{ marginBottom: 16 }}>
                     <Text style={{ color: colors.textSecondary, fontSize: 13, marginBottom: 12 }}>
-                        {totalCount} horários disponíveis
+                        {t.availableCountSuffix(totalCount)}
                     </Text>
 
                     <View style={{ flexDirection: 'row', marginTop: 12, gap: 16 }}>
@@ -323,7 +385,7 @@ export default function SlotsScreen() {
                                 fontWeight: '600',
                                 marginLeft: 6
                             }}>
-                                Filtros
+                                {t.filters}
                             </Text>
                         </TouchableOpacity>
 
@@ -338,7 +400,7 @@ export default function SlotsScreen() {
                                 fontWeight: '600',
                                 marginLeft: 6
                             }}>
-                                Novo horário
+                                {t.newSlot}
                             </Text>
                         </TouchableOpacity>
 
@@ -354,7 +416,7 @@ export default function SlotsScreen() {
                                     fontWeight: '600',
                                     marginLeft: 6
                                 }}>
-                                    Gerar em massa
+                                    {t.bulkGenerate}
                                 </Text>
                             </TouchableOpacity>
                         )}
@@ -367,15 +429,15 @@ export default function SlotsScreen() {
                 <View style={[styles.filters, { backgroundColor: colors.background, borderBottomColor: colors.border, borderBottomWidth: 1 }]}>
                     {/* Professional Filter */}
                     <View style={styles.filterGroup}>
-                        <Text style={[styles.filterLabel, { color: colors.textPrimary }]}>Profissional</Text>
+                        <Text style={[styles.filterLabel, { color: colors.textPrimary }]}>{t.professional}</Text>
                         <Select
                             testID="slots-professional-filter"
                             selectedValue={selectedProfessional}
                             onValueChange={setSelectedProfessional}
-                            placeholder="Todos"
-                            title="Profissional"
+                            placeholder={t.all}
+                            title={t.professional}
                             options={[
-                                { label: 'Todos', value: '' },
+                                { label: t.all, value: '' },
                                 ...professionals.map((prof) => ({ label: prof.name, value: String(prof.id) })),
                             ]}
                         />
@@ -383,15 +445,15 @@ export default function SlotsScreen() {
 
                     {/* Date Filter */}
                     <View style={styles.filterGroup}>
-                        <Text style={[styles.filterLabel, { color: colors.textPrimary }]}>Data</Text>
+                        <Text style={[styles.filterLabel, { color: colors.textPrimary }]}>{t.date}</Text>
                         <TouchableOpacity
                             style={[styles.dateButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
                             onPress={() => setShowDatePicker(true)}
                         >
                             <Text style={{ color: selectedDate ? colors.textPrimary : colors.textSecondary }}>
                                 {selectedDate
-                                    ? selectedDate.toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit', year: 'numeric' })
-                                    : 'Selecione uma data'}
+                                    ? selectedDate.toLocaleDateString(t.locale, { day: '2-digit', month: '2-digit', year: 'numeric' })
+                                    : t.selectDate}
                             </Text>
                             <Ionicons name="calendar-outline" size={20} color={colors.textSecondary} />
                         </TouchableOpacity>
@@ -400,7 +462,7 @@ export default function SlotsScreen() {
                                 onPress={() => setSelectedDate(null)}
                                 style={{ marginTop: 4 }}
                             >
-                                <Text style={{ color: colors.brandPrimary, fontSize: 12 }}>Limpar data</Text>
+                                <Text style={{ color: colors.brandPrimary, fontSize: 12 }}>{t.clearDate}</Text>
                             </TouchableOpacity>
                         )}
                         {showDatePicker && (
@@ -430,7 +492,7 @@ export default function SlotsScreen() {
                             styles.filterText,
                             { color: showAvailableOnly ? colors.brandPrimary : colors.textSecondary }
                         ]}>
-                            {showAvailableOnly ? '✓ Apenas disponíveis' : 'Todos os horários'}
+                            {showAvailableOnly ? t.onlyAvailable : t.allSlots}
                         </Text>
                     </TouchableOpacity>
                 </View>
@@ -459,13 +521,13 @@ export default function SlotsScreen() {
                                 <ActivityIndicator size="small" color={colors.brandPrimary} />
                             ) : (
                                 <Text style={[styles.loadMoreText, { color: colors.brandPrimary }]}>
-                                    Carregar mais
+                                    {t.loadMore}
                                 </Text>
                             )}
                         </TouchableOpacity>
                     ) : slots.length > 0 ? (
                         <Text style={[styles.endOfListText, { color: colors.textSecondary }]}>
-                            Todos os horários foram carregados.
+                            {t.allLoaded}
                         </Text>
                     ) : null
                 }
@@ -473,11 +535,11 @@ export default function SlotsScreen() {
                     !loading && (
                         <View style={styles.emptyState}>
                             <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-                                Nenhum horário encontrado.
+                                {t.emptyTitle}
                             </Text>
                             <TouchableOpacity onPress={handleCreate} style={{ marginTop: 16 }}>
                                 <Text style={{ color: colors.brandPrimary, fontWeight: '600' }}>
-                                    Adicionar novo horário
+                                    {t.addNewSlot}
                                 </Text>
                             </TouchableOpacity>
                         </View>
@@ -504,9 +566,9 @@ export default function SlotsScreen() {
             <ActionMenu
                 visible={!!optionsMenuTarget}
                 onClose={() => setOptionsMenuTarget(null)}
-                title="Opções"
+                title={t.options}
                 options={[
-                    { label: 'Excluir', onPress: () => handleDelete(optionsMenuTarget), destructive: true },
+                    { label: t.delete, onPress: () => handleDelete(optionsMenuTarget), destructive: true },
                 ]}
             />
         </SafeAreaView>

@@ -13,6 +13,7 @@ import { Button } from '../components/ui/Button';
 import { PaginationDots } from '../components/ui/PaginationDots';
 import { setHasSeenOnboarding } from '../utils/onboardingStorage';
 import { useAuth } from '../hooks/useAuth';
+import { useLanguage } from '../contexts/LanguageContext';
 import { Ionicons } from '@expo/vector-icons';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -37,42 +38,87 @@ interface Slide {
   color: string;
 }
 
-const SLIDES: Slide[] = [
-  {
-    id: '1',
-    title: 'Agende em Segundos',
-    description: 'Encontre e agende serviços de beleza de forma rápida e fácil',
-    icon: 'calendar-outline',
-    color: '#3b82f6',
+const COPY = {
+  pt: {
+    slides: [
+      {
+        id: '1',
+        title: 'Agende em Segundos',
+        description: 'Encontre e agende serviços de beleza de forma rápida e fácil',
+        icon: 'calendar-outline' as const,
+        color: '#3b82f6',
+      },
+      {
+        id: '2',
+        title: 'Gerencie sua Agenda',
+        description: 'Visualize todos os seus agendamentos em um só lugar',
+        icon: 'time-outline' as const,
+        color: '#10b981',
+      },
+      {
+        id: '3',
+        title: 'Receba Lembretes',
+        description: 'Nunca mais perca um compromisso com notificações automáticas',
+        icon: 'notifications-outline' as const,
+        color: '#f59e0b',
+      },
+      {
+        id: '4',
+        title: 'Pronto para Começar?',
+        description: 'Crie sua conta e comece a agendar agora mesmo',
+        icon: 'checkmark-circle-outline' as const,
+        color: '#8b5cf6',
+      },
+    ],
+    skip: 'Pular',
+    getStarted: 'Começar',
+    next: 'Próximo',
   },
-  {
-    id: '2',
-    title: 'Gerencie sua Agenda',
-    description: 'Visualize todos os seus agendamentos em um só lugar',
-    icon: 'time-outline',
-    color: '#10b981',
+  en: {
+    slides: [
+      {
+        id: '1',
+        title: 'Book in Seconds',
+        description: 'Find and book beauty services quickly and easily',
+        icon: 'calendar-outline' as const,
+        color: '#3b82f6',
+      },
+      {
+        id: '2',
+        title: 'Manage Your Schedule',
+        description: 'View all your appointments in one place',
+        icon: 'time-outline' as const,
+        color: '#10b981',
+      },
+      {
+        id: '3',
+        title: 'Get Reminders',
+        description: 'Never miss an appointment with automatic notifications',
+        icon: 'notifications-outline' as const,
+        color: '#f59e0b',
+      },
+      {
+        id: '4',
+        title: 'Ready to Start?',
+        description: 'Create your account and start booking right now',
+        icon: 'checkmark-circle-outline' as const,
+        color: '#8b5cf6',
+      },
+    ],
+    skip: 'Skip',
+    getStarted: 'Get Started',
+    next: 'Next',
   },
-  {
-    id: '3',
-    title: 'Receba Lembretes',
-    description: 'Nunca mais perca um compromisso com notificações automáticas',
-    icon: 'notifications-outline',
-    color: '#f59e0b',
-  },
-  {
-    id: '4',
-    title: 'Pronto para Começar?',
-    description: 'Crie sua conta e comece a agendar agora mesmo',
-    icon: 'checkmark-circle-outline',
-    color: '#8b5cf6',
-  },
-];
+} as const;
 
 export default function OnboardingScreen() {
   const navigation = useNavigation<OnboardingNavigationProp>();
   const flatListRef = useRef<FlatList>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const { isAuthenticated } = useAuth();
+  const { language } = useLanguage();
+  const t = language === 'en' ? COPY.en : COPY.pt;
+  const SLIDES: Slide[] = t.slides as unknown as Slide[];
 
   const handleSkip = async () => {
     await setHasSeenOnboarding();
@@ -112,7 +158,7 @@ export default function OnboardingScreen() {
     <View style={styles.container}>
       {/* Botão Pular (top-right) */}
       <Pressable style={styles.skipButton} onPress={handleSkip}>
-        <Text style={styles.skipText}>Pular</Text>
+        <Text style={styles.skipText}>{t.skip}</Text>
       </Pressable>
 
       {/* Slides */}
@@ -137,7 +183,7 @@ export default function OnboardingScreen() {
           variant="primary"
           size="lg"
         >
-          {isLastSlide ? 'Começar' : 'Próximo'}
+          {isLastSlide ? t.getStarted : t.next}
         </Button>
       </View>
     </View>

@@ -18,6 +18,16 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { hasSeenOnboarding } from '../utils/onboardingStorage';
 import { useAuth } from '../hooks/useAuth';
+import { useLanguage } from '../contexts/LanguageContext';
+
+const COPY = {
+  pt: {
+    tagline: 'Agende com inteligência',
+  },
+  en: {
+    tagline: 'Schedule smarter',
+  },
+} as const;
 
 type RootStackParamList = {
   Splash: undefined;
@@ -31,6 +41,8 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 export default function SplashScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { isAuthenticated } = useAuth();
+  const { language } = useLanguage();
+  const t = language === 'en' ? COPY.en : COPY.pt;
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.8)).current;
 
@@ -93,7 +105,7 @@ export default function SplashScreen() {
         
         {/* App branding */}
         <Text style={styles.appName}>TimelyOne</Text>
-        <Text style={styles.tagline}>Agende com inteligência</Text>
+        <Text style={styles.tagline}>{t.tagline}</Text>
       </Animated.View>
     </View>
   );

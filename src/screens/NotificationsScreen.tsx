@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../hooks/useTheme';
+import { useLanguage } from '../contexts/LanguageContext';
 import { useTenant } from '../hooks/useTenant';
 import { useAuth } from '../hooks/useAuth';
 import { fetchTenantNotifications, updateTenantNotifications, fetchBillingOverview } from '../api/tenant';
@@ -11,19 +12,56 @@ import { fetchCreditBalance } from '../api/credits';
 
 type NotificationKey = 'sms_enabled' | 'whatsapp_enabled' | 'push_mobile_enabled' | 'push_web_enabled';
 
-const CHANNELS: { key: NotificationKey; label: string }[] = [
-  { key: 'sms_enabled', label: 'SMS' },
-  { key: 'whatsapp_enabled', label: 'WhatsApp' },
-  { key: 'push_mobile_enabled', label: 'Push Mobile' },
-  { key: 'push_web_enabled', label: 'Push Web' },
-];
+const COPY = {
+  pt: {
+    sms: 'SMS',
+    whatsapp: 'WhatsApp',
+    pushMobile: 'Push Mobile',
+    pushWeb: 'Push Web',
+    errorTitle: 'Erro',
+    loadError: 'Não foi possível carregar as notificações.',
+    updateError: 'Não foi possível atualizar a notificação.',
+    title: 'Notificações',
+    email: 'Email',
+    active: 'Ativo',
+    whatsappSubtitle: 'WhatsApp será ativado após aprovação Meta Business.',
+    smsTrialSubtitle: 'Disponível após o período de teste.',
+    smsNoCreditSubtitle: 'Sem crédito suficiente.',
+    comingSoon: 'Em breve',
+  },
+  en: {
+    sms: 'SMS',
+    whatsapp: 'WhatsApp',
+    pushMobile: 'Push Mobile',
+    pushWeb: 'Push Web',
+    errorTitle: 'Error',
+    loadError: 'Could not load the notifications.',
+    updateError: 'Could not update the notification.',
+    title: 'Notifications',
+    email: 'Email',
+    active: 'Active',
+    whatsappSubtitle: 'WhatsApp will be enabled after Meta Business approval.',
+    smsTrialSubtitle: 'Available after the trial period.',
+    smsNoCreditSubtitle: 'Not enough credit.',
+    comingSoon: 'Coming soon',
+  },
+} as const;
 
 export default function NotificationsScreen() {
   const navigation = useNavigation();
   const { colors } = useTheme();
   const { slug } = useTenant();
   const { userInfo } = useAuth();
+  const { language } = useLanguage();
+  const t = language === 'en' ? COPY.en : COPY.pt;
   const isAdmin = userInfo?.is_superuser || userInfo?.role === 'owner' || userInfo?.role === 'manager';
+
+  const CHANNELS: { key: NotificationKey; label: string }[] = [
+    { key: 'sms_enabled', label: t.sms },
+    { key: 'whatsapp_enabled', label: t.whatsapp },
+    { key: 'push_mobile_enabled', label: t.pushMobile },
+    { key: 'push_web_enabled', label: t.pushWeb },
+  ];
 
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
@@ -54,7 +92,7 @@ export default function NotificationsScreen() {
         console.error('[NotificationsScreen] Failed to load notifications:', error);
         setLoadError(true);
         setLoading(false);
-        Alert.alert('Erro', 'Não foi possível carregar as notificações.');
+        Alert.alert(t.errorTitle, t.loadError);
         return;
       }
 
@@ -103,7 +141,7 @@ export default function NotificationsScreen() {
     } catch (error: any) {
       setNotifications((current) => ({ ...current, [key]: previous }));
       const detail = error?.response?.data?.detail;
-      Alert.alert('Erro', typeof detail === 'string' ? detail : 'Não foi possível atualizar a notificação.');
+      Alert.alert(t.errorTitle, typeof detail === 'string' ? detail : t.updateError);
     } finally {
       setSavingChannel(null);
     }
@@ -123,20 +161,20 @@ export default function NotificationsScreen() {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Notificações</Text>
+        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>{t.title}</Text>
         <View style={{ width: 38 }} />
       </View>
 
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
         {loadError ? (
           <Text style={{ color: colors.textSecondary, fontSize: 14 }}>
-            Não foi possível carregar as notificações.
+            {t.loadError}
           </Text>
         ) : (
           <>
         <View style={[styles.channelRow, { borderColor: colors.border, backgroundColor: colors.surface }]}>
-          <Text style={[styles.channelLabel, { color: colors.textPrimary }]}>Email</Text>
-          <Text style={{ color: colors.textSecondary, fontSize: 12 }}>Ativo</Text>
+          <Text style={[styles.channelLabel, { color: colors.textPrimary }]}>{t.email}</Text>
+          <Text style={{ color: colors.textSecondary, fontSize: 12 }}>{t.active}</Text>
         </View>
 
         {CHANNELS.map(({ key, label }) => {
@@ -146,11 +184,11 @@ export default function NotificationsScreen() {
 
           let subtitle: string | null = null;
           if (isWhatsapp) {
-            subtitle = 'WhatsApp será ativado após aprovação Meta Business.';
+            subtitle = t.whatsappSubtitle;
           } else if (isSms && isTrialing) {
-            subtitle = 'Disponível após o período de teste.';
+            subtitle = t.smsTrialSubtitle;
           } else if (isSms && !hasCredit) {
-            subtitle = 'Sem crédito suficiente.';
+            subtitle = t.smsNoCreditSubtitle;
           }
 
           return (
@@ -159,7 +197,7 @@ export default function NotificationsScreen() {
                 <Text style={[styles.channelLabel, { color: colors.textPrimary }]}>{label}</Text>
                 {isWhatsapp && (
                   <View style={[styles.badge, { borderColor: colors.brandPrimary }]}>
-                    <Text style={{ color: colors.brandPrimary, fontSize: 10, fontWeight: '600' }}>Em breve</Text>
+                    <Text style={{ color: colors.brandPrimary, fontSize: 10, fontWeight: '600' }}>{t.comingSoon}</Text>
                   </View>
                 )}
                 <Switch

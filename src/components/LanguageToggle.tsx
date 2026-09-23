@@ -7,6 +7,23 @@ import React from 'react';
 import { Pressable, Text, StyleSheet } from 'react-native';
 import { useTheme } from '../hooks/useTheme';
 
+const COPY = {
+  pt: {
+    switchToEnglish: 'Mudar para inglês',
+    switchToPortuguese: 'Mudar para português',
+    currentLanguageHint: (current: string) => `Idioma atual: ${current}. Toque para alternar.`,
+    portuguese: 'português',
+    english: 'inglês',
+  },
+  en: {
+    switchToEnglish: 'Switch to English',
+    switchToPortuguese: 'Switch to Portuguese',
+    currentLanguageHint: (current: string) => `Current language: ${current}. Tap to switch.`,
+    portuguese: 'Portuguese',
+    english: 'English',
+  },
+} as const;
+
 interface LanguageToggleProps {
   language?: string;
   onToggle?: () => void;
@@ -20,6 +37,7 @@ export const LanguageToggle: React.FC<LanguageToggleProps> = ({
 }) => {
   const { colors } = useTheme();
   const isPt = language === 'pt';
+  const t = isPt ? COPY.pt : COPY.en;
 
   return (
     <Pressable
@@ -33,8 +51,8 @@ export const LanguageToggle: React.FC<LanguageToggleProps> = ({
         },
       ]}
       accessibilityRole="button"
-      accessibilityLabel={isPt ? 'Mudar para inglês' : 'Mudar para português'}
-      accessibilityHint={`Idioma atual: ${isPt ? 'português' : 'inglês'}. Toque para alternar.`}
+      accessibilityLabel={isPt ? t.switchToEnglish : t.switchToPortuguese}
+      accessibilityHint={t.currentLanguageHint(isPt ? t.portuguese : t.english)}
     >
       <Text style={[styles.text, { color: colors.textSecondary }]}>
         {isPt ? 'PT' : 'EN'}

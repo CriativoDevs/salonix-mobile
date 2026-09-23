@@ -58,13 +58,28 @@ jest.mock('../../components/SlotBulkGenerateModal', () => {
   };
 });
 
+let mockLanguage = 'pt';
+jest.mock('../../contexts/LanguageContext', () => ({
+  useLanguage: () => ({ language: mockLanguage, setLanguage: jest.fn() }),
+}));
+
 describe('SlotsScreen - bulk generate', () => {
   beforeEach(() => {
     mockFetchSlots.mockResolvedValue({ results: [], count: 0 });
     mockFetchProfessionals.mockResolvedValue({ results: [{ id: 1, name: 'Ana' }] });
     mockUseAuthReturn = { userInfo: { id: 1, role: 'owner' } };
+    mockLanguage = 'pt';
   });
   afterEach(() => jest.clearAllMocks());
+
+  it('shows English labels when language is en', async () => {
+    mockLanguage = 'en';
+    const { findByText } = await render(<SlotsScreen />);
+
+    expect(await findByText('Slots')).toBeTruthy();
+    expect(await findByText('New slot')).toBeTruthy();
+    expect(await findByText('Bulk generate')).toBeTruthy();
+  });
 
   it('shows "Gerar em massa" for owner/manager and opens the modal', async () => {
     const { getByText } = await render(<SlotsScreen />);

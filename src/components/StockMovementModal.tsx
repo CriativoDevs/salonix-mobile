@@ -4,6 +4,36 @@ import { Input } from './ui/Input';
 import { Button } from './ui/Button';
 import { Modal } from './ui/Modal';
 import { useTheme } from '../hooks/useTheme';
+import { useLanguage } from '../contexts/LanguageContext';
+
+const COPY = {
+  pt: {
+    quantityRequired: 'Informe uma quantidade maior que zero.',
+    title: 'Registrar movimentação',
+    description: (name: string) => `Registre uma entrada ou saída para ${name}.`,
+    cancel: 'Cancelar',
+    register: 'Registrar',
+    movementType: 'Tipo de movimentação',
+    entry: 'Entrada',
+    exit: 'Saída',
+    quantity: 'Quantidade',
+    notesOptional: 'Notas (opcional)',
+    notesPlaceholder: 'Ex.: Reposição do fornecedor',
+  },
+  en: {
+    quantityRequired: 'Enter a quantity greater than zero.',
+    title: 'Register movement',
+    description: (name: string) => `Register an entry or exit for ${name}.`,
+    cancel: 'Cancel',
+    register: 'Register',
+    movementType: 'Movement type',
+    entry: 'Entry',
+    exit: 'Exit',
+    quantity: 'Quantity',
+    notesOptional: 'Notes (optional)',
+    notesPlaceholder: 'E.g.: Supplier restock',
+  },
+} as const;
 
 export type StockMovementType = 'in' | 'out';
 
@@ -31,6 +61,8 @@ export function StockMovementModal({
   errorMessage,
 }: StockMovementModalProps) {
   const { colors } = useTheme();
+  const { language } = useLanguage();
+  const t = language === 'en' ? COPY.en : COPY.pt;
   const [movementType, setMovementType] = useState<StockMovementType>('in');
   const [quantity, setQuantity] = useState('');
   const [notes, setNotes] = useState('');
@@ -48,7 +80,7 @@ export function StockMovementModal({
   const handleSubmit = async () => {
     const quantityNumber = Number(quantity);
     if (quantity.trim() === '' || Number.isNaN(quantityNumber) || quantityNumber <= 0) {
-      setLocalError('Informe uma quantidade maior que zero.');
+      setLocalError(t.quantityRequired);
       return;
     }
     setLocalError(null);
@@ -70,23 +102,23 @@ export function StockMovementModal({
     <Modal
       visible={visible}
       onClose={onClose}
-      title="Registrar movimentação"
-      description={item?.name ? `Registre uma entrada ou saída para ${item.name}.` : undefined}
+      title={t.title}
+      description={item?.name ? t.description(item.name) : undefined}
       size="sm"
       footer={
         <>
           <Button variant="secondary" onPress={onClose} disabled={busy} style={{ flex: 1 }}>
-            Cancelar
+            {t.cancel}
           </Button>
           <Button onPress={handleSubmit} loading={busy} disabled={busy} style={{ flex: 1 }}>
-            Registrar
+            {t.register}
           </Button>
         </>
       }
     >
       <View style={styles.content}>
         <View style={styles.inputGroup}>
-          <Text style={[styles.label, { color: colors.textPrimary }]}>Tipo de movimentação</Text>
+          <Text style={[styles.label, { color: colors.textPrimary }]}>{t.movementType}</Text>
           <View style={{ flexDirection: 'row', gap: 8 }}>
             <TouchableOpacity
               testID="stock-movement-type-in"
@@ -106,7 +138,7 @@ export function StockMovementModal({
                   fontSize: 14,
                 }}
               >
-                Entrada
+                {t.entry}
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -127,7 +159,7 @@ export function StockMovementModal({
                   fontSize: 14,
                 }}
               >
-                Saída
+                {t.exit}
               </Text>
             </TouchableOpacity>
           </View>
@@ -135,7 +167,7 @@ export function StockMovementModal({
 
         <View style={styles.inputGroup}>
           <Input
-            label="Quantidade"
+            label={t.quantity}
             placeholder="0"
             value={quantity}
             onChangeText={(text) => {
@@ -148,8 +180,8 @@ export function StockMovementModal({
 
         <View style={styles.inputGroup}>
           <Input
-            label="Notas (opcional)"
-            placeholder="Ex.: Reposição do fornecedor"
+            label={t.notesOptional}
+            placeholder={t.notesPlaceholder}
             value={notes}
             onChangeText={setNotes}
             multiline

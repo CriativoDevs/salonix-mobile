@@ -15,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useTheme } from '../hooks/useTheme';
+import { useLanguage } from '../contexts/LanguageContext';
 import { useTenant } from '../hooks/useTenant';
 import { fetchSlots, fetchAvailableDates } from '../api/slots';
 import { fetchCustomers } from '../api/customers';
@@ -28,11 +29,80 @@ import useProfessionals from '../hooks/useProfessionals';
 import { useToast } from '../contexts/ToastContext';
 import WhatsAppButton from '../components/WhatsAppButton';
 
+const COPY = {
+  pt: {
+    summary: 'Resumo',
+    appointmentCreated: 'Agendamento Criado',
+    newAppointment: 'Novo Agendamento',
+    whichService: 'Qual serviço deseja agendar?',
+    whichProfessional: 'Com qual profissional?',
+    when: 'Quando?',
+    orChooseAnotherDate: 'Ou escolha outra data',
+    availableSlots: 'Horários disponíveis',
+    forWhichCustomer: 'Para qual cliente?',
+    searchCustomerPlaceholder: 'Buscar cliente por nome, email ou tel...',
+    noContact: 'Sem contato',
+    noCustomerFound: 'Nenhum cliente encontrado.',
+    allSet: 'Tudo certo?',
+    service: 'Serviço',
+    professional: 'Profissional',
+    dateAndTime: 'Data e Hora',
+    at: 'às',
+    customer: 'Cliente',
+    value: 'Valor',
+    notesOptional: 'Notas (opcional)',
+    notesPlaceholder: 'Adicionar observações...',
+    appointmentCreatedSuccess: 'Agendamento criado!',
+    appointmentCreatedSubtitle: (name: string) => `O agendamento de ${name} foi criado com sucesso.`,
+    sendConfirmationWhatsApp: 'Enviar confirmação via WhatsApp',
+    finish: 'Concluir',
+    continueLabel: 'Continuar',
+    confirmAppointment: 'Confirmar Agendamento',
+    createSuccessToast: 'Agendamento criado com sucesso!',
+    errorTitle: 'Erro',
+    createError: 'Não foi possível criar o agendamento.',
+  },
+  en: {
+    summary: 'Summary',
+    appointmentCreated: 'Appointment Created',
+    newAppointment: 'New Appointment',
+    whichService: 'Which service would you like to book?',
+    whichProfessional: 'With which professional?',
+    when: 'When?',
+    orChooseAnotherDate: 'Or choose another date',
+    availableSlots: 'Available times',
+    forWhichCustomer: 'For which customer?',
+    searchCustomerPlaceholder: 'Search customer by name, email or phone...',
+    noContact: 'No contact',
+    noCustomerFound: 'No customer found.',
+    allSet: 'All set?',
+    service: 'Service',
+    professional: 'Professional',
+    dateAndTime: 'Date and Time',
+    at: 'at',
+    customer: 'Customer',
+    value: 'Value',
+    notesOptional: 'Notes (optional)',
+    notesPlaceholder: 'Add notes...',
+    appointmentCreatedSuccess: 'Appointment created!',
+    appointmentCreatedSubtitle: (name: string) => `${name}'s appointment was created successfully.`,
+    sendConfirmationWhatsApp: 'Send confirmation via WhatsApp',
+    finish: 'Finish',
+    continueLabel: 'Continue',
+    confirmAppointment: 'Confirm Appointment',
+    createSuccessToast: 'Appointment created successfully!',
+    errorTitle: 'Error',
+    createError: 'Could not create the appointment.',
+  },
+} as const;
+
 const BookingCreateScreen = ({ navigation, route }: any) => {
   const { colors } = useTheme();
   const { slug, tenant } = useTenant();
   const { userInfo } = useAuth();
   const { showToast } = useToast();
+  const { language } = useLanguage();
+  const t = language === 'en' ? COPY.en : COPY.pt;
 
   // Parametros de navegacao (toque numa celula vazia do calendario Semana/Dia)
   const routeParams = route?.params || {};
@@ -222,11 +292,11 @@ const BookingCreateScreen = ({ navigation, route }: any) => {
         status: 'scheduled'
       };
       await createAppointment(payload, { slug: slug as string });
-      showToast({ type: 'success', message: 'Agendamento criado com sucesso!' });
+      showToast({ type: 'success', message: t.createSuccessToast });
       setStep(5);
     } catch (error) {
       console.error('Error creating appointment:', error);
-      Alert.alert('Erro', 'Não foi possível criar o agendamento.');
+      Alert.alert(t.errorTitle, t.createError);
     } finally {
       setLoading(false);
     }
@@ -242,7 +312,7 @@ const BookingCreateScreen = ({ navigation, route }: any) => {
         <Ionicons name="chevron-back" size={24} color={colors.textPrimary} />
       </TouchableOpacity>
       <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>
-        {step === 4 ? 'Resumo' : step === 5 ? 'Agendamento Criado' : 'Novo Agendamento'}
+        {step === 4 ? t.summary : step === 5 ? t.appointmentCreated : t.newAppointment}
       </Text>
       <View style={{ width: 40 }} />
     </View>
@@ -250,7 +320,7 @@ const BookingCreateScreen = ({ navigation, route }: any) => {
 
   const renderServiceStep = () => (
     <View style={styles.stepContainer}>
-      <Text style={[styles.stepTitle, { color: colors.textPrimary }]}>Qual serviço deseja agendar?</Text>
+      <Text style={[styles.stepTitle, { color: colors.textPrimary }]}>{t.whichService}</Text>
       <FlatList
         data={services}
         keyExtractor={(item) => String(item.id)}
@@ -283,7 +353,7 @@ const BookingCreateScreen = ({ navigation, route }: any) => {
 
   const renderProfessionalStep = () => (
     <View style={styles.stepContainer}>
-      <Text style={[styles.stepTitle, { color: colors.textPrimary }]}>Com qual profissional?</Text>
+      <Text style={[styles.stepTitle, { color: colors.textPrimary }]}>{t.whichProfessional}</Text>
       <FlatList
         data={professionals}
         keyExtractor={(item) => String(item.id)}
@@ -362,7 +432,7 @@ const BookingCreateScreen = ({ navigation, route }: any) => {
                   marginBottom: 4,
                   fontWeight: '600'
                 }}>
-                  {d.toLocaleDateString('pt-PT', { weekday: 'short' }).toUpperCase()}
+                  {d.toLocaleDateString(language === 'en' ? 'en-US' : 'pt-PT', { weekday: 'short' }).toUpperCase()}
                 </Text>
                 <Text style={{
                   fontSize: 18,
@@ -390,18 +460,18 @@ const BookingCreateScreen = ({ navigation, route }: any) => {
 
   const renderDateSlotStep = () => (
     <ScrollView style={styles.stepContainer} contentContainerStyle={{ paddingBottom: 100 }}>
-      <Text style={[styles.stepTitle, { color: colors.textPrimary }]}>Quando?</Text>
+      <Text style={[styles.stepTitle, { color: colors.textPrimary }]}>{t.when}</Text>
 
       {renderDateStrip()}
 
-      <Text style={[styles.sectionSubtitle, { color: colors.textSecondary }]}>Ou escolha outra data</Text>
+      <Text style={[styles.sectionSubtitle, { color: colors.textSecondary }]}>{t.orChooseAnotherDate}</Text>
       <TouchableOpacity
         style={[styles.datePickerButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
         onPress={() => setShowDatePicker(true)}
       >
         <Ionicons name="calendar-outline" size={20} color={colors.brandPrimary} />
         <Text style={[styles.datePickerText, { color: colors.textPrimary }]}>
-          {selectedDate.toLocaleDateString('pt-PT', { day: '2-digit', month: 'long', year: 'numeric' })}
+          {selectedDate.toLocaleDateString(language === 'en' ? 'en-US' : 'pt-PT', { day: '2-digit', month: 'long', year: 'numeric' })}
         </Text>
         <Ionicons name="chevron-down" size={20} color={colors.textSecondary} />
       </TouchableOpacity>
@@ -422,7 +492,7 @@ const BookingCreateScreen = ({ navigation, route }: any) => {
         />
       )}
 
-      <Text style={[styles.sectionSubtitle, { color: colors.textSecondary, marginTop: 32 }]}>Horários disponíveis</Text>
+      <Text style={[styles.sectionSubtitle, { color: colors.textSecondary, marginTop: 32 }]}>{t.availableSlots}</Text>
       <TimeSlotPicker
         slots={slots}
         selectedSlotId={selectedSlot?.id}
@@ -434,12 +504,12 @@ const BookingCreateScreen = ({ navigation, route }: any) => {
 
   const renderCustomerStep = () => (
     <View style={styles.stepContainer}>
-      <Text style={[styles.stepTitle, { color: colors.textPrimary }]}>Para qual cliente?</Text>
+      <Text style={[styles.stepTitle, { color: colors.textPrimary }]}>{t.forWhichCustomer}</Text>
       <View style={[styles.searchContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
         <Ionicons name="search" size={20} color={colors.textSecondary} />
         <TextInput
           style={[styles.searchInput, { color: colors.textPrimary }]}
-          placeholder="Buscar cliente por nome, email ou tel..."
+          placeholder={t.searchCustomerPlaceholder}
           placeholderTextColor={colors.textSecondary}
           value={searchQuery}
           onChangeText={setSearchQuery}
@@ -468,7 +538,7 @@ const BookingCreateScreen = ({ navigation, route }: any) => {
               <View style={{ flex: 1 }}>
                 <Text style={[styles.itemName, { color: colors.textPrimary }]}>{item.name}</Text>
                 <Text style={[styles.itemDetail, { color: colors.textSecondary }]}>
-                  {item.email || item.phone_number || 'Sem contato'}
+                  {item.email || item.phone_number || t.noContact}
                 </Text>
               </View>
               {selectedCustomer?.id === item.id && (
@@ -478,7 +548,7 @@ const BookingCreateScreen = ({ navigation, route }: any) => {
           )}
           ListEmptyComponent={
             <Text style={{ textAlign: 'center', marginTop: 20, color: colors.textSecondary }}>
-              Nenhum cliente encontrado.
+              {t.noCustomerFound}
             </Text>
           }
           contentContainerStyle={{ paddingBottom: 100 }}
@@ -489,18 +559,18 @@ const BookingCreateScreen = ({ navigation, route }: any) => {
 
   const renderSummaryStep = () => {
     const slotDate = parseSlotDate(selectedSlot?.start_time);
-    const timeStr = slotDate ? slotDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '';
-    const dateStr = selectedDate.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
+    const timeStr = slotDate ? slotDate.toLocaleTimeString(language === 'en' ? 'en-US' : 'pt-BR', { hour: '2-digit', minute: '2-digit' }) : '';
+    const dateStr = selectedDate.toLocaleDateString(language === 'en' ? 'en-US' : 'pt-BR', { day: '2-digit', month: 'short' });
 
     return (
       <ScrollView style={styles.stepContainer} contentContainerStyle={{ paddingBottom: 100 }}>
-        <Text style={[styles.stepTitle, { color: colors.textPrimary }]}>Tudo certo?</Text>
+        <Text style={[styles.stepTitle, { color: colors.textPrimary }]}>{t.allSet}</Text>
 
         <View style={[styles.summaryCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <View style={styles.summaryItem}>
             <Ionicons name="cut-outline" size={20} color={colors.textSecondary} />
             <View style={styles.summaryContent}>
-              <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>Serviço</Text>
+              <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>{t.service}</Text>
               <Text style={[styles.summaryValue, { color: colors.textPrimary }]}>{selectedService.name}</Text>
             </View>
           </View>
@@ -508,7 +578,7 @@ const BookingCreateScreen = ({ navigation, route }: any) => {
           <View style={styles.summaryItem}>
             <Ionicons name="person-outline" size={20} color={colors.textSecondary} />
             <View style={styles.summaryContent}>
-              <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>Profissional</Text>
+              <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>{t.professional}</Text>
               <Text style={[styles.summaryValue, { color: colors.textPrimary }]}>{selectedProfessional.name}</Text>
             </View>
           </View>
@@ -516,15 +586,15 @@ const BookingCreateScreen = ({ navigation, route }: any) => {
           <View style={styles.summaryItem}>
             <Ionicons name="calendar-outline" size={20} color={colors.textSecondary} />
             <View style={styles.summaryContent}>
-              <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>Data e Hora</Text>
-              <Text style={[styles.summaryValue, { color: colors.textPrimary }]}>{dateStr} às {timeStr}</Text>
+              <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>{t.dateAndTime}</Text>
+              <Text style={[styles.summaryValue, { color: colors.textPrimary }]}>{dateStr} {t.at} {timeStr}</Text>
             </View>
           </View>
 
           <View style={styles.summaryItem}>
             <Ionicons name="people-outline" size={20} color={colors.textSecondary} />
             <View style={styles.summaryContent}>
-              <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>Cliente</Text>
+              <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>{t.customer}</Text>
               <Text style={[styles.summaryValue, { color: colors.textPrimary }]}>{selectedCustomer.name}</Text>
             </View>
           </View>
@@ -532,16 +602,16 @@ const BookingCreateScreen = ({ navigation, route }: any) => {
           <View style={styles.summaryItem}>
             <Ionicons name="card-outline" size={20} color={colors.textSecondary} />
             <View style={styles.summaryContent}>
-              <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>Valor</Text>
+              <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>{t.value}</Text>
               <Text style={[styles.summaryValue, { color: colors.textPrimary }]}>{formatCurrency(selectedService.price_eur)}</Text>
             </View>
           </View>
         </View>
 
-        <Text style={[styles.sectionSubtitle, { color: colors.textSecondary, marginTop: 20 }]}>Notas (opcional)</Text>
+        <Text style={[styles.sectionSubtitle, { color: colors.textSecondary, marginTop: 20 }]}>{t.notesOptional}</Text>
         <TextInput
           style={[styles.notesInput, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary }]}
-          placeholder="Adicionar observações..."
+          placeholder={t.notesPlaceholder}
           placeholderTextColor={colors.textSecondary}
           multiline
           numberOfLines={4}
@@ -566,17 +636,17 @@ const BookingCreateScreen = ({ navigation, route }: any) => {
       <View style={[styles.stepContainer, styles.successContainer]}>
         <Ionicons name="checkmark-circle" size={64} color={colors.success ?? colors.brandPrimary} />
         <Text style={[styles.stepTitle, styles.successTitle, { color: colors.textPrimary }]}>
-          Agendamento criado!
+          {t.appointmentCreatedSuccess}
         </Text>
         <Text style={[styles.successSubtitle, { color: colors.textSecondary }]}>
-          O agendamento de {selectedCustomer?.name} foi criado com sucesso.
+          {t.appointmentCreatedSubtitle(selectedCustomer?.name || '')}
         </Text>
 
         <View style={styles.successActions}>
           <WhatsAppButton
             appointment={whatsAppAppointment}
             eventType="confirmation"
-            label="Enviar confirmação via WhatsApp"
+            label={t.sendConfirmationWhatsApp}
           />
         </View>
       </View>
@@ -615,7 +685,7 @@ const BookingCreateScreen = ({ navigation, route }: any) => {
           >
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
               <Text style={{ color: colors.brandPrimary, fontWeight: '600', fontSize: 16 }}>
-                Concluir
+                {t.finish}
               </Text>
             </View>
           </Button>
@@ -629,7 +699,7 @@ const BookingCreateScreen = ({ navigation, route }: any) => {
           >
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
               <Text style={{ color: isNextDisabled() ? colors.textSecondary : colors.brandPrimary, fontWeight: '600', fontSize: 16 }}>
-                Continuar
+                {t.continueLabel}
               </Text>
               <Ionicons name="chevron-forward" size={18} color={isNextDisabled() ? colors.textSecondary : colors.brandPrimary} />
             </View>
@@ -644,7 +714,7 @@ const BookingCreateScreen = ({ navigation, route }: any) => {
           >
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
               <Text style={{ color: colors.brandPrimary, fontWeight: '600', fontSize: 16 }}>
-                Confirmar Agendamento
+                {t.confirmAppointment}
               </Text>
               <Ionicons name="checkmark" size={18} color={colors.brandPrimary} />
             </View>
