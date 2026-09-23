@@ -1,5 +1,6 @@
 import React from 'react';
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
+import { Linking } from 'react-native';
 import BookingCreateScreen from '../BookingCreateScreen';
 
 jest.mock('../../hooks/useTheme', () => ({
@@ -12,12 +13,13 @@ jest.mock('../../hooks/useTheme', () => ({
       background: '#fff',
       surface: '#f8fafc',
       error: '#ef4444',
+      success: '#22c55e',
     },
   }),
 }));
 
 jest.mock('../../hooks/useTenant', () => ({
-  useTenant: () => ({ slug: 'acme' }),
+  useTenant: () => ({ slug: 'acme', tenant: { name: 'Salão Exemplo' } }),
 }));
 
 jest.mock('../../hooks/useAuth', () => ({
@@ -170,6 +172,62 @@ describe('BookingCreateScreen', () => {
 
     fireEvent.press(getByTestId('booking-create-back-button'));
     expect(await findByText('Qual serviço deseja agendar?')).toBeTruthy();
+  });
+
+  it('shows the success step with a "Enviar confirmação via WhatsApp" button after creating the appointment', async () => {
+    jest.spyOn(Linking, 'canOpenURL').mockResolvedValue(true);
+    jest.spyOn(Linking, 'openURL').mockResolvedValue(true as any);
+
+    mockUseProfessionals.mockReturnValue({
+      professionals: [{ id: 5, name: 'Joana' }],
+      loading: false,
+      reload: jest.fn(),
+    });
+    mockFetchAvailableDates.mockResolvedValue(['2026-08-30']);
+    mockFetchSlots.mockResolvedValue([
+      { id: 9, start_time: '2026-08-30T10:00:00', end_time: '2026-08-30T10:30:00', is_available: true },
+    ]);
+    const fetchCustomers = require('../../api/customers').fetchCustomers;
+    fetchCustomers.mockResolvedValue([
+      { id: 3, name: 'Maria', phone_number: '912345678' },
+    ]);
+    mockCreateAppointment.mockResolvedValue({ id: 42 });
+
+    const navigation = makeNavigation();
+    const { findByText, getByText } = await render(
+      <BookingCreateScreen
+        navigation={navigation}
+        route={{ params: { date: '2026-08-30', professionalId: 5 } }}
+      />
+    );
+
+    await findByText('Quando?');
+    await fireEvent.press(await findByText('10:00'));
+    await fireEvent.press(await findByText('Continuar'));
+
+    await findByText('Qual serviço deseja agendar?');
+    await fireEvent.press(getByText('Corte'));
+    await fireEvent.press(await findByText('Continuar'));
+
+    await findByText('Para qual cliente?');
+    await fireEvent.press(await findByText('Maria'));
+    await fireEvent.press(await findByText('Continuar'));
+
+    await findByText('Tudo certo?');
+    await fireEvent.press(await findByText('Confirmar Agendamento'));
+
+    expect(await findByText('Agendamento criado!')).toBeTruthy();
+    const whatsAppButton = await findByText('Enviar confirmação via WhatsApp');
+    fireEvent.press(whatsAppButton);
+
+    await waitFor(() => {
+      expect(Linking.openURL).toHaveBeenCalledWith(
+        expect.stringContaining('https://wa.me/351912345678')
+      );
+    });
+
+    await fireEvent.press(await findByText('Concluir'));
+    expect(navigation.popToTop).toHaveBeenCalled();
   });
 
   it('calls navigation.goBack when pressing back on the first step', async () => {

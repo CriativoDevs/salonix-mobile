@@ -18,6 +18,7 @@ import { useTenant } from '../hooks/useTenant';
 import { fetchAppointmentDetail, cancelAppointment, updateAppointment } from '../api/bookings';
 import { parseSlotDate, formatDateTimeRange, formatCurrency } from '../utils/date';
 import { useToast } from '../contexts/ToastContext';
+import WhatsAppButton from '../components/WhatsAppButton';
 
 const STATUS_LABELS: Record<string, string> = {
   scheduled: 'Agendado',
@@ -28,7 +29,7 @@ const STATUS_LABELS: Record<string, string> = {
 
 const BookingDetailScreen = ({ navigation, route }: any) => {
   const { colors } = useTheme();
-  const { slug } = useTenant();
+  const { slug, tenant } = useTenant();
   const { showToast } = useToast();
   const { id } = route?.params || {};
 
@@ -159,6 +160,15 @@ const BookingDetailScreen = ({ navigation, route }: any) => {
   const endDate = parseSlotDate(appointment.slot?.end_time || appointment.slot_end);
   const rangeLabel = formatDateTimeRange(startDate, endDate);
 
+  const whatsAppAppointment = {
+    customerName: appointment.customer?.name || appointment.client_username || '',
+    customerPhone: appointment.customer?.phone_number || '',
+    serviceName: appointment.service?.name || '',
+    professionalName: appointment.professional?.name || '',
+    salonName: tenant?.name || '',
+    slotStart: appointment.slot?.start_time || appointment.slot_start || null,
+  };
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
       <View style={styles.header}>
@@ -258,6 +268,12 @@ const BookingDetailScreen = ({ navigation, route }: any) => {
         <View style={styles.actionsSection}>
           {statusKey === 'scheduled' && (
             <>
+              <WhatsAppButton
+                appointment={whatsAppAppointment}
+                eventType="reminder"
+                label="Enviar lembrete via WhatsApp"
+              />
+
               <TouchableOpacity
                 onPress={handleMarkAsCompleted}
                 disabled={actionLoading}
