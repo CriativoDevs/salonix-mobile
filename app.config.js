@@ -15,6 +15,8 @@ const VARIANT = {
     notificationColor: "#2563EB",
     easProjectId: "6642ca0c-7940-4fd3-b2a9-1af204db242b",
     version: "2.4.0",
+    photoLibraryUsageDescription:
+      "TimelyOne usa a tua biblioteca de fotos para escolheres uma imagem e defini-la como logotipo do teu negócio ou como foto de perfil de um profissional ou cliente.",
   },
   client: {
     name: "TimelyOne Client",
@@ -23,10 +25,12 @@ const VARIANT = {
     bundleIdentifier: "com.timelyone.client",
     androidPackage: "com.timelyone.client",
     version: "1.0.0",
-    // Placeholders: reaproveita os mesmos assets do admin até haver design
-    // próprio para a variante cliente (MOB-CLIENT-01).
-    icon: "./assets/icon.png",
-    adaptiveIconForeground: "./assets/adaptive-icon.png",
+    // Ícone com paleta invertida em relação ao admin (fundo/anel verde,
+    // ponteiro azul) para não duplicar o ícone já publicado do app
+    // TimelyOne (rejeição Apple guideline 4.3(a), submissão f9e9f16b).
+    // Design definitivo fica para MOB-CLIENT-01.
+    icon: "./assets/icon-client.png",
+    adaptiveIconForeground: "./assets/adaptive-icon-client.png",
     splashImage: "./assets/splash-native.png",
     notificationIcon: "./assets/notification-icon.png",
     notificationColor: "#2563EB",
@@ -37,6 +41,8 @@ const VARIANT = {
     easProjectId:
       process.env.EAS_PROJECT_ID_CLIENT ||
       "5578952f-f9b5-4d3a-9af1-971743938639",
+    photoLibraryUsageDescription:
+      "TimelyOne Client usa a tua biblioteca de fotos para escolheres uma imagem do teu dispositivo e defini-la como a tua foto de perfil.",
   },
 }[APP_VARIANT];
 
@@ -66,7 +72,10 @@ module.exports = ({ config }) => ({
   ios: {
     supportsTablet: true,
     bundleIdentifier: VARIANT.bundleIdentifier,
-    infoPlist: { ITSAppUsesNonExemptEncryption: false },
+    infoPlist: {
+      ITSAppUsesNonExemptEncryption: false,
+      NSPhotoLibraryUsageDescription: VARIANT.photoLibraryUsageDescription,
+    },
   },
   android: {
     adaptiveIcon: {
