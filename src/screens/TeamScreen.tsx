@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { View, Text, FlatList, RefreshControl, StyleSheet, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -8,8 +8,9 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { Input } from '../components/ui/Input';
 import { Card } from '../components/ui/Card';
 import { Avatar } from '../components/ui/Avatar';
-import { fetchProfessionals, updateProfessional, deleteProfessional } from '../api/professionals';
+import { fetchProfessionals, createProfessional, updateProfessional, deleteProfessional } from '../api/professionals';
 import { fetchStaffMembers, inviteStaffMember, exportStaffCSV, updateStaffContact } from '../api/staff';
+import { fetchServices } from '../api/services';
 import { ProfessionalFormModal } from '../components/ProfessionalFormModal';
 import { ImportStaffModal } from '../components/ImportStaffModal';
 import { useTenant } from '../hooks/useTenant';
@@ -55,6 +56,12 @@ const COPY = {
     exportCsv: 'Exportar CSV',
     edit: 'Editar',
     resendInvite: 'Reenviar Convite',
+    becomeProfessionalTitle: 'Torne-se profissional',
+    becomeProfessionalDescription: 'Crie seu perfil profissional com todos os serviços já vinculados, em 1 toque.',
+    becomeProfessionalCta: 'Tornar-me profissional',
+    becomeProfessionalLoading: 'Criando perfil...',
+    becomeProfessionalSuccess: 'Perfil profissional criado com sucesso!',
+    becomeProfessionalError: 'Não foi possível concluir. Tente novamente.',
   },
   en: {
     exportError: 'Could not export the team.',
@@ -90,6 +97,12 @@ const COPY = {
     exportCsv: 'Export CSV',
     edit: 'Edit',
     resendInvite: 'Resend Invite',
+    becomeProfessionalTitle: 'Become a professional',
+    becomeProfessionalDescription: 'Create your professional profile with all services already linked, in 1 tap.',
+    becomeProfessionalCta: 'Become a professional',
+    becomeProfessionalLoading: 'Creating profile...',
+    becomeProfessionalSuccess: 'Professional profile created successfully!',
+    becomeProfessionalError: 'Could not complete. Please try again.',
   },
 } as const;
 
@@ -124,6 +137,10 @@ export default function TeamScreen() {
     const [importModalVisible, setImportModalVisible] = useState(false);
     const [importExportMenuVisible, setImportExportMenuVisible] = useState(false);
     const [optionsMenuTarget, setOptionsMenuTarget] = useState<any>(null);
+
+    // MOB-PROF-01: atalho "Tornar-me profissional" (paridade com FEW-PROF-01)
+    const [becomingProfessional, setBecomingProfessional] = useState(false);
+    const [becomeProfessionalError, setBecomeProfessionalError] = useState<string | null>(null);
 
     const LIMIT = 20;
 
@@ -328,6 +345,57 @@ export default function TeamScreen() {
         );
     };
 
+    // MOB-PROF-01: owner que já é staff mas ainda não tem um Professional
+    // vinculado ao seu próprio staff_member (conta antiga, de antes do
+    // BE-PROF-01, ou tenant que só usa o app mobile e nunca passou pelo
+    // atalho equivalente do webapp). Mesma lógica do FEW-PROF-01.
+    const currentStaffMember = useMemo(() => {
+        if (!userInfo?.email || !staff.length) return null;
+        const email = String(userInfo.email).toLowerCase();
+        return staff.find((s: any) => String(s.email || '').toLowerCase() === email) || null;
+    }, [userInfo, staff]);
+
+    const ownerHasNoProfessional = useMemo(() => {
+        if (userInfo?.role !== 'owner' || !currentStaffMember) return false;
+        return !professionals.some((p: any) => Number(p.staff_member) === Number(currentStaffMember.id));
+    }, [userInfo, currentStaffMember, professionals]);
+
+    const handleBecomeProfessional = async () => {
+        if (!currentStaffMember || becomingProfessional) return;
+
+        setBecomingProfessional(true);
+        setBecomeProfessionalError(null);
+
+        try {
+            const servicesData = await fetchServices({ slug });
+            const servicesList = Array.isArray(servicesData) ? servicesData : servicesData.results || [];
+            const serviceIds = servicesList.map((s: any) => s.id);
+
+            const ownerName = [currentStaffMember.first_name, currentStaffMember.last_name]
+                .filter(Boolean)
+                .join(' ')
+                .trim() || currentStaffMember.email || t.noName;
+
+            await createProfessional({
+                name: ownerName,
+                staff_member: currentStaffMember.id,
+                service_ids: serviceIds,
+                is_active: true,
+                slug,
+            } as any);
+
+            showToast({ type: 'success', message: t.becomeProfessionalSuccess });
+            loadData(true);
+        } catch (error: any) {
+            console.error('Error becoming professional:', error);
+            const msg = error.response?.data?.detail || error.message || t.becomeProfessionalError;
+            setBecomeProfessionalError(msg);
+            Alert.alert(t.errorTitle, msg);
+        } finally {
+            setBecomingProfessional(false);
+        }
+    };
+
     const handleResendInvite = async (professional: any) => {
         // Placeholder se a funcionalidade de reenviar convite for necessária
         // Para implementar corretamente, precisamos de um endpoint específico de staff
@@ -529,6 +597,46 @@ export default function TeamScreen() {
                     </View>
                 </View>
             </View>
+
+            {/* MOB-PROF-01: atalho "Tornar-me profissional" */}
+            {ownerHasNoProfessional && (
+                <View style={{ paddingHorizontal: 16, marginBottom: 16 }}>
+                    <Card>
+                        <Text style={{ color: colors.textPrimary, fontWeight: '700', fontSize: 15, marginBottom: 4 }}>
+                            {t.becomeProfessionalTitle}
+                        </Text>
+                        <Text style={{ color: colors.textSecondary, fontSize: 13, marginBottom: 12 }}>
+                            {t.becomeProfessionalDescription}
+                        </Text>
+                        <TouchableOpacity
+                            testID="become-professional-button"
+                            onPress={handleBecomeProfessional}
+                            disabled={becomingProfessional}
+                            style={{
+                                alignSelf: 'flex-start',
+                                paddingVertical: 10,
+                                paddingHorizontal: 18,
+                                borderRadius: 20,
+                                backgroundColor: colors.brandPrimary,
+                                opacity: becomingProfessional ? 0.6 : 1,
+                            }}
+                        >
+                            {becomingProfessional ? (
+                                <ActivityIndicator size="small" color="#fff" />
+                            ) : (
+                                <Text style={{ color: '#fff', fontWeight: '600', fontSize: 13 }}>
+                                    {t.becomeProfessionalCta}
+                                </Text>
+                            )}
+                        </TouchableOpacity>
+                        {becomeProfessionalError ? (
+                            <Text style={{ color: '#DC2626', fontSize: 12, marginTop: 8 }}>
+                                {becomeProfessionalError}
+                            </Text>
+                        ) : null}
+                    </Card>
+                </View>
+            )}
 
             {/* Filters Collapsible */}
             {showFilters && (
