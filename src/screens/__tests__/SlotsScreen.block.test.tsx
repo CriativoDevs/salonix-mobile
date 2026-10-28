@@ -59,6 +59,14 @@ jest.mock('../../components/SlotBulkGenerateModal', () => {
   };
 });
 
+jest.mock('../../components/SlotBulkBlockModal', () => {
+  const { Text } = require('react-native');
+  return {
+    __esModule: true,
+    SlotBulkBlockModal: () => <Text>bulk-block-modal-stub</Text>,
+  };
+});
+
 jest.mock('../../components/SlotFormModal', () => {
   const { Text } = require('react-native');
   return {

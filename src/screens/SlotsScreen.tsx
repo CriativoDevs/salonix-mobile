@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { View, Text, FlatList, RefreshControl, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, Platform } from 'react-native';
+import { View, Text, FlatList, RefreshControl, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, Platform, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -14,6 +14,7 @@ import { fetchSlots, createSlot, deleteSlot, blockSlot, unblockSlot } from '../a
 import { fetchProfessionals } from '../api/professionals';
 import { SlotFormModal } from '../components/SlotFormModal';
 import { SlotBulkGenerateModal } from '../components/SlotBulkGenerateModal';
+import { SlotBulkBlockModal } from '../components/SlotBulkBlockModal';
 import { useAuth } from '../hooks/useAuth';
 
 const COPY = {
@@ -32,6 +33,7 @@ const COPY = {
     filters: 'Filtros',
     newSlot: 'Novo horário',
     bulkGenerate: 'Gerar em massa',
+    bulkBlock: 'Bloquear em massa',
     professional: 'Profissional',
     all: 'Todos',
     date: 'Data',
@@ -72,6 +74,7 @@ const COPY = {
     filters: 'Filters',
     newSlot: 'New slot',
     bulkGenerate: 'Bulk generate',
+    bulkBlock: 'Bulk block',
     professional: 'Professional',
     all: 'All',
     date: 'Date',
@@ -128,6 +131,7 @@ export default function SlotsScreen() {
     // Modal & Actions State
     const [modalVisible, setModalVisible] = useState(false);
     const [bulkModalVisible, setBulkModalVisible] = useState(false);
+    const [bulkBlockModalVisible, setBulkBlockModalVisible] = useState(false);
     const [actionLoading, setActionLoading] = useState(false);
     const [optionsMenuTarget, setOptionsMenuTarget] = useState<any>(null);
 
@@ -245,6 +249,11 @@ export default function SlotsScreen() {
 
     const handleBulkGenerateSuccess = () => {
         setBulkModalVisible(false);
+        loadData(true);
+    };
+
+    const handleBulkBlockSuccess = () => {
+        setBulkBlockModalVisible(false);
         loadData(true);
     };
 
@@ -499,7 +508,11 @@ export default function SlotsScreen() {
                         {t.availableCountSuffix(totalCount)}
                     </Text>
 
-                    <View style={{ flexDirection: 'row', marginTop: 12, gap: 16 }}>
+                    <ScrollView
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        contentContainerStyle={{ flexDirection: 'row', marginTop: 12, gap: 16, paddingRight: 16 }}
+                    >
                         <TouchableOpacity
                             onPress={() => setShowFilters(!showFilters)}
                             style={{ flexDirection: 'row', alignItems: 'center' }}
@@ -550,7 +563,24 @@ export default function SlotsScreen() {
                                 </Text>
                             </TouchableOpacity>
                         )}
-                    </View>
+
+                        {isAdmin && (
+                            <TouchableOpacity
+                                onPress={() => setBulkBlockModalVisible(true)}
+                                style={{ flexDirection: 'row', alignItems: 'center' }}
+                            >
+                                <Ionicons name="lock-closed-outline" size={18} color={colors.brandPrimary} />
+                                <Text style={{
+                                    color: colors.brandPrimary,
+                                    fontSize: 13,
+                                    fontWeight: '600',
+                                    marginLeft: 6
+                                }}>
+                                    {t.bulkBlock}
+                                </Text>
+                            </TouchableOpacity>
+                        )}
+                    </ScrollView>
                 </View>
             </View>
 
@@ -689,6 +719,14 @@ export default function SlotsScreen() {
                 visible={bulkModalVisible}
                 onClose={() => setBulkModalVisible(false)}
                 onSuccess={handleBulkGenerateSuccess}
+                professionals={professionals}
+                slug={slug}
+            />
+
+            <SlotBulkBlockModal
+                visible={bulkBlockModalVisible}
+                onClose={() => setBulkBlockModalVisible(false)}
+                onSuccess={handleBulkBlockSuccess}
                 professionals={professionals}
                 slug={slug}
             />
