@@ -128,6 +128,21 @@ export async function updateTenantModules({ pwaClientEnabled } = {}, { slug } = 
   return response.data;
 }
 
+export async function updateTenantAutoGenerateSlots(autoGenerateSlotsEnabled, { slug } = {}) {
+  const headers = {};
+  const params = {};
+  if (slug) {
+    headers['X-Tenant-Slug'] = slug;
+    params.tenant = slug;
+  }
+  const response = await client.patch(
+    'users/tenant/modules/',
+    { auto_generate_slots_enabled: Boolean(autoGenerateSlotsEnabled) },
+    { headers, params }
+  );
+  return response.data;
+}
+
 export async function updateTenantAutoInvite(autoInviteEnabled, { slug } = {}) {
   const headers = {};
   const params = {};

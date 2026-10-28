@@ -8,7 +8,7 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { useTenant } from '../hooks/useTenant';
 import { useAuth } from '../hooks/useAuth';
 import { Input } from '../components/ui/Input';
-import { fetchTenantMeta, updateTenantContact, updateTenantModules, updateTenantAutoInvite } from '../api/tenant';
+import { fetchTenantMeta, updateTenantContact, updateTenantModules, updateTenantAutoInvite, updateTenantAutoGenerateSlots } from '../api/tenant';
 import { Button } from '../components/ui/Button';
 import { useToast } from '../contexts/ToastContext';
 
@@ -20,6 +20,7 @@ const COPY = {
     contactSaveError: 'Não foi possível guardar os dados de contato.',
     pwaClientError: 'Não foi possível atualizar o PWA Cliente.',
     autoInviteError: 'Não foi possível atualizar os convites automáticos.',
+    autoGenerateSlotsError: 'Não foi possível atualizar a geração automática de horários.',
     title: 'Geral',
     email: 'Email',
     phone: 'Telefone',
@@ -31,6 +32,8 @@ const COPY = {
     autoInvite: 'Convites automáticos',
     autoInviteHintEnabled: 'Envia convite PWA automaticamente a novos clientes.',
     autoInviteHintDisabled: 'Ative o PWA Cliente primeiro.',
+    autoGenerateSlots: 'Gerar horários automaticamente',
+    autoGenerateSlotsHint: 'Gera horários automaticamente com base no horário de funcionamento.',
   },
   en: {
     errorTitle: 'Error',
@@ -39,6 +42,7 @@ const COPY = {
     contactSaveError: 'Could not save the contact information.',
     pwaClientError: 'Could not update the Client PWA.',
     autoInviteError: 'Could not update the automatic invites.',
+    autoGenerateSlotsError: 'Could not update the automatic slot generation.',
     title: 'General',
     email: 'Email',
     phone: 'Phone',
@@ -50,6 +54,8 @@ const COPY = {
     autoInvite: 'Automatic invites',
     autoInviteHintEnabled: 'Automatically sends a PWA invite to new customers.',
     autoInviteHintDisabled: 'Enable the Client PWA first.',
+    autoGenerateSlots: 'Automatically generate time slots',
+    autoGenerateSlotsHint: 'Automatically generates time slots based on the business hours.',
   },
 } as const;
 
@@ -77,8 +83,10 @@ export default function GeneralScreen() {
   const [busy, setBusy] = useState(false);
   const [pwaClientEnabled, setPwaClientEnabled] = useState(false);
   const [autoInviteEnabled, setAutoInviteEnabled] = useState(false);
+  const [autoGenerateSlotsEnabled, setAutoGenerateSlotsEnabled] = useState(false);
   const [pwaClientSaving, setPwaClientSaving] = useState(false);
   const [autoInviteSaving, setAutoInviteSaving] = useState(false);
+  const [autoGenerateSlotsSaving, setAutoGenerateSlotsSaving] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -95,6 +103,7 @@ export default function GeneralScreen() {
       setPhone(data.profile?.phone || '');
       setPwaClientEnabled(!!data.feature_flags?.modules?.pwa_client_enabled);
       setAutoInviteEnabled(!!data.auto_invite_enabled);
+      setAutoGenerateSlotsEnabled(!!data.auto_generate_slots_enabled);
       setLoading(false);
     }).catch(() => {
       if (!active) return;
@@ -147,6 +156,21 @@ export default function GeneralScreen() {
       Alert.alert(t.errorTitle, typeof detail === 'string' ? detail : t.autoInviteError);
     } finally {
       setAutoInviteSaving(false);
+    }
+  };
+
+  const handleToggleAutoGenerateSlots = async (value: boolean) => {
+    const previous = autoGenerateSlotsEnabled;
+    setAutoGenerateSlotsEnabled(value);
+    setAutoGenerateSlotsSaving(true);
+    try {
+      await updateTenantAutoGenerateSlots(value, { slug });
+    } catch (error: any) {
+      setAutoGenerateSlotsEnabled(previous);
+      const detail = error?.response?.data?.detail;
+      Alert.alert(t.errorTitle, typeof detail === 'string' ? detail : t.autoGenerateSlotsError);
+    } finally {
+      setAutoGenerateSlotsSaving(false);
     }
   };
 
@@ -257,6 +281,27 @@ export default function GeneralScreen() {
               </View>
               <Text style={{ color: colors.textSecondary, fontSize: 12, marginTop: 4 }}>
                 {pwaClientEnabled ? t.autoInviteHintEnabled : t.autoInviteHintDisabled}
+              </Text>
+            </View>
+
+            <View style={[styles.channelRow, { borderColor: colors.border, backgroundColor: colors.surface }]}>
+              <View style={styles.channelHeader}>
+                <Text style={[styles.channelLabel, { color: colors.textPrimary }]}>{t.autoGenerateSlots}</Text>
+                {isAdmin ? (
+                  <Switch
+                    testID="general-auto-generate-slots-switch"
+                    value={autoGenerateSlotsEnabled}
+                    disabled={autoGenerateSlotsSaving}
+                    onValueChange={handleToggleAutoGenerateSlots}
+                  />
+                ) : (
+                  <Text style={{ color: colors.textSecondary, fontSize: 12 }}>
+                    {autoGenerateSlotsEnabled ? t.active : t.inactive}
+                  </Text>
+                )}
+              </View>
+              <Text style={{ color: colors.textSecondary, fontSize: 12, marginTop: 4 }}>
+                {t.autoGenerateSlotsHint}
               </Text>
             </View>
           </>

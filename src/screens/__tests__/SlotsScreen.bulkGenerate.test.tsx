@@ -16,8 +16,9 @@ jest.mock('../../hooks/useTheme', () => ({
   }),
 }));
 
+let mockUseTenantReturn: any = { slug: 'acme', tenant: { auto_generate_slots_enabled: false } };
 jest.mock('../../hooks/useTenant', () => ({
-  useTenant: () => ({ slug: 'acme' }),
+  useTenant: () => mockUseTenantReturn,
 }));
 
 jest.mock('@react-navigation/native', () => ({
@@ -79,6 +80,7 @@ describe('SlotsScreen - bulk generate', () => {
     mockFetchSlots.mockResolvedValue({ results: [], count: 0 });
     mockFetchProfessionals.mockResolvedValue({ results: [{ id: 1, name: 'Ana' }] });
     mockUseAuthReturn = { userInfo: { id: 1, role: 'owner' } };
+    mockUseTenantReturn = { slug: 'acme', tenant: { auto_generate_slots_enabled: false } };
     mockLanguage = 'pt';
   });
   afterEach(() => jest.clearAllMocks());
@@ -124,5 +126,16 @@ describe('SlotsScreen - bulk generate', () => {
     await waitFor(() => expect(getByText('Novo horário')).toBeTruthy());
 
     expect(queryByText('Gerar em massa')).toBeNull();
+  });
+
+  it('hides "Gerar em massa" when auto_generate_slots_enabled is true, but keeps "Novo horário" and "Bloquear em massa"', async () => {
+    mockUseTenantReturn = { slug: 'acme', tenant: { auto_generate_slots_enabled: true } };
+
+    const { queryByText, getByText } = await render(<SlotsScreen />);
+    await waitFor(() => expect(getByText('Novo horário')).toBeTruthy());
+
+    expect(queryByText('Gerar em massa')).toBeNull();
+    expect(getByText('Novo horário')).toBeTruthy();
+    expect(getByText('Bloquear em massa')).toBeTruthy();
   });
 });
