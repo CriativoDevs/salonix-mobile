@@ -114,6 +114,37 @@ export async function fetchAvailableDates({ professional_id, slug } = {}) {
     return dates;
 }
 
+export async function blockSlot(id, reason, { slug } = {}) {
+    const payload = {};
+    if (reason) {
+        payload.reason = reason;
+    }
+
+    const params = {};
+    const headers = {};
+
+    if (slug) {
+        params.tenant = slug;
+        headers['X-Tenant-Slug'] = slug;
+    }
+
+    const response = await client.post(`slots/${id}/block/`, payload, { params, headers });
+    return response.data;
+}
+
+export async function unblockSlot(id, { slug } = {}) {
+    const params = {};
+    const headers = {};
+
+    if (slug) {
+        params.tenant = slug;
+        headers['X-Tenant-Slug'] = slug;
+    }
+
+    const response = await client.post(`slots/${id}/unblock/`, {}, { params, headers });
+    return response.data;
+}
+
 export async function bulkGenerateSlots({ professional_id, period, interval_minutes, date, slug } = {}) {
     const payload = { professional_id: Number(professional_id), period };
 
