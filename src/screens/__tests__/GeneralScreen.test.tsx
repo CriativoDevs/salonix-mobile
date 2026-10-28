@@ -39,11 +39,13 @@ const mockFetchTenantMeta = jest.fn();
 const mockUpdateTenantContact = jest.fn();
 const mockUpdateTenantModules = jest.fn();
 const mockUpdateTenantAutoInvite = jest.fn();
+const mockUpdateTenantAutoGenerateSlots = jest.fn();
 jest.mock('../../api/tenant', () => ({
   fetchTenantMeta: (...args: any[]) => mockFetchTenantMeta(...args),
   updateTenantContact: (...args: any[]) => mockUpdateTenantContact(...args),
   updateTenantModules: (...args: any[]) => mockUpdateTenantModules(...args),
   updateTenantAutoInvite: (...args: any[]) => mockUpdateTenantAutoInvite(...args),
+  updateTenantAutoGenerateSlots: (...args: any[]) => mockUpdateTenantAutoGenerateSlots(...args),
 }));
 
 const TENANT_META = {
@@ -53,6 +55,7 @@ const TENANT_META = {
   currency: 'eur',
   preferred_language: 'pt',
   auto_invite_enabled: true,
+  auto_generate_slots_enabled: false,
   profile: { email: 'contato@acme.pt', phone: '+351911111111' },
   feature_flags: { modules: { pwa_client_enabled: true } },
 };
@@ -216,6 +219,46 @@ describe('GeneralScreen', () => {
       expect(alertSpy).toHaveBeenCalledWith('Erro', 'Não foi possível atualizar.');
     });
     expect(getByTestId('general-auto-invite-switch').props.value).toBe(true);
+
+    alertSpy.mockRestore();
+  });
+
+  it('shows the initial state of the Gerar horários automaticamente toggle', async () => {
+    const { getByTestId } = await render(<GeneralScreen />);
+
+    await waitFor(() => expect(getByTestId('general-auto-generate-slots-switch')).toBeTruthy());
+    expect(getByTestId('general-auto-generate-slots-switch').props.value).toBe(false);
+  });
+
+  it('toggles Gerar horários automaticamente immediately and calls updateTenantAutoGenerateSlots', async () => {
+    mockUpdateTenantAutoGenerateSlots.mockResolvedValue({ auto_generate_slots_enabled: true });
+
+    const { getByTestId } = await render(<GeneralScreen />);
+    await waitFor(() => expect(getByTestId('general-auto-generate-slots-switch')).toBeTruthy());
+
+    await fireEvent(getByTestId('general-auto-generate-slots-switch'), 'onValueChange', true);
+
+    await waitFor(() => {
+      expect(mockUpdateTenantAutoGenerateSlots).toHaveBeenCalledWith(true, { slug: 'acme' });
+    });
+    expect(getByTestId('general-auto-generate-slots-switch').props.value).toBe(true);
+  });
+
+  it('reverts the Gerar horários automaticamente toggle and shows the backend error when there is no business hours configured', async () => {
+    mockUpdateTenantAutoGenerateSlots.mockRejectedValue({
+      response: { status: 400, data: { detail: 'Configure o horário de funcionamento antes de ativar a geração automática.' } },
+    });
+    const alertSpy = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
+
+    const { getByTestId } = await render(<GeneralScreen />);
+    await waitFor(() => expect(getByTestId('general-auto-generate-slots-switch')).toBeTruthy());
+
+    await fireEvent(getByTestId('general-auto-generate-slots-switch'), 'onValueChange', true);
+
+    await waitFor(() => {
+      expect(alertSpy).toHaveBeenCalledWith('Erro', 'Configure o horário de funcionamento antes de ativar a geração automática.');
+    });
+    expect(getByTestId('general-auto-generate-slots-switch').props.value).toBe(false);
 
     alertSpy.mockRestore();
   });

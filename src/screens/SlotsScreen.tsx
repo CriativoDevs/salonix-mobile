@@ -105,7 +105,7 @@ const COPY = {
 export default function SlotsScreen() {
     const { colors } = useTheme();
     const navigation = useNavigation();
-    const { slug } = useTenant();
+    const { slug, tenant } = useTenant();
     const { userInfo } = useAuth();
     const { language } = useLanguage();
     const t = language === 'en' ? COPY.en : COPY.pt;
@@ -547,7 +547,7 @@ export default function SlotsScreen() {
                             </Text>
                         </TouchableOpacity>
 
-                        {isAdmin && (
+                        {isAdmin && !tenant?.auto_generate_slots_enabled && (
                             <TouchableOpacity
                                 onPress={() => setBulkModalVisible(true)}
                                 style={{ flexDirection: 'row', alignItems: 'center' }}
