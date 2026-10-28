@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { View, Text, FlatList, RefreshControl, StyleSheet, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, FlatList, RefreshControl, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -10,7 +10,7 @@ import { useTenant } from '../hooks/useTenant';
 import { Card } from '../components/ui/Card';
 import { Select } from '../components/ui/Select';
 import { ActionMenu } from '../components/ui/ActionMenu';
-import { fetchSlots, createSlot, deleteSlot } from '../api/slots';
+import { fetchSlots, createSlot, deleteSlot, blockSlot, unblockSlot } from '../api/slots';
 import { fetchProfessionals } from '../api/professionals';
 import { SlotFormModal } from '../components/SlotFormModal';
 import { SlotBulkGenerateModal } from '../components/SlotBulkGenerateModal';
@@ -44,6 +44,18 @@ const COPY = {
     emptyTitle: 'Nenhum horário encontrado.',
     addNewSlot: 'Adicionar novo horário',
     options: 'Opções',
+    statusBlocked: 'Bloqueado',
+    statusBooked: 'Reservado',
+    blockAction: 'Bloquear horário',
+    unblockAction: 'Desbloquear horário',
+    blockTitle: 'Bloquear horário',
+    blockMessage: 'Motivo (opcional):',
+    blockConfirm: 'Bloquear',
+    blockError: 'Não foi possível bloquear o horário.',
+    unblockTitle: 'Desbloquear horário',
+    unblockMessage: 'Tem certeza que deseja desbloquear este horário?',
+    unblockConfirm: 'Desbloquear',
+    unblockError: 'Não foi possível desbloquear o horário.',
   },
   en: {
     locale: 'en-US',
@@ -72,6 +84,18 @@ const COPY = {
     emptyTitle: 'No slot found.',
     addNewSlot: 'Add new slot',
     options: 'Options',
+    statusBlocked: 'Blocked',
+    statusBooked: 'Booked',
+    blockAction: 'Block slot',
+    unblockAction: 'Unblock slot',
+    blockTitle: 'Block slot',
+    blockMessage: 'Reason (optional):',
+    blockConfirm: 'Block',
+    blockError: 'Could not block the slot.',
+    unblockTitle: 'Unblock slot',
+    unblockMessage: 'Are you sure you want to unblock this slot?',
+    unblockConfirm: 'Unblock',
+    unblockError: 'Could not unblock the slot.',
   },
 } as const;
 
@@ -266,6 +290,65 @@ export default function SlotsScreen() {
         setOptionsMenuTarget(slot);
     };
 
+    const applySlotUpdate = (updated: any) => {
+        setSlots(prev => prev.map(s => (s.id === updated.id ? { ...s, ...updated } : s)));
+    };
+
+    const doBlock = async (slot: any, reason?: string) => {
+        try {
+            const updated = await blockSlot(slot.id, reason, { slug });
+            applySlotUpdate(updated);
+        } catch (error) {
+            console.error('Error blocking slot:', error);
+            Alert.alert(t.errorTitle, t.blockError);
+        }
+    };
+
+    const handleBlock = (slot: any) => {
+        if (Platform.OS === 'ios' && typeof (Alert as any).prompt === 'function') {
+            (Alert as any).prompt(
+                t.blockTitle,
+                t.blockMessage,
+                [
+                    { text: t.cancel, style: 'cancel' },
+                    { text: t.blockConfirm, onPress: (reason?: string) => doBlock(slot, reason) },
+                ],
+                'plain-text'
+            );
+        } else {
+            Alert.alert(
+                t.blockTitle,
+                t.blockMessage,
+                [
+                    { text: t.cancel, style: 'cancel' },
+                    { text: t.blockConfirm, onPress: () => doBlock(slot) },
+                ]
+            );
+        }
+    };
+
+    const handleUnblock = (slot: any) => {
+        Alert.alert(
+            t.unblockTitle,
+            t.unblockMessage,
+            [
+                { text: t.cancel, style: 'cancel' },
+                {
+                    text: t.unblockConfirm,
+                    onPress: async () => {
+                        try {
+                            const updated = await unblockSlot(slot.id, { slug });
+                            applySlotUpdate(updated);
+                        } catch (error) {
+                            console.error('Error unblocking slot:', error);
+                            Alert.alert(t.errorTitle, t.unblockError);
+                        }
+                    }
+                }
+            ]
+        );
+    };
+
     // Group slots by date
     const groupedSlots = useMemo(() => {
         const groups: { [key: string]: any[] } = {};
@@ -299,6 +382,8 @@ export default function SlotsScreen() {
     const renderSlotItem = ({ item }: { item: any }) => {
         const professional = professionals.find(p => p.id === item.professional);
         const timeRange = `${formatTime(item.start_time)} – ${formatTime(item.end_time)}`;
+        const isBlocked = item.status === 'blocked';
+        const isBooked = item.status === 'booked';
 
         return (
             <TouchableOpacity
@@ -308,21 +393,66 @@ export default function SlotsScreen() {
                 <Card>
                     <View style={styles.slotContent}>
                         <View style={{ flex: 1 }}>
-                            <Text style={[styles.slotTime, { color: colors.textPrimary }]}>
-                                {timeRange}
-                            </Text>
+                            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                <Text style={[styles.slotTime, { color: colors.textPrimary }]}>
+                                    {timeRange}
+                                </Text>
+                                {isBlocked && (
+                                    <View
+                                        testID={`slot-status-badge-${item.id}`}
+                                        style={[styles.statusBadge, { backgroundColor: colors.warningBackground, marginLeft: 8 }]}
+                                    >
+                                        <Ionicons name="lock-closed-outline" size={12} color={colors.warning} />
+                                        <Text style={[styles.statusBadgeText, { color: colors.warning }]}>
+                                            {t.statusBlocked}
+                                        </Text>
+                                    </View>
+                                )}
+                                {isBooked && (
+                                    <View
+                                        testID={`slot-status-badge-${item.id}`}
+                                        style={[styles.statusBadge, { backgroundColor: colors.surfaceVariant, marginLeft: 8 }]}
+                                    >
+                                        <Text style={[styles.statusBadgeText, { color: colors.textSecondary }]}>
+                                            {t.statusBooked}
+                                        </Text>
+                                    </View>
+                                )}
+                            </View>
                             {professional && (
                                 <Text style={[styles.slotProfessional, { color: colors.textSecondary }]}>
                                     {professional.name}
                                 </Text>
                             )}
+                            {isBlocked && item.blocked_reason && (
+                                <Text style={[styles.slotBlockedReason, { color: colors.textSecondary }]}>
+                                    {item.blocked_reason}
+                                </Text>
+                            )}
                         </View>
-                        <TouchableOpacity
-                            onPress={() => handleDelete(item)}
-                            style={styles.deleteButton}
-                        >
-                            <Ionicons name="trash-outline" size={20} color={colors.error} />
-                        </TouchableOpacity>
+                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                            {!isBooked && (
+                                <TouchableOpacity
+                                    testID={`slot-icon-${isBlocked ? 'unblock' : 'block'}-${item.id}`}
+                                    onPress={() =>
+                                        isBlocked ? handleUnblock(item) : handleBlock(item)
+                                    }
+                                    style={styles.deleteButton}
+                                >
+                                    <Ionicons
+                                        name={isBlocked ? 'lock-open-outline' : 'lock-closed-outline'}
+                                        size={20}
+                                        color={isBlocked ? colors.textSecondary : colors.warning}
+                                    />
+                                </TouchableOpacity>
+                            )}
+                            <TouchableOpacity
+                                onPress={() => handleDelete(item)}
+                                style={styles.deleteButton}
+                            >
+                                <Ionicons name="trash-outline" size={20} color={colors.error} />
+                            </TouchableOpacity>
+                        </View>
                     </View>
                 </Card>
             </TouchableOpacity>
@@ -568,7 +698,13 @@ export default function SlotsScreen() {
                 onClose={() => setOptionsMenuTarget(null)}
                 title={t.options}
                 options={[
-                    { label: t.delete, onPress: () => handleDelete(optionsMenuTarget), destructive: true },
+                    ...(optionsMenuTarget?.status === 'available'
+                        ? [{ testID: 'slot-action-block', label: t.blockAction, onPress: () => handleBlock(optionsMenuTarget) }]
+                        : []),
+                    ...(optionsMenuTarget?.status === 'blocked'
+                        ? [{ testID: 'slot-action-unblock', label: t.unblockAction, onPress: () => handleUnblock(optionsMenuTarget) }]
+                        : []),
+                    { testID: 'slot-action-delete', label: t.delete, onPress: () => handleDelete(optionsMenuTarget), destructive: true },
                 ]}
             />
         </SafeAreaView>
@@ -652,6 +788,23 @@ const styles = StyleSheet.create({
     },
     slotProfessional: {
         fontSize: 14,
+    },
+    slotBlockedReason: {
+        fontSize: 12,
+        marginTop: 4,
+        fontStyle: 'italic',
+    },
+    statusBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+        borderRadius: 10,
+        gap: 4,
+    },
+    statusBadgeText: {
+        fontSize: 11,
+        fontWeight: '600',
     },
     deleteButton: {
         padding: 8,
