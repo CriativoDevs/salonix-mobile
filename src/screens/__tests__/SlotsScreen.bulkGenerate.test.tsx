@@ -58,6 +58,17 @@ jest.mock('../../components/SlotBulkGenerateModal', () => {
   };
 });
 
+jest.mock('../../components/SlotBulkBlockModal', () => {
+  const { Text } = require('react-native');
+  return {
+    __esModule: true,
+    SlotBulkBlockModal: ({ visible }: any) => {
+      if (!visible) return null;
+      return <Text>bulk-block-modal-stub</Text>;
+    },
+  };
+});
+
 let mockLanguage = 'pt';
 jest.mock('../../contexts/LanguageContext', () => ({
   useLanguage: () => ({ language: mockLanguage, setLanguage: jest.fn() }),

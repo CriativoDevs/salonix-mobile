@@ -6,7 +6,6 @@ import {
   Pressable,
   ScrollView,
   Animated,
-  TouchableWithoutFeedback,
   StyleSheet,
   Dimensions,
   Platform,
@@ -86,11 +85,14 @@ export const Modal: React.FC<ModalProps> = ({
   };
 
   const styles = StyleSheet.create({
+    backdrop: {
+      ...StyleSheet.absoluteFillObject,
+      backgroundColor: 'rgba(0, 0, 0, 0.5)', // 50% opacity
+    },
     overlay: {
       flex: 1,
       justifyContent: 'center', // Centraliza verticalmente
       alignItems: 'center', // Centraliza horizontalmente
-      backgroundColor: 'rgba(0, 0, 0, 0.5)', // 50% opacity
       padding: 24, // Margem segura ao redor do modal
     },
     modalContainer: {
@@ -156,20 +158,31 @@ export const Modal: React.FC<ModalProps> = ({
       onRequestClose={onClose}
       statusBarTranslucent
     >
-      <TouchableWithoutFeedback onPress={handleBackdropPress}>
-        <Animated.View style={[styles.overlay, { opacity: fadeAnim }]}>
-          <TouchableWithoutFeedback>
-            <Animated.View
-              style={[
-                styles.modalContainer,
-                {
-                  transform: [{ scale: scaleAnim }],
-                  // Ajuste de largura responsiva
-                  width: widthPercentages[size],
-                },
-              ]}
-            >
-              {/* Header Fixo */}
+      <View style={{ flex: 1 }}>
+        {/* Backdrop: separado do conteúdo (sibling, não wrapper) -- evita que o
+            TouchableWithoutFeedback de fechar-ao-clicar-fora intercepte o gesto
+            de pan/scroll do conteúdo (bug: scroll só funcionava dentro de
+            inputs/selects, que capturam o toque antes do wrapper). */}
+        <Pressable
+          style={StyleSheet.absoluteFill}
+          onPress={handleBackdropPress}
+          accessibilityRole="none"
+        >
+          <Animated.View style={[styles.backdrop, { opacity: fadeAnim }]} />
+        </Pressable>
+        <View style={styles.overlay} pointerEvents="box-none">
+          <Animated.View
+            style={[
+              styles.modalContainer,
+              {
+                opacity: fadeAnim,
+                transform: [{ scale: scaleAnim }],
+                // Ajuste de largura responsiva
+                width: widthPercentages[size],
+              },
+            ]}
+          >
+            {/* Header Fixo */}
               <View style={styles.header}>
                 <View style={styles.headerContent}>
                   {title && <Text style={styles.title}>{title}</Text>}
@@ -190,7 +203,7 @@ export const Modal: React.FC<ModalProps> = ({
               </View>
 
               {/* Conteúdo Scrollável */}
-              <ScrollView 
+              <ScrollView
                 contentContainerStyle={styles.scrollContent}
                 showsVerticalScrollIndicator={false}
                 keyboardShouldPersistTaps="handled"
@@ -204,10 +217,9 @@ export const Modal: React.FC<ModalProps> = ({
                   {footer}
                 </View>
               )}
-            </Animated.View>
-          </TouchableWithoutFeedback>
-        </Animated.View>
-      </TouchableWithoutFeedback>
+          </Animated.View>
+        </View>
+      </View>
     </RNModal>
   );
 };

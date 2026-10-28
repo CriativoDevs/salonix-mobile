@@ -167,3 +167,32 @@ export async function bulkGenerateSlots({ professional_id, period, interval_minu
     const response = await client.post('slots/bulk-generate/', payload, { params, headers });
     return response.data;
 }
+
+export async function bulkBlockSlots({ professional_id, date_from, date_to, start_time, end_time, interval_minutes, reason, slug } = {}) {
+    const payload = {
+        professional_id: Number(professional_id),
+        date_from,
+        date_to,
+        start_time,
+        end_time,
+    };
+
+    if (interval_minutes !== undefined) {
+        payload.interval_minutes = interval_minutes;
+    }
+
+    if (reason) {
+        payload.reason = reason;
+    }
+
+    const params = {};
+    const headers = {};
+
+    if (slug) {
+        params.tenant = slug;
+        headers['X-Tenant-Slug'] = slug;
+    }
+
+    const response = await client.post('slots/bulk-block/', payload, { params, headers });
+    return response.data;
+}
