@@ -18,6 +18,7 @@ const ALLOWED_PHOTO_MIME_TYPES = ["image/jpeg", "image/png", "image/gif", "image
 const COPY = {
   pt: {
     title: "Perfil do cliente",
+    myVouchers: "Meus vouchers",
     name: "Nome",
     email: "E-mail",
     phone: "Telefone",
@@ -39,6 +40,7 @@ const COPY = {
   },
   en: {
     title: "Client profile",
+    myVouchers: "My vouchers",
     name: "Name",
     email: "Email",
     phone: "Phone",
@@ -60,7 +62,7 @@ const COPY = {
   },
 };
 
-export default function ClientProfileScreen() {
+export default function ClientProfileScreen({ navigation }) {
   const { colors } = useTheme();
   const { language, setLanguage } = useLanguage();
   const { showToast } = useToast();
@@ -172,6 +174,10 @@ export default function ClientProfileScreen() {
 
         <Button variant="link" onPress={onSave} loading={saving} disabled={saving}>
           {t.save}
+        </Button>
+
+        <Button variant="link" onPress={() => navigation?.navigate("ClientVouchers")}>
+          {t.myVouchers}
         </Button>
       </View>
 

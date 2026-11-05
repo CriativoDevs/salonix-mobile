@@ -81,6 +81,31 @@ export const cancelClientAppointment = async (id) => {
   return data;
 };
 
+/**
+ * Vouchers do próprio cliente (BE-VOUCHER-06) — JWT de cliente, escopado a
+ * tenant+cliente do token no backend. Resposta é um array simples (sem
+ * paginação), não um objeto { results }.
+ */
+export const fetchClientVouchers = async () => {
+  const { data } = await client.get("clients/me/vouchers/");
+  return Array.isArray(data) ? data : [];
+};
+
+/**
+ * Aplica um voucher já atribuído ao cliente a um agendamento dele.
+ * Erros de validação (voucher já usado/expirado/não encontrado) chegam no
+ * formato padrão do DRF, ex: { client_voucher_id: ["mensagem"] } ou
+ * { detail: ["mensagem"] } — não no formato { error: { details } } usado
+ * em outras partes da API.
+ */
+export const applyClientVoucherToAppointment = async (appointmentId, clientVoucherId) => {
+  const { data } = await client.post(
+    `clients/me/appointments/${appointmentId}/apply-voucher/`,
+    { client_voucher_id: clientVoucherId }
+  );
+  return data;
+};
+
 export const updateClientProfile = async (partial) => {
   const { data } = await client.patch("clients/me/profile/", partial);
   return data;
