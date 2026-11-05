@@ -57,6 +57,19 @@ export async function fetchRetention({ from, to, professionalId, slug } = {}) {
   return response.data;
 }
 
+export async function fetchInventoryReport({ from, to, slug } = {}) {
+  const headers = {};
+  const params = {};
+  if (slug) {
+    headers['X-Tenant-Slug'] = slug;
+    params.tenant = slug;
+  }
+  if (from) params.from = from;
+  if (to) params.to = to;
+  const response = await client.get('reports/inventory/', { headers, params });
+  return response.data;
+}
+
 export async function exportBasicReportsCSV({ from, to, slug } = {}) {
   const headers = {};
   const params = {};

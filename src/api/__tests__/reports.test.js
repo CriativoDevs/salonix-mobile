@@ -8,6 +8,7 @@ const {
   fetchTopServices,
   fetchRevenue,
   fetchRetention,
+  fetchInventoryReport,
   exportBasicReportsCSV,
 } = require('../reports');
 
@@ -108,6 +109,32 @@ describe('fetchRetention', () => {
       headers: { 'X-Tenant-Slug': 'acme' },
       params: { tenant: 'acme', from: '2026-06-09', to: '2026-07-09', professional_id: '7' },
     });
+  });
+});
+
+describe('fetchInventoryReport', () => {
+  afterEach(() => jest.clearAllMocks());
+
+  it('fetches with from/to and tenant headers/params', async () => {
+    client.get.mockResolvedValue({
+      data: {
+        stock_active: true,
+        total_stock_value: 450.5,
+        low_stock_items_count: 1,
+        low_stock_items: [{ id: 1, name: 'Shampoo', quantity: 2, minimum_quantity: 5 }],
+        turnover: [{ item_id: 1, item_name: 'Shampoo', quantity_out: 10, current_quantity: 2, turnover_rate: 5 }],
+        period: { start: '2026-06-09', end: '2026-07-09' },
+      },
+    });
+
+    const result = await fetchInventoryReport({ from: '2026-06-09', to: '2026-07-09', slug: 'acme' });
+
+    expect(client.get).toHaveBeenCalledWith('reports/inventory/', {
+      headers: { 'X-Tenant-Slug': 'acme' },
+      params: { tenant: 'acme', from: '2026-06-09', to: '2026-07-09' },
+    });
+    expect(result.stock_active).toBe(true);
+    expect(result.total_stock_value).toBe(450.5);
   });
 });
 

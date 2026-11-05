@@ -10,14 +10,14 @@ import { useAuth } from '../hooks/useAuth';
 import { isOwner } from '../utils/permissions';
 import { StatCard } from '../components/DashboardComponents';
 import { DatePickerInput } from '../components/DatePickerInput';
-import { fetchBasicReports, fetchTopServices, fetchRevenue, fetchRetention, exportBasicReportsCSV } from '../api/reports';
+import { fetchBasicReports, fetchTopServices, fetchRevenue, fetchRetention, fetchInventoryReport, exportBasicReportsCSV } from '../api/reports';
 import { fetchProfessionals } from '../api/professionals';
 import { fetchServices } from '../api/services';
 import { saveAndShareCSV } from '../utils/csvFileSharing';
 import { Button } from '../components/ui/Button';
 import { Select } from '../components/ui/Select';
 
-type TabKey = 'basic' | 'business' | 'insights';
+type TabKey = 'basic' | 'business' | 'insights' | 'inventory';
 type IntervalKey = 'day' | 'week' | 'month';
 type SectionError = 'forbidden' | 'network' | null;
 
@@ -28,6 +28,7 @@ const COPY = {
     tabBasic: 'Básicos',
     tabBusiness: 'Análise de Negócio',
     tabInsights: 'Insights',
+    tabInventory: 'Estoque',
     intervalDay: 'Dia',
     intervalWeek: 'Semana',
     intervalMonth: 'Mês',
@@ -54,6 +55,7 @@ const COPY = {
     errorTitle: 'Erro',
     businessPlanBlocked: 'O seu plano atual não inclui a Análise de Negócio.',
     insightsPlanBlocked: 'O seu plano atual não inclui os Insights.',
+    inventoryPlanBlocked: 'O seu plano atual não inclui o relatório de Estoque.',
     viewPlans: 'Ver planos',
     tryAgain: 'Tentar novamente',
     topServices: 'Top Serviços',
@@ -69,11 +71,32 @@ const COPY = {
     retentionRate: 'Taxa de Retenção',
     newClients: 'Novos',
     returningClients: 'Recorrentes',
+    productCostTotal: 'Custo de Produtos (COGS)',
+    productCostTotalHint: 'Custo do estoque consumido no período',
+    marginTotal: 'Margem Total',
+    marginTotalHint: 'Receita menos o custo de produtos do período',
+    inventoryEmptyTitle: 'Ainda sem dados de estoque',
+    inventoryEmptyDescription: 'Este relatório fica disponível assim que cadastrar o primeiro item no módulo de Estoque.',
+    goToInventory: 'Ir para o Estoque',
+    totalStockValue: 'Valor Total em Estoque',
+    totalStockValueHint: 'Valoração ao custo (quantidade × custo unitário)',
+    lowStockItemsCount: 'Itens com Estoque Baixo',
+    lowStockItemsCountHint: 'Itens na quantidade mínima ou abaixo dela',
+    lowStockListTitle: 'Itens a repor',
+    turnoverTitle: 'Giro de Estoque no Período',
+    turnoverDescription: 'Quantidade consumida em relação à quantidade atual de cada item',
+    turnoverEmpty: 'Nenhuma movimentação de saída registrada no período selecionado.',
+    turnoverItem: 'Item',
+    turnoverQuantityOut: 'Saídas',
+    turnoverCurrentQuantity: 'Qtd. Atual',
+    turnoverRate: 'Taxa de Giro',
+    turnoverNotApplicable: 'N/D',
   },
   en: {
     tabBasic: 'Basic',
     tabBusiness: 'Business Analysis',
     tabInsights: 'Insights',
+    tabInventory: 'Inventory',
     intervalDay: 'Day',
     intervalWeek: 'Week',
     intervalMonth: 'Month',
@@ -100,6 +123,7 @@ const COPY = {
     errorTitle: 'Error',
     businessPlanBlocked: 'Your current plan does not include Business Analysis.',
     insightsPlanBlocked: 'Your current plan does not include Insights.',
+    inventoryPlanBlocked: 'Your current plan does not include the Inventory report.',
     viewPlans: 'View plans',
     tryAgain: 'Try again',
     topServices: 'Top Services',
@@ -115,6 +139,26 @@ const COPY = {
     retentionRate: 'Retention Rate',
     newClients: 'New',
     returningClients: 'Returning',
+    productCostTotal: 'Product Cost (COGS)',
+    productCostTotalHint: 'Cost of stock consumed in the period',
+    marginTotal: 'Total Margin',
+    marginTotalHint: 'Revenue minus the product cost for the period',
+    inventoryEmptyTitle: 'No inventory data yet',
+    inventoryEmptyDescription: 'This report becomes available once you register the first item in the Inventory module.',
+    goToInventory: 'Go to Inventory',
+    totalStockValue: 'Total Stock Value',
+    totalStockValueHint: 'Valuation at cost (quantity × unit cost)',
+    lowStockItemsCount: 'Low Stock Items',
+    lowStockItemsCountHint: 'Items at or below the minimum quantity',
+    lowStockListTitle: 'Items to restock',
+    turnoverTitle: 'Stock Turnover in the Period',
+    turnoverDescription: 'Quantity consumed relative to the current quantity of each item',
+    turnoverEmpty: 'No outbound movement recorded in the selected period.',
+    turnoverItem: 'Item',
+    turnoverQuantityOut: 'Out',
+    turnoverCurrentQuantity: 'Current Qty.',
+    turnoverRate: 'Turnover Rate',
+    turnoverNotApplicable: 'N/A',
   },
 } as const;
 
@@ -171,6 +215,7 @@ export default function ReportsScreen() {
     { key: 'basic', label: t.tabBasic },
     { key: 'business', label: t.tabBusiness },
     { key: 'insights', label: t.tabInsights },
+    { key: 'inventory', label: t.tabInventory },
   ];
 
   const INTERVAL_OPTIONS: { value: IntervalKey; label: string }[] = [
@@ -186,6 +231,22 @@ export default function ReportsScreen() {
   }, [userInfo, navigation]);
 
   const [activeTab, setActiveTab] = useState<TabKey>('basic');
+  const tabScrollRef = useRef<ScrollView>(null);
+  const tabScrollWidthRef = useRef(0);
+  const tabLayoutsRef = useRef<Record<string, { x: number; width: number }>>({});
+
+  const scrollTabIntoView = (key: TabKey) => {
+    const layout = tabLayoutsRef.current[key];
+    const scrollWidth = tabScrollWidthRef.current;
+    if (!layout || !scrollWidth || !tabScrollRef.current) {
+      return;
+    }
+    const { x, width } = layout;
+    tabScrollRef.current.scrollTo({
+      x: Math.max(0, x + width / 2 - scrollWidth / 2),
+      animated: true,
+    });
+  };
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -199,18 +260,36 @@ export default function ReportsScreen() {
   const [professionals, setProfessionals] = useState<any[]>([]);
   const [services, setServices] = useState<any[]>([]);
 
-  const [basic, setBasic] = useState<{ appointments_total: number; appointments_completed: number; revenue_total: number; avg_ticket: number } | null>(null);
+  const [basic, setBasic] = useState<{
+    appointments_total: number;
+    appointments_completed: number;
+    revenue_total: number;
+    avg_ticket: number;
+    stock_active?: boolean;
+    product_cost_total?: number | null;
+    margin_total?: number | null;
+  } | null>(null);
   const [topServices, setTopServices] = useState<{ service_name: string; qty: number; revenue: number }[] | null>(null);
   const [revenueSeries, setRevenueSeries] = useState<{ period_start: string; revenue: number; appointment_count: number }[] | null>(null);
   const [retention, setRetention] = useState<{ new_clients: { qty: number; revenue: number }; returning_clients: { qty: number; revenue: number } } | null>(null);
+  const [inventoryReport, setInventoryReport] = useState<{
+    stock_active: boolean;
+    total_stock_value: number;
+    low_stock_items_count: number;
+    low_stock_items: { id: number; name: string; quantity: number; minimum_quantity: number }[];
+    turnover: { item_id: number; item_name: string; quantity_out: number; current_quantity: number; turnover_rate: number | null }[];
+  } | null>(null);
 
   const [businessLoading, setBusinessLoading] = useState(false);
   const [businessError, setBusinessError] = useState<SectionError>(null);
   const [insightsLoading, setInsightsLoading] = useState(false);
   const [insightsError, setInsightsError] = useState<SectionError>(null);
+  const [inventoryLoading, setInventoryLoading] = useState(false);
+  const [inventoryError, setInventoryError] = useState<SectionError>(null);
 
   const lastBusinessKeyRef = useRef<string | null>(null);
   const lastInsightsKeyRef = useRef<string | null>(null);
+  const lastInventoryKeyRef = useRef<string | null>(null);
 
   // Load professionals/services once for the filter pickers (business/insights tabs).
   useEffect(() => {
@@ -316,6 +395,36 @@ export default function ReportsScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, insightsKey]);
 
+  const inventoryKey = useMemo(
+    () => JSON.stringify({ from, to, slug }),
+    [from, to, slug]
+  );
+
+  const fetchInventoryData = async () => {
+    setInventoryLoading(true);
+    setInventoryError(null);
+    try {
+      const data = await fetchInventoryReport({ from, to, slug });
+      setInventoryReport(data);
+      lastInventoryKeyRef.current = inventoryKey;
+    } catch (error: any) {
+      const kind = getErrorKind(error);
+      setInventoryError(kind);
+      if (kind !== 'forbidden') {
+        Alert.alert(t.errorTitle, t.loadError);
+      }
+    } finally {
+      setInventoryLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab !== 'inventory') return;
+    if (lastInventoryKeyRef.current === inventoryKey) return;
+    fetchInventoryData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, inventoryKey]);
+
   const handleApplyFilters = () => {
     setApplied(draft);
     setFiltersOpen(false);
@@ -378,13 +487,29 @@ export default function ReportsScreen() {
         </TouchableOpacity>
       </View>
 
-      <View style={styles.tabRow}>
+      <ScrollView
+        ref={tabScrollRef}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={{ flexGrow: 0, height: 52 }}
+        onLayout={(e) => {
+          tabScrollWidthRef.current = e.nativeEvent.layout.width;
+        }}
+        contentContainerStyle={styles.tabRow}
+      >
         {TABS.map((tab) => {
           const active = activeTab === tab.key;
           return (
             <TouchableOpacity
               key={tab.key}
-              onPress={() => setActiveTab(tab.key)}
+              onLayout={(e) => {
+                const { x, width } = e.nativeEvent.layout;
+                tabLayoutsRef.current[tab.key] = { x, width };
+              }}
+              onPress={() => {
+                setActiveTab(tab.key);
+                scrollTabIntoView(tab.key);
+              }}
               style={[styles.tabButton, { backgroundColor: active ? colors.brandPrimary : 'transparent' }]}
             >
               <Text style={{ color: active ? '#fff' : colors.textPrimary, fontWeight: '600', fontSize: 13 }}>
@@ -393,7 +518,7 @@ export default function ReportsScreen() {
             </TouchableOpacity>
           );
         })}
-      </View>
+      </ScrollView>
 
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
         {filtersOpen && (
@@ -514,6 +639,22 @@ export default function ReportsScreen() {
             <StatCard label={t.completedAppointments} value={basic.appointments_completed} hint={t.completionRate(completionRate)} />
             <StatCard label={t.totalRevenue} value={formatCurrency(basic.revenue_total)} isPrimary />
             <StatCard label={t.avgTicket} value={formatCurrency(basic.avg_ticket)} />
+
+            {basic.stock_active && (
+              <>
+                <StatCard
+                  label={t.productCostTotal}
+                  value={formatCurrency(basic.product_cost_total || 0)}
+                  hint={t.productCostTotalHint}
+                />
+                <StatCard
+                  label={t.marginTotal}
+                  value={formatCurrency(basic.margin_total || 0)}
+                  hint={t.marginTotalHint}
+                  isPrimary
+                />
+              </>
+            )}
 
             <Button onPress={handleExportCSV} loading={exporting} disabled={exporting}>
               {t.exportCsv}
@@ -716,6 +857,98 @@ export default function ReportsScreen() {
             )}
           </>
         )}
+
+        {activeTab === 'inventory' && (
+          <>
+            {inventoryLoading && (
+              <ActivityIndicator size="small" color={colors.brandPrimary} style={{ marginBottom: 16 }} />
+            )}
+
+            {!inventoryLoading && inventoryError === 'forbidden' && (
+              <View style={[styles.banner, { backgroundColor: colors.warningBackground, borderColor: colors.border }]}>
+                <Text style={{ color: colors.textPrimary, fontSize: 13 }}>
+                  {t.inventoryPlanBlocked}
+                </Text>
+                <TouchableOpacity onPress={() => navigation.navigate('CreditsPlan' as never)} style={{ marginTop: 8 }}>
+                  <Text style={{ color: colors.brandPrimary, fontWeight: '600', fontSize: 13 }}>{t.viewPlans}</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {!inventoryLoading && inventoryError === 'network' && (
+              <View style={[styles.banner, { backgroundColor: colors.errorBackground, borderColor: colors.border }]}>
+                <Text style={{ color: colors.textPrimary, fontSize: 13 }}>
+                  {t.loadError}
+                </Text>
+                <TouchableOpacity onPress={fetchInventoryData} style={{ marginTop: 8 }}>
+                  <Text style={{ color: colors.brandPrimary, fontWeight: '600', fontSize: 13 }}>{t.tryAgain}</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {!inventoryLoading && !inventoryError && inventoryReport && !inventoryReport.stock_active && (
+              <View style={[styles.banner, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                <Text style={{ color: colors.textPrimary, fontSize: 14, fontWeight: '600' }}>
+                  {t.inventoryEmptyTitle}
+                </Text>
+                <Text style={{ color: colors.textSecondary, fontSize: 13, marginTop: 4 }}>
+                  {t.inventoryEmptyDescription}
+                </Text>
+                <TouchableOpacity onPress={() => navigation.navigate('Inventory' as never)} style={{ marginTop: 8 }}>
+                  <Text style={{ color: colors.brandPrimary, fontWeight: '600', fontSize: 13 }}>{t.goToInventory}</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {!inventoryLoading && !inventoryError && inventoryReport && inventoryReport.stock_active && (
+              <>
+                <StatCard label={t.totalStockValue} value={formatCurrency(inventoryReport.total_stock_value)} hint={t.totalStockValueHint} isPrimary />
+                <StatCard label={t.lowStockItemsCount} value={inventoryReport.low_stock_items_count} hint={t.lowStockItemsCountHint} />
+
+                {inventoryReport.low_stock_items.length > 0 && (
+                  <View style={[styles.banner, { backgroundColor: colors.warningBackground, borderColor: colors.border }]}>
+                    <Text style={{ color: colors.textPrimary, fontSize: 14, fontWeight: '600', marginBottom: 8 }}>
+                      {t.lowStockListTitle}
+                    </Text>
+                    {inventoryReport.low_stock_items.map((item) => (
+                      <Text key={item.id} style={{ color: colors.textPrimary, fontSize: 13, marginBottom: 2 }}>
+                        {item.name} ({item.quantity} / {item.minimum_quantity})
+                      </Text>
+                    ))}
+                  </View>
+                )}
+
+                <Text style={[styles.sectionTitle, { color: colors.textPrimary, marginTop: 8 }]}>{t.turnoverTitle}</Text>
+                <Text style={{ color: colors.textSecondary, fontSize: 12, marginBottom: 8 }}>{t.turnoverDescription}</Text>
+
+                {inventoryReport.turnover.length === 0 ? (
+                  <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
+                    {t.turnoverEmpty}
+                  </Text>
+                ) : (
+                  <View style={[styles.table, { borderColor: colors.border, backgroundColor: colors.surface }]} testID="inventory-turnover-table">
+                    <View style={[styles.tableRow, styles.tableHeaderRow, { borderColor: colors.border }]}>
+                      <Text style={[styles.tableCell, styles.tableHeaderCell, { color: colors.textSecondary, flex: 1.4 }]}>{t.turnoverItem}</Text>
+                      <Text style={[styles.tableCell, styles.tableHeaderCell, { color: colors.textSecondary, flex: 1, textAlign: 'right' }]}>{t.turnoverQuantityOut}</Text>
+                      <Text style={[styles.tableCell, styles.tableHeaderCell, { color: colors.textSecondary, flex: 1, textAlign: 'right' }]}>{t.turnoverCurrentQuantity}</Text>
+                      <Text style={[styles.tableCell, styles.tableHeaderCell, { color: colors.textSecondary, flex: 1, textAlign: 'right' }]}>{t.turnoverRate}</Text>
+                    </View>
+                    {inventoryReport.turnover.map((row) => (
+                      <View key={row.item_id} style={[styles.tableRow, { borderColor: colors.border }]}>
+                        <Text style={[styles.tableCell, { color: colors.textPrimary, flex: 1.4 }]}>{row.item_name}</Text>
+                        <Text style={[styles.tableCell, { color: colors.textPrimary, flex: 1, textAlign: 'right' }]}>{row.quantity_out}</Text>
+                        <Text style={[styles.tableCell, { color: colors.textPrimary, flex: 1, textAlign: 'right' }]}>{row.current_quantity}</Text>
+                        <Text style={[styles.tableCell, { color: colors.textPrimary, flex: 1, textAlign: 'right' }]}>
+                          {row.turnover_rate === null || row.turnover_rate === undefined ? t.turnoverNotApplicable : row.turnover_rate}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
+              </>
+            )}
+          </>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -738,6 +971,7 @@ const styles = StyleSheet.create({
   },
   tabRow: {
     flexDirection: 'row',
+    alignItems: 'center',
     gap: 8,
     paddingHorizontal: 16,
     paddingVertical: 8,

@@ -41,12 +41,14 @@ const mockFetchBasicReports = jest.fn();
 const mockFetchTopServices = jest.fn();
 const mockFetchRevenue = jest.fn();
 const mockFetchRetention = jest.fn();
+const mockFetchInventoryReport = jest.fn();
 const mockExportBasicReportsCSV = jest.fn();
 jest.mock('../../api/reports', () => ({
   fetchBasicReports: (...args: any[]) => mockFetchBasicReports(...args),
   fetchTopServices: (...args: any[]) => mockFetchTopServices(...args),
   fetchRevenue: (...args: any[]) => mockFetchRevenue(...args),
   fetchRetention: (...args: any[]) => mockFetchRetention(...args),
+  fetchInventoryReport: (...args: any[]) => mockFetchInventoryReport(...args),
   exportBasicReportsCSV: (...args: any[]) => mockExportBasicReportsCSV(...args),
 }));
 
@@ -84,6 +86,25 @@ const RETENTION = {
   new_clients: { qty: 4, revenue: 120 },
   returning_clients: { qty: 6, revenue: 280 },
 };
+const INVENTORY_INACTIVE = {
+  stock_active: false,
+  total_stock_value: 0,
+  low_stock_items_count: 0,
+  low_stock_items: [],
+  turnover: [],
+  period: { start: '2026-06-09', end: '2026-07-09' },
+};
+const INVENTORY_ACTIVE = {
+  stock_active: true,
+  total_stock_value: 450.5,
+  low_stock_items_count: 1,
+  low_stock_items: [{ id: 1, name: 'Shampoo', quantity: 2, minimum_quantity: 5 }],
+  turnover: [
+    { item_id: 1, item_name: 'Shampoo', quantity_out: 10, current_quantity: 2, turnover_rate: 5 },
+    { item_id: 2, item_name: 'Cera', quantity_out: 0, current_quantity: 0, turnover_rate: null },
+  ],
+  period: { start: '2026-06-09', end: '2026-07-09' },
+};
 
 let mockLanguage = 'pt';
 jest.mock('../../contexts/LanguageContext', () => ({
@@ -99,6 +120,7 @@ describe('ReportsScreen', () => {
     mockFetchTopServices.mockResolvedValue(TOP_SERVICES);
     mockFetchRevenue.mockResolvedValue(REVENUE);
     mockFetchRetention.mockResolvedValue(RETENTION);
+    mockFetchInventoryReport.mockResolvedValue(INVENTORY_INACTIVE);
     mockFetchProfessionals.mockResolvedValue({ results: [{ id: 1, name: 'Ana' }] });
     mockFetchServices.mockResolvedValue({ results: [{ id: 9, name: 'Corte' }] });
     mockLanguage = 'pt';
@@ -350,5 +372,123 @@ describe('ReportsScreen', () => {
       'metric,value\nappointments_total,40\n',
       'relatorio-basico.csv'
     );
+  });
+
+  it('does not show COGS/margin cards on the Básicos tab when stock_active is false', async () => {
+    const { getByText, queryByText } = await render(<ReportsScreen />);
+
+    await waitFor(() => expect(mockFetchBasicReports).toHaveBeenCalled());
+    expect(getByText('40')).toBeTruthy();
+    expect(queryByText('Custo de Produtos (COGS)')).toBeNull();
+    expect(queryByText('Margem Total')).toBeNull();
+  });
+
+  it('shows COGS/margin cards on the Básicos tab when stock_active is true', async () => {
+    mockFetchBasicReports.mockResolvedValue({
+      overview: {
+        appointments_total: 40,
+        appointments_completed: 30,
+        revenue_total: 1200.5,
+        avg_ticket: 30,
+        stock_active: true,
+        product_cost_total: 300,
+        margin_total: 900.5,
+      },
+    });
+
+    const { getByText } = await render(<ReportsScreen />);
+
+    await waitFor(() => expect(mockFetchBasicReports).toHaveBeenCalled());
+    expect(getByText('Custo de Produtos (COGS)')).toBeTruthy();
+    expect(getByText('Margem Total')).toBeTruthy();
+    expect(getByText('300,00 €')).toBeTruthy();
+    expect(getByText('900,50 €')).toBeTruthy();
+  });
+
+  it('fetches the inventory report only when the Estoque tab is opened, and only once', async () => {
+    const { getByText } = await render(<ReportsScreen />);
+    await waitFor(() => expect(mockFetchBasicReports).toHaveBeenCalled());
+
+    expect(mockFetchInventoryReport).not.toHaveBeenCalled();
+
+    await fireEvent.press(getByText('Estoque'));
+
+    await waitFor(() => {
+      expect(mockFetchInventoryReport).toHaveBeenCalledWith(
+        expect.objectContaining({ slug: 'acme' })
+      );
+    });
+
+    await fireEvent.press(getByText('Básicos'));
+    await fireEvent.press(getByText('Estoque'));
+
+    expect(mockFetchInventoryReport).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows an empty state with a CTA when the inventory report has stock_active=false', async () => {
+    mockFetchInventoryReport.mockResolvedValue(INVENTORY_INACTIVE);
+
+    const { getByText } = await render(<ReportsScreen />);
+    await waitFor(() => expect(mockFetchBasicReports).toHaveBeenCalled());
+
+    await fireEvent.press(getByText('Estoque'));
+
+    await waitFor(() => {
+      expect(getByText('Ainda sem dados de estoque')).toBeTruthy();
+    });
+    expect(getByText('Ir para o Estoque')).toBeTruthy();
+    expect(mockNavigate).not.toHaveBeenCalledWith('Inventory');
+
+    await fireEvent.press(getByText('Ir para o Estoque'));
+    expect(mockNavigate).toHaveBeenCalledWith('Inventory');
+  });
+
+  it('shows stock value, low stock items and turnover table when stock_active=true', async () => {
+    mockFetchInventoryReport.mockResolvedValue(INVENTORY_ACTIVE);
+
+    const { getByText } = await render(<ReportsScreen />);
+    await waitFor(() => expect(mockFetchBasicReports).toHaveBeenCalled());
+
+    await fireEvent.press(getByText('Estoque'));
+
+    await waitFor(() => expect(getByText('450,50 €')).toBeTruthy());
+    expect(getByText('1')).toBeTruthy();
+    expect(getByText('Shampoo (2 / 5)')).toBeTruthy();
+    expect(getByText('Cera')).toBeTruthy();
+    expect(getByText('N/D')).toBeTruthy();
+  });
+
+  it('shows a network error banner with retry for the Estoque tab on a non-403 error', async () => {
+    mockFetchInventoryReport.mockRejectedValue({ response: { status: 500, data: {} } });
+    const alertSpy = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
+
+    const { getByText } = await render(<ReportsScreen />);
+    await waitFor(() => expect(mockFetchBasicReports).toHaveBeenCalled());
+
+    await fireEvent.press(getByText('Estoque'));
+
+    await waitFor(() => {
+      expect(getByText('Não foi possível carregar os dados desta aba.')).toBeTruthy();
+    });
+    expect(getByText('Tentar novamente')).toBeTruthy();
+
+    alertSpy.mockRestore();
+  });
+
+  it('shows a plan-gated message instead of a generic alert for the Estoque tab on a 403', async () => {
+    mockFetchInventoryReport.mockRejectedValue({ response: { status: 403, data: {} } });
+    const alertSpy = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
+
+    const { getByText } = await render(<ReportsScreen />);
+    await waitFor(() => expect(mockFetchBasicReports).toHaveBeenCalled());
+
+    await fireEvent.press(getByText('Estoque'));
+
+    await waitFor(() => {
+      expect(getByText('O seu plano atual não inclui o relatório de Estoque.')).toBeTruthy();
+    });
+    expect(alertSpy).not.toHaveBeenCalled();
+
+    alertSpy.mockRestore();
   });
 });
