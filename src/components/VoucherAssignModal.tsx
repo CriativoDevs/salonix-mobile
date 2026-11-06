@@ -102,7 +102,7 @@ export function VoucherAssignModal({
       setSendEmail(false);
       setSearchError(null);
     }
-  }, [visible, voucher]);
+  }, [visible, voucher, slug]);
 
   // Pré-carrega os primeiros clientes (ordenados por nome pelo backend) ao
   // abrir o modal, pra não depender só de digitar uma busca pra ver algo.
@@ -162,6 +162,7 @@ export function VoucherAssignModal({
 
   const toggleClient = (client: ClientOption) => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
+    setSendEmail(false);
     setSelected((prev) => {
       const next = new Map(prev);
       if (next.has(client.id)) {
@@ -174,6 +175,7 @@ export function VoucherAssignModal({
   };
 
   const toggleSelectAllVisible = () => {
+    setSendEmail(false);
     setSelected((prev) => {
       const next = new Map(prev);
       if (allVisibleSelected) {
@@ -185,19 +187,25 @@ export function VoucherAssignModal({
     });
   };
 
-  const clearSelection = () => setSelected(new Map());
-
-  const handleSubmit = async () => {
-    if (selectedCount === 0) return;
-    if (selectedCount === 1) {
-      await onSubmit({ client: selectedList[0], sendEmail });
-      return;
-    }
-    await onSubmitBulk?.(selectedList);
+  const clearSelection = () => {
+    setSendEmail(false);
+    setSelected(new Map());
   };
 
   const dropdownOpen = searching || !!searchError || results.length > 0;
   const singleSelected = selectedCount === 1 ? selectedList[0] : null;
+  // Nunca confiar em sendEmail isolado do cliente atual — só vale quando
+  // exatamente um cliente está selecionado e ele tem e-mail cadastrado.
+  const effectiveSendEmail = Boolean(sendEmail && singleSelected?.email);
+
+  const handleSubmit = async () => {
+    if (selectedCount === 0) return;
+    if (selectedCount === 1) {
+      await onSubmit({ client: selectedList[0], sendEmail: effectiveSendEmail });
+      return;
+    }
+    await onSubmitBulk?.(selectedList);
+  };
 
   return (
     <Modal
