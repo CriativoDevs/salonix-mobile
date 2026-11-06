@@ -8,6 +8,7 @@ import ClientLoginScreen from "../screens/ClientLoginScreen";
 import ClientAppointmentsScreen from "../screens/ClientAppointmentsScreen";
 import ClientBookingCreateScreen from "../screens/ClientBookingCreateScreen";
 import ClientProfileScreen from "../screens/ClientProfileScreen";
+import ClientVouchersScreen from "../screens/ClientVouchersScreen";
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -55,6 +56,7 @@ function ClientRoutes() {
             name="ClientBookingCreate"
             component={ClientBookingCreateScreen}
           />
+          <Stack.Screen name="ClientVouchers" component={ClientVouchersScreen} />
         </>
       ) : (
         <Stack.Screen name="ClientLogin" component={ClientLoginScreen} />
