@@ -27,6 +27,7 @@ const COPY = {
     businessHoursLink: 'Horário de Funcionamento',
     servicesLink: 'Serviços',
     inventoryLink: 'Estoque',
+    vouchersLink: 'Vouchers',
     slotsLink: 'Horários',
   },
   en: {
@@ -47,6 +48,7 @@ const COPY = {
     businessHoursLink: 'Business Hours',
     servicesLink: 'Services',
     inventoryLink: 'Inventory',
+    vouchersLink: 'Vouchers',
     slotsLink: 'Slots',
   },
 } as const;
@@ -77,6 +79,17 @@ export default function SettingsScreen() {
 
   const sections: Section[] = [
     {
+      key: 'operations',
+      title: t.sectionOperations,
+      links: [
+        { key: 'businessHours', label: t.businessHoursLink, icon: 'time-outline', route: 'BusinessHours' },
+        { key: 'services', label: t.servicesLink, icon: 'cut-outline', route: 'Services' },
+        { key: 'inventory', label: t.inventoryLink, icon: 'cube-outline', route: 'Inventory' },
+        { key: 'vouchers', label: t.vouchersLink, icon: 'pricetag-outline', route: 'Vouchers', adminOnly: true },
+        { key: 'slots', label: t.slotsLink, icon: 'calendar-outline', route: 'Slots' },
+      ],
+    },
+    {
       key: 'settings',
       title: t.sectionSettings,
       links: [
@@ -100,16 +113,6 @@ export default function SettingsScreen() {
         { key: 'feedback', label: t.feedbackLink, icon: 'chatbubble-ellipses-outline', route: 'Feedback' },
         { key: 'howItWorks', label: t.howItWorksLink, icon: 'help-circle-outline', route: 'HowItWorks' },
         { key: 'roadmap', label: t.roadmapLink, icon: 'map-outline', route: 'Roadmap' },
-      ],
-    },
-    {
-      key: 'operations',
-      title: t.sectionOperations,
-      links: [
-        { key: 'businessHours', label: t.businessHoursLink, icon: 'time-outline', route: 'BusinessHours' },
-        { key: 'services', label: t.servicesLink, icon: 'cut-outline', route: 'Services' },
-        { key: 'inventory', label: t.inventoryLink, icon: 'cube-outline', route: 'Inventory' },
-        { key: 'slots', label: t.slotsLink, icon: 'calendar-outline', route: 'Slots' },
       ],
     },
   ];
