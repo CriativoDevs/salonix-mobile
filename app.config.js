@@ -24,7 +24,7 @@ const VARIANT = {
     scheme: "timelyoneclient",
     bundleIdentifier: "com.timelyone.client",
     androidPackage: "com.timelyone.client",
-    version: "2.0.1",
+    version: "2.1.0",
     // Ícone com paleta invertida em relação ao admin (fundo/anel verde,
     // ponteiro azul) para não duplicar o ícone já publicado do app
     // TimelyOne (rejeição Apple guideline 4.3(a), submissão f9e9f16b).
