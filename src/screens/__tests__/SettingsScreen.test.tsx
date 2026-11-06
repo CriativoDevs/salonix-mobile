@@ -62,6 +62,9 @@ describe('SettingsScreen', () => {
     expect(getByText('Marca')).toBeTruthy();
     expect(getByText('Marketing por email')).toBeTruthy();
 
+    // Funcionamento (Vouchers é owner/manager apenas)
+    expect(getByText('Vouchers')).toBeTruthy();
+
     // App
     expect(getByText('Feedback')).toBeTruthy();
     expect(getByText('Como funciona')).toBeTruthy();
@@ -107,6 +110,9 @@ describe('SettingsScreen', () => {
 
     await fireEvent.press(getByText('Horários'));
     expect(mockNavigate).toHaveBeenCalledWith('Slots');
+
+    await fireEvent.press(getByText('Vouchers'));
+    expect(mockNavigate).toHaveBeenCalledWith('Vouchers');
   });
 
   it('hides "Créditos e Plano" and "Marketing por email" for a manager, keeps the other links', async () => {
@@ -116,12 +122,13 @@ describe('SettingsScreen', () => {
 
     await waitFor(() => expect(getByText('Geral')).toBeTruthy());
     expect(getByText('Marca')).toBeTruthy();
-    // Manager conta como admin (owner/manager) — mantém acesso ao Marketing.
+    // Manager conta como admin (owner/manager) — mantém acesso ao Marketing e Vouchers.
     expect(getByText('Marketing por email')).toBeTruthy();
+    expect(getByText('Vouchers')).toBeTruthy();
     expect(queryByText('Créditos e Plano')).toBeNull();
   });
 
-  it('hides "Créditos e Plano" and "Marketing por email" for a collaborator', async () => {
+  it('hides "Créditos e Plano", "Marketing por email" and "Vouchers" for a collaborator', async () => {
     mockUseAuthReturn = { userInfo: { email: 'collab@acme.pt', role: 'collaborator' } };
 
     const { getByText, queryByText } = await render(<SettingsScreen />);
@@ -129,6 +136,7 @@ describe('SettingsScreen', () => {
     await waitFor(() => expect(getByText('Geral')).toBeTruthy());
     expect(queryByText('Créditos e Plano')).toBeNull();
     expect(queryByText('Marketing por email')).toBeNull();
+    expect(queryByText('Vouchers')).toBeNull();
     // Links sem restrição continuam visíveis
     expect(getByText('Feedback')).toBeTruthy();
     expect(getByText('Serviços')).toBeTruthy();
