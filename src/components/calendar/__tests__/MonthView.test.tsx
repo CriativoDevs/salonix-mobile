@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, fireEvent } from '@testing-library/react-native';
-import { MonthView } from '../MonthView';
+import { MonthView, startOfMonthGrid } from '../MonthView';
 
 jest.mock('../../../hooks/useTheme', () => ({
   useTheme: () => ({
@@ -32,5 +32,23 @@ describe('MonthView', () => {
     const [dateFrom, dateTo] = mockUseBookingsRange.mock.calls[0];
     expect(dateFrom <= '2026-07-01').toBe(true);
     expect(dateTo >= '2026-07-31').toBe(true);
+  });
+
+  it('starts the grid on Sunday, matching the Sun-first weekday header', () => {
+    // 2026-07-01 e quarta-feira; grade deve comecar no domingo anterior (2026-06-28)
+    const gridStart = startOfMonthGrid(new Date(2026, 6, 1));
+    expect(gridStart.getDay()).toBe(0);
+    expect(gridStart.getFullYear()).toBe(2026);
+    expect(gridStart.getMonth()).toBe(5);
+    expect(gridStart.getDate()).toBe(28);
+  });
+
+  it('places todays weekday in the column matching its real weekday', () => {
+    // 2026-11-11 e quarta-feira (index 3 numa semana Dom..Sab)
+    const gridStart = startOfMonthGrid(new Date(2026, 10, 1));
+    const diffInDays = Math.round(
+      (new Date(2026, 10, 11).getTime() - gridStart.getTime()) / (1000 * 60 * 60 * 24)
+    );
+    expect(diffInDays % 7).toBe(3);
   });
 });

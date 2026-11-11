@@ -298,11 +298,10 @@ export const getClientProfile = async () => {
  * @returns {Promise<void>}
  * @throws {Error} 400 Invalid email, network error, etc
  */
-export const forgotPassword = async (email, resetUrl) => {
+export const forgotPassword = async (email) => {
   try {
     const response = await client.post("users/password/reset/", {
       email,
-      reset_url: resetUrl,
     });
     return response.data;
   } catch (error) {

@@ -6,12 +6,11 @@ import useBookingsRange from '../../hooks/useBookingsRange';
 import { getProfessionalColor } from '../../utils/professionalColor';
 import { BookingItem } from '../../hooks/bookingsShared';
 
-function startOfMonthGrid(date: Date): Date {
+export function startOfMonthGrid(date: Date): Date {
   const firstOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
   const day = firstOfMonth.getDay();
-  const diff = day === 0 ? -6 : 1 - day;
   const gridStart = new Date(firstOfMonth);
-  gridStart.setDate(gridStart.getDate() + diff);
+  gridStart.setDate(gridStart.getDate() - day);
   gridStart.setHours(0, 0, 0, 0);
   return gridStart;
 }
