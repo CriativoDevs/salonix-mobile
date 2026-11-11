@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import { useTheme } from "../hooks/useTheme";
 import { useAuth } from "../hooks/useAuth";
+import { useLanguage } from "../contexts/LanguageContext";
 import DashboardScreen from "../screens/DashboardScreen";
 import BookingsNavigator from "./BookingsNavigator";
 import CustomersScreen from "../screens/CustomersScreen";
@@ -20,11 +21,30 @@ import {
 
 const Tab = createBottomTabNavigator();
 
+const COPY = {
+  pt: {
+    dashboard: "Início",
+    bookings: "Agenda",
+    customers: "Clientes",
+    team: "Equipe",
+    reports: "Relatórios",
+  },
+  en: {
+    dashboard: "Home",
+    bookings: "Schedule",
+    customers: "Customers",
+    team: "Team",
+    reports: "Reports",
+  },
+};
+
 export default function TabNavigator() {
   const { colors } = useTheme();
   const { userInfo } = useAuth();
+  const { language } = useLanguage();
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
+  const t = COPY[language] || COPY.pt;
 
   const isCollaborator = userInfo?.staff_role === "collaborator";
   const canSeeReports = isOwner(userInfo);
@@ -136,30 +156,30 @@ export default function TabNavigator() {
       <Tab.Screen
         name="Dashboard"
         component={DashboardScreen}
-        options={{ tabBarLabel: "Início" }}
+        options={{ tabBarLabel: t.dashboard }}
       />
       <Tab.Screen
         name="Agendamentos"
         component={BookingsNavigator}
-        options={{ tabBarLabel: "Agenda" }}
+        options={{ tabBarLabel: t.bookings }}
       />
       <Tab.Screen
         name="Customers"
         component={CustomersScreen}
-        options={{ tabBarLabel: "Clientes" }}
+        options={{ tabBarLabel: t.customers }}
       />
       {!isCollaborator && (
         <Tab.Screen
           name="Team"
           component={TeamScreen}
-          options={{ tabBarLabel: "Equipe" }}
+          options={{ tabBarLabel: t.team }}
         />
       )}
       {canSeeReports && (
         <Tab.Screen
           name="Reports"
           component={ReportsScreen}
-          options={{ tabBarLabel: "Relatórios" }}
+          options={{ tabBarLabel: t.reports }}
         />
       )}
     </Tab.Navigator>

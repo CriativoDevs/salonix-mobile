@@ -45,23 +45,6 @@ export const getApiBaseUrl = () => {
   return envBase.endsWith("/") ? envBase : `${envBase}/`;
 };
 
-export const getResetUrl = () => {
-  const envResetUrl = getEnvVar("RESET_URL");
-  if (envResetUrl) {
-    return envResetUrl;
-  }
-
-  const apiBase = getApiBaseUrl();
-  if (apiBase.includes("localhost")) {
-    return "http://localhost:5173/reset-password";
-  }
-  if (apiBase.includes("timelyonestaging.pythonanywhere.com")) {
-    return "https://salonix-backend-production.up.railway.app/reset-password";
-  }
-
-  return "https://salonix-backend-production.up.railway.app/reset-password";
-};
-
 export function getWebOrigin(apiBase = getApiBaseUrl()) {
   const envWebOrigin = getEnvVar("WEB_ORIGIN");
   if (envWebOrigin) {

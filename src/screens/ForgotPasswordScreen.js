@@ -6,7 +6,6 @@ import { useToast } from "../contexts/ToastContext";
 import { useTheme } from "../hooks/useTheme";
 import { Button, Input, Alert } from "../components/ui";
 import { forgotPassword } from "../services/auth";
-import { getResetUrl } from "../utils/env";
 
 export default function ForgotPasswordScreen({ navigation }) {
   const [email, setEmail] = useState("");
@@ -40,8 +39,7 @@ export default function ForgotPasswordScreen({ navigation }) {
 
     setIsLoading(true);
     try {
-      const resetUrl = getResetUrl();
-      await forgotPassword(email.trim(), resetUrl);
+      await forgotPassword(email.trim());
 
       setEmailSent(true);
       showToast({

@@ -13,6 +13,8 @@ coverage/
 .env
 .env.local
 .env.production
+.env.prod
+.env.staging
 .env.test
 .vscode/
 .idea/
