@@ -1,5 +1,6 @@
 import React from 'react';
-import { render, waitFor } from '@testing-library/react-native';
+import { render, waitFor, fireEvent } from '@testing-library/react-native';
+import { updateCustomer } from '../../api/customers';
 import CustomersScreen from '../CustomersScreen';
 
 jest.mock('../../hooks/useTheme', () => ({
@@ -107,5 +108,53 @@ describe('CustomersScreen - avatar', () => {
     await waitFor(() => expect(getByTestId('customer-avatar-2')).toBeTruthy());
     expect(getByTestId('customer-avatar-2').props.source).toBeUndefined();
     expect(getByText('JC')).toBeTruthy();
+  });
+
+  it('mostra a foto nova logo após salvar, sem precisar recarregar a lista', async () => {
+    mockFetchCustomers.mockResolvedValue({
+      count: 1,
+      results: [
+        { id: '1', name: 'Maria Silva', email: 'maria@example.com', is_active: true, photo: '/media/customer_photos/old.jpg' },
+      ],
+    });
+    (updateCustomer as jest.Mock).mockResolvedValue({
+      id: '1',
+      name: 'Maria Silva',
+      email: 'maria@example.com',
+      is_active: true,
+      photo: 'http://0.0.0.0:8000/media/customer_photos/new.jpg',
+    });
+
+    const { getByTestId, getByText } = await render(<CustomersScreen />);
+    await waitFor(() => expect(getByTestId('customer-avatar-1')).toBeTruthy());
+    expect(getByTestId('customer-avatar-1').props.source.uri).toContain('old.jpg');
+
+    await fireEvent.press(getByText('Maria Silva'));
+    await fireEvent.press(getByText('Salvar'));
+
+    await waitFor(() =>
+      expect(getByTestId('customer-avatar-1').props.source.uri).toBe(
+        'http://0.0.0.0:8000/media/customer_photos/new.jpg'
+      )
+    );
+  });
+
+  it('mantém a foto atual quando o BE não devolve o cliente atualizado', async () => {
+    mockFetchCustomers.mockResolvedValue({
+      count: 1,
+      results: [
+        { id: '1', name: 'Maria Silva', email: 'maria@example.com', is_active: true, photo: '/media/customer_photos/old.jpg' },
+      ],
+    });
+    (updateCustomer as jest.Mock).mockResolvedValue(undefined);
+
+    const { getByTestId, getByText } = await render(<CustomersScreen />);
+    await waitFor(() => expect(getByTestId('customer-avatar-1')).toBeTruthy());
+
+    await fireEvent.press(getByText('Maria Silva'));
+    await fireEvent.press(getByText('Salvar'));
+
+    await waitFor(() => expect(updateCustomer).toHaveBeenCalled());
+    expect(getByTestId('customer-avatar-1').props.source.uri).toContain('old.jpg');
   });
 });

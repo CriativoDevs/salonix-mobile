@@ -7,6 +7,7 @@ import { useTheme } from '../hooks/useTheme';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useTenant } from '../hooks/useTenant';
 import { useAuth } from '../hooks/useAuth';
+import { canViewBilling } from '../utils/permissions';
 import { fetchTenantNotifications, updateTenantNotifications, fetchBillingOverview } from '../api/tenant';
 import { fetchCreditBalance } from '../api/credits';
 
@@ -105,7 +106,8 @@ export default function NotificationsScreen() {
       });
 
       const [billingResult, creditResult] = await Promise.allSettled([
-        fetchBillingOverview({ slug }),
+        // Colaborador leva 403 do BE (BE-SEC-01): nem pedir a cobrança.
+        canViewBilling(userInfo) ? fetchBillingOverview({ slug }) : Promise.resolve(null),
         fetchCreditBalance({ slug }),
       ]);
       if (!active) return;
@@ -130,7 +132,7 @@ export default function NotificationsScreen() {
     return () => {
       active = false;
     };
-  }, [slug]);
+  }, [slug, userInfo?.role]);
 
   const handleToggle = async (key: NotificationKey, value: boolean) => {
     const previous = notifications[key];

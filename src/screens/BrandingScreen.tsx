@@ -10,6 +10,7 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { useTenant } from '../hooks/useTenant';
 import { useAuth } from '../hooks/useAuth';
 import { Input } from '../components/ui/Input';
+import { Select } from '../components/ui/Select';
 import { fetchTenantMeta, updateTenantBranding } from '../api/tenant';
 import { resolveMediaUrl } from '../utils/env';
 import { Button } from '../components/ui/Button';
@@ -36,6 +37,18 @@ const COPY = {
     title: 'Marca',
     changeLogo: 'Alterar logo',
     save: 'Guardar',
+    businessType: 'Tipo de negócio',
+    businessTypeHelp: 'Ajuda a adaptar a plataforma ao seu tipo de atividade.',
+    businessTypes: {
+      salon: 'Salão',
+      tattoo: 'Tatuagem',
+      psychology: 'Psicologia',
+      nail_tech: 'Pedicure/Manicure',
+      aesthetics: 'Esteticista',
+      physiotherapy: 'Fisioterapia',
+      nutrition: 'Nutricionista',
+      other: 'Outro',
+    },
   },
   en: {
     addressStreet: 'Street',
@@ -57,8 +70,31 @@ const COPY = {
     title: 'Branding',
     changeLogo: 'Change logo',
     save: 'Save',
+    businessType: 'Business type',
+    businessTypeHelp: 'Helps tailor the platform to your type of activity.',
+    businessTypes: {
+      salon: 'Salon',
+      tattoo: 'Tattoo',
+      psychology: 'Psychology',
+      nail_tech: 'Nail technician',
+      aesthetics: 'Aesthetics',
+      physiotherapy: 'Physiotherapy',
+      nutrition: 'Nutrition',
+      other: 'Other',
+    },
   },
 } as const;
+
+const BUSINESS_TYPE_KEYS = [
+  'salon',
+  'tattoo',
+  'psychology',
+  'nail_tech',
+  'aesthetics',
+  'physiotherapy',
+  'nutrition',
+  'other',
+] as const;
 
 const ZIP_REGEX = /^\d{4}-\d{3}$/;
 const MAX_LOGO_BYTES = 2 * 1024 * 1024;
@@ -91,6 +127,7 @@ export default function BrandingScreen() {
   const [loadError, setLoadError] = useState(false);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [address, setAddress] = useState<Record<string, string>>({});
+  const [businessType, setBusinessType] = useState<string>('other');
   const [pickedLogo, setPickedLogo] = useState<PickedLogo | null>(null);
   const [zipError, setZipError] = useState<string | null>(null);
   const [fileError, setFileError] = useState<string | null>(null);
@@ -106,6 +143,9 @@ export default function BrandingScreen() {
         nextAddress[key] = data[key] || '';
       });
       setAddress(nextAddress);
+      setBusinessType(
+        BUSINESS_TYPE_KEYS.includes(data.business_type) ? data.business_type : 'other'
+      );
       setLoading(false);
     }).catch(() => {
       if (!active) return;
@@ -161,6 +201,7 @@ export default function BrandingScreen() {
       const result = await updateTenantBranding({
         logoFile: pickedLogo || undefined,
         address,
+        businessType,
         slug,
       } as any);
       setLogoUrl(resolveMediaUrl(result.logo_url));
@@ -216,6 +257,24 @@ export default function BrandingScreen() {
                 </TouchableOpacity>
               )}
               {fileError && <Text style={{ color: colors.error, fontSize: 12, marginTop: 4 }}>{fileError}</Text>}
+            </View>
+
+            <View style={styles.readOnlyField}>
+              <Text style={{ color: colors.textSecondary, fontSize: 12, marginBottom: 4 }}>{t.businessType}</Text>
+              {isAdmin ? (
+                <Select
+                  testID="branding-business-type-select"
+                  title={t.businessType}
+                  options={BUSINESS_TYPE_KEYS.map((key) => ({ value: key, label: t.businessTypes[key] }))}
+                  selectedValue={businessType}
+                  onValueChange={setBusinessType}
+                />
+              ) : (
+                <Text style={{ color: colors.textPrimary, fontSize: 14 }}>
+                  {t.businessTypes[businessType as (typeof BUSINESS_TYPE_KEYS)[number]] || '—'}
+                </Text>
+              )}
+              <Text style={{ color: colors.textSecondary, fontSize: 12, marginTop: 4 }}>{t.businessTypeHelp}</Text>
             </View>
 
             {ADDRESS_FIELDS.map(({ key, label }) =>

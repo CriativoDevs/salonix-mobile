@@ -7,9 +7,9 @@ import { useTheme } from '../hooks/useTheme';
 import { useLanguage } from '../contexts/LanguageContext';
 import { Input } from './ui/Input';
 import { Button } from './ui/Button';
+import { hasValidProfileImageDimensions } from '../utils/imageLimits';
 import { Modal } from './ui/Modal'; // Importando o Modal genérico flutuante
 import { Avatar } from './ui/Avatar';
-import { ActionMenu } from './ui/ActionMenu';
 import { updateStaffMember, disableStaffMember } from '../api/staff';
 import { resolveMediaUrl } from '../utils/env';
 import { useToast } from '../contexts/ToastContext';
@@ -25,6 +25,7 @@ const COPY = {
         saveError: 'Ocorreu um erro ao salvar o profissional.',
         unsupportedFormat: 'Formato não suportado. Use JPEG, PNG, GIF ou WEBP.',
         fileTooLarge: 'O ficheiro deve ter no máximo 2MB.',
+        invalidDimensions: 'A imagem deve ter entre 50x50 e 2000x2000 pixels.',
         galleryPermission: 'Permissão de galeria necessária.',
         cameraPermission: 'Permissão de câmara necessária.',
         noLinkedUser: 'Este profissional não tem um usuário vinculado para gerenciar permissões.',
@@ -71,6 +72,7 @@ const COPY = {
         saveError: 'An error occurred while saving the professional.',
         unsupportedFormat: 'Unsupported format. Use JPEG, PNG, GIF or WEBP.',
         fileTooLarge: 'The file must be at most 2MB.',
+        invalidDimensions: 'The image must be between 50x50 and 2000x2000 pixels.',
         galleryPermission: 'Gallery permission required.',
         cameraPermission: 'Camera permission required.',
         noLinkedUser: 'This professional has no linked user to manage permissions.',
@@ -276,6 +278,11 @@ export function ProfessionalFormModal({ visible, onClose, onSubmit, initialData,
             return;
         }
 
+        if (!hasValidProfileImageDimensions(asset)) {
+            setPhotoError(t.invalidDimensions);
+            return;
+        }
+
         const info = await FileSystem.getInfoAsync(asset.uri);
         if (info.exists && typeof info.size === 'number' && info.size > MAX_PHOTO_BYTES) {
             setPhotoError(t.fileTooLarge);
@@ -322,8 +329,20 @@ export function ProfessionalFormModal({ visible, onClose, onSubmit, initialData,
         await validateAndSetPhoto(result.assets[0]);
     };
 
+    // Opções de foto inline (sem 2.º Modal): no iOS um Modal irmão apresentado por
+    // cima do modal do formulário não aparece e deixa a tela sem toques ao fechar.
+    const handleChooseFromGallery = () => {
+        setPhotoMenuVisible(false);
+        void handlePickFromGallery();
+    };
+
+    const handleChooseTakePhoto = () => {
+        setPhotoMenuVisible(false);
+        void handleTakePhoto();
+    };
+
     const handlePickPhoto = () => {
-        setPhotoMenuVisible(true);
+        setPhotoMenuVisible((visible) => !visible);
     };
 
     const previewUri = pickedPhoto?.uri || resolveMediaUrl(form.photo);
@@ -423,6 +442,16 @@ export function ProfessionalFormModal({ visible, onClose, onSubmit, initialData,
                                     </TouchableOpacity>
                                     {photoError && (
                                         <Text style={{ color: colors.error, fontSize: 12, marginTop: 4 }}>{photoError}</Text>
+                                    )}
+                                    {photoMenuVisible && (
+                                        <View style={styles.photoOptions}>
+                                            <Button variant="link" onPress={handleChooseFromGallery}>
+                                                {t.chooseFromGallery}
+                                            </Button>
+                                            <Button variant="link" onPress={handleChooseTakePhoto}>
+                                                {t.takePhoto}
+                                            </Button>
+                                        </View>
                                     )}
                                 </View>
                             )}
@@ -579,16 +608,6 @@ export function ProfessionalFormModal({ visible, onClose, onSubmit, initialData,
                 </View>
             </View>
         </Modal>
-
-        <ActionMenu
-            visible={photoMenuVisible}
-            onClose={() => setPhotoMenuVisible(false)}
-            title={t.photoMenuTitle}
-            options={[
-                { label: t.chooseFromGallery, onPress: handlePickFromGallery },
-                { label: t.takePhoto, onPress: handleTakePhoto },
-            ]}
-        />
         </>
     );
 }
@@ -614,6 +633,13 @@ const styles = StyleSheet.create({
     },
     inputGroup: {
         marginBottom: 16,
+    },
+    photoOptions: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        justifyContent: 'center',
+        gap: 16,
+        marginTop: 4,
     },
     photoSection: {
         alignItems: 'center',

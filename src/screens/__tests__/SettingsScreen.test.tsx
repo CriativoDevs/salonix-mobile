@@ -115,6 +115,12 @@ describe('SettingsScreen', () => {
     expect(mockNavigate).toHaveBeenCalledWith('Vouchers');
   });
 
+  it('navigates to Forms for owner', async () => {
+    const { getByText } = await render(<SettingsScreen />);
+    await fireEvent.press(getByText('Fichas'));
+    expect(mockNavigate).toHaveBeenCalledWith('Forms');
+  });
+
   it('hides "Créditos e Plano" and "Marketing por email" for a manager, keeps the other links', async () => {
     mockUseAuthReturn = { userInfo: { email: 'manager@acme.pt', role: 'manager' } };
 
@@ -137,6 +143,7 @@ describe('SettingsScreen', () => {
     expect(queryByText('Créditos e Plano')).toBeNull();
     expect(queryByText('Marketing por email')).toBeNull();
     expect(queryByText('Vouchers')).toBeNull();
+    expect(queryByText('Fichas')).toBeNull();
     // Links sem restrição continuam visíveis
     expect(getByText('Feedback')).toBeTruthy();
     expect(getByText('Serviços')).toBeTruthy();

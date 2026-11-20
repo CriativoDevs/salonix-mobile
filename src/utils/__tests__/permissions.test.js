@@ -1,4 +1,4 @@
-import { isOwner } from '../permissions';
+import { isOwner, isOwnerOrManager, canViewBilling } from '../permissions';
 
 describe('isOwner', () => {
   it('returns true when role is owner', () => {
@@ -21,5 +21,26 @@ describe('isOwner', () => {
   it('returns false for null or undefined userInfo', () => {
     expect(isOwner(null)).toBe(false);
     expect(isOwner(undefined)).toBe(false);
+  });
+});
+
+describe('isOwnerOrManager / canViewBilling', () => {
+  it.each([
+    ['owner', true],
+    ['manager', true],
+    ['collaborator', false],
+  ])('role %s -> %s', (role, expected) => {
+    expect(isOwnerOrManager({ role })).toBe(expected);
+    expect(canViewBilling({ role })).toBe(expected);
+  });
+
+  it('não dá bypass a superuser sem role', () => {
+    expect(isOwnerOrManager({ is_superuser: true })).toBe(false);
+    expect(canViewBilling({ is_superuser: true, role: 'collaborator' })).toBe(false);
+  });
+
+  it('retorna false para null/undefined', () => {
+    expect(canViewBilling(null)).toBe(false);
+    expect(isOwnerOrManager(undefined)).toBe(false);
   });
 });

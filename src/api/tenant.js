@@ -50,7 +50,7 @@ export async function updateTenantBusinessHours(hours, { slug } = {}) {
   return response.data;
 }
 
-export async function updateTenantBranding({ logoFile, address = {}, slug } = {}) {
+export async function updateTenantBranding({ logoFile, address = {}, businessType, slug } = {}) {
   const headers = {};
   const params = {};
   if (slug) {
@@ -71,11 +71,13 @@ export async function updateTenantBranding({ logoFile, address = {}, slug } = {}
       type: logoFile.mimeType || 'image/jpeg',
     });
     addressEntries.forEach(([key, value]) => formData.append(key, value));
+    if (businessType) formData.append('business_type', businessType);
     const response = await client.patch(TENANT_ENDPOINT, formData, { headers, params });
     return response.data;
   }
 
   const payload = Object.fromEntries(addressEntries);
+  if (businessType) payload.business_type = businessType;
   const response = await client.patch(TENANT_ENDPOINT, payload, { headers, params });
   return response.data;
 }

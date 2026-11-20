@@ -34,6 +34,19 @@ jest.mock('expo-file-system/legacy', () => ({
   getInfoAsync: (...args: any[]) => mockGetInfoAsync(...args),
 }));
 
+jest.mock('../../hooks/useTenant', () => ({
+  useTenant: () => ({ slug: 'acme' }),
+}));
+
+jest.mock('../CustomerFormsSection', () => {
+  const { Text } = require('react-native');
+  return {
+    CustomerFormsSection: ({ customerId, slug }: any) => (
+      <Text>{`forms-section:${customerId}:${slug}`}</Text>
+    ),
+  };
+});
+
 let mockLanguage = 'pt';
 jest.mock('../../contexts/LanguageContext', () => ({
   useLanguage: () => ({ language: mockLanguage, setLanguage: jest.fn() }),
@@ -63,13 +76,39 @@ describe('CustomerFormModal - photo', () => {
     mockGetInfoAsync.mockResolvedValue({ exists: true, size: 1024 });
   });
 
-  // Foto do cliente usa `ActionMenu` (themed) em vez de `Alert.alert` com botões —
-  // ver src/components/ui/ActionMenu.tsx. Simula-se a interação real: abrir o menu
-  // tocando no botão de foto, depois tocar na opção pretendida.
+  // As opções de foto aparecem inline (sem 2.º Modal). Simula-se a interação real:
+  // tocar no botão de foto e depois na opção pretendida.
   const pickFromGallery = async (getByText: any, buttonText = 'Adicionar foto') => {
     await fireEvent.press(getByText(buttonText));
     await fireEvent.press(getByText('Escolher da galeria'));
   };
+
+  it('mostra as opções de foto inline, sem segundo Modal (no iOS ele não aparece e trava os toques)', async () => {
+    const { getByText, queryByText } = await render(
+      <CustomerFormModal visible onClose={jest.fn()} onSubmit={jest.fn()} initialData={null} />
+    );
+
+    expect(queryByText('Escolher da galeria')).toBeNull();
+    await fireEvent.press(getByText('Adicionar foto'));
+
+    expect(getByText('Escolher da galeria')).toBeTruthy();
+    expect(getByText('Tirar foto')).toBeTruthy();
+    // O menu themed (ActionMenu) era um 2.º Modal com este título: não pode voltar.
+    expect(queryByText('Foto do cliente')).toBeNull();
+  });
+
+  it('abre o seletor logo ao tocar na opção e fecha o painel de opções', async () => {
+    mockLaunchImageLibrary.mockResolvedValue({ canceled: true });
+    const { getByText, queryByText } = await render(
+      <CustomerFormModal visible onClose={jest.fn()} onSubmit={jest.fn()} initialData={null} />
+    );
+
+    await fireEvent.press(getByText('Adicionar foto'));
+    await fireEvent.press(getByText('Escolher da galeria'));
+
+    await waitFor(() => expect(mockLaunchImageLibrary).toHaveBeenCalledTimes(1));
+    expect(queryByText('Escolher da galeria')).toBeNull();
+  });
 
   it('shows an Avatar preview after picking a photo from the gallery', async () => {
     mockLaunchImageLibrary.mockResolvedValue({
@@ -204,6 +243,22 @@ describe('CustomerFormModal - photo', () => {
     expect(onSubmit.mock.calls[0][0].photoFile).toBeUndefined();
   });
 
+  it('rejeita foto acima de 2000x2000 px com mensagem clara (o BE responderia 400)', async () => {
+    mockLaunchImageLibrary.mockResolvedValue({
+      canceled: false,
+      assets: [{ uri: 'file:///tmp/big.jpg', mimeType: 'image/jpeg', fileName: 'big.jpg', width: 4032, height: 3024 }],
+    });
+
+    const { getByText, findByText, queryByText } = await render(
+      <CustomerFormModal visible onClose={jest.fn()} onSubmit={jest.fn()} initialData={null} />
+    );
+
+    await pickFromGallery(getByText);
+
+    expect(await findByText('A imagem deve ter entre 50x50 e 2000x2000 pixels.')).toBeTruthy();
+    expect(queryByText('Alterar foto')).toBeNull();
+  });
+
   it('rejects an unsupported mime type with an error message and does not set the photo', async () => {
     mockLaunchImageLibrary.mockResolvedValue({
       canceled: false,
@@ -241,5 +296,26 @@ describe('CustomerFormModal - photo', () => {
     });
     expect(queryByText('O ficheiro deve ter no máximo 2MB.')).toBeFalsy();
     expect(queryByText('Formato não suportado. Use JPEG, PNG, GIF ou WEBP.')).toBeFalsy();
+  });
+});
+
+describe('CustomerFormModal - fichas do cliente', () => {
+  it('renders the forms section only when editing an existing customer', async () => {
+    const { getByText } = await render(
+      <CustomerFormModal
+        visible
+        onClose={jest.fn()}
+        onSubmit={jest.fn()}
+        initialData={{ id: 'c9', name: 'Ana', email: 'a@a.com', phone_number: '', notes: '' }}
+      />
+    );
+    expect(getByText('forms-section:c9:acme')).toBeTruthy();
+  });
+
+  it('does not render the forms section for a new customer', async () => {
+    const { queryByText } = await render(
+      <CustomerFormModal visible onClose={jest.fn()} onSubmit={jest.fn()} />
+    );
+    expect(queryByText(/forms-section/)).toBeNull();
   });
 });

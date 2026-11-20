@@ -10,6 +10,7 @@ import { Button, Input } from "../../components/ui";
 import { ThemeToggle } from "../../components/ThemeToggle";
 import { LanguageToggle } from "../../components/LanguageToggle";
 import { resolveMediaUrl } from "../../utils/env";
+import { hasValidProfileImageDimensions } from "../../utils/imageLimits";
 import { updateClientProfile, updateClientProfilePhoto } from "../../services/clientBooking";
 
 const MAX_PHOTO_BYTES = 2 * 1024 * 1024;
@@ -35,6 +36,7 @@ const COPY = {
     photoUploading: "A enviar…",
     photoFailed: "Falha ao enviar a foto.",
     photoTooLarge: "A imagem deve ter no máximo 2MB.",
+    photoDimensions: "A imagem deve ter entre 50x50 e 2000x2000 pixels.",
     photoUnsupported: "Formato não suportado. Use JPEG, PNG, GIF ou WEBP.",
     galleryPermission: "Permissão de galeria necessária.",
   },
@@ -57,6 +59,7 @@ const COPY = {
     photoUploading: "Uploading…",
     photoFailed: "Failed to upload photo.",
     photoTooLarge: "The image must be at most 2MB.",
+    photoDimensions: "The image must be between 50x50 and 2000x2000 pixels.",
     photoUnsupported: "Unsupported format. Use JPEG, PNG, GIF or WEBP.",
     galleryPermission: "Gallery permission required.",
   },
@@ -104,6 +107,10 @@ export default function ClientProfileScreen({ navigation }) {
     const mimeType = asset.mimeType || "image/jpeg";
     if (!ALLOWED_PHOTO_MIME_TYPES.includes(mimeType)) {
       showToast({ type: "error", message: t.photoUnsupported });
+      return;
+    }
+    if (!hasValidProfileImageDimensions(asset)) {
+      showToast({ type: "error", message: t.photoDimensions });
       return;
     }
     if (typeof asset.fileSize === "number" && asset.fileSize > MAX_PHOTO_BYTES) {

@@ -7,10 +7,12 @@ import { useTheme } from '../hooks/useTheme';
 import { useLanguage } from '../contexts/LanguageContext';
 import { Input } from './ui/Input';
 import { Button } from './ui/Button';
+import { hasValidProfileImageDimensions } from '../utils/imageLimits';
 import { Modal } from './ui/Modal';
 import { Avatar } from './ui/Avatar';
-import { ActionMenu } from './ui/ActionMenu';
 import { resolveMediaUrl } from '../utils/env';
+import { useTenant } from '../hooks/useTenant';
+import { CustomerFormsSection } from './CustomerFormsSection';
 
 const COPY = {
     pt: {
@@ -20,6 +22,7 @@ const COPY = {
         saveError: 'Ocorreu um erro ao salvar o cliente.',
         unsupportedFormat: 'Formato não suportado. Use JPEG, PNG, GIF ou WEBP.',
         fileTooLarge: 'O ficheiro deve ter no máximo 2MB.',
+        invalidDimensions: 'A imagem deve ter entre 50x50 e 2000x2000 pixels.',
         galleryPermission: 'Permissão de galeria necessária.',
         cameraPermission: 'Permissão de câmara necessária.',
         editTitle: 'Editar Cliente',
@@ -45,6 +48,7 @@ const COPY = {
         saveError: 'An error occurred while saving the customer.',
         unsupportedFormat: 'Unsupported format. Use JPEG, PNG, GIF or WEBP.',
         fileTooLarge: 'The file must be at most 2MB.',
+        invalidDimensions: 'The image must be between 50x50 and 2000x2000 pixels.',
         galleryPermission: 'Gallery permission required.',
         cameraPermission: 'Camera permission required.',
         editTitle: 'Edit Customer',
@@ -96,6 +100,7 @@ export function CustomerFormModal({ visible, onClose, onSubmit, initialData, bus
     const { colors } = useTheme();
     const { language } = useLanguage();
     const t = language === 'en' ? COPY.en : COPY.pt;
+    const { slug } = useTenant();
 
     const [form, setForm] = useState<CustomerData>({
         name: '',
@@ -168,6 +173,11 @@ export function CustomerFormModal({ visible, onClose, onSubmit, initialData, bus
             return;
         }
 
+        if (!hasValidProfileImageDimensions(asset)) {
+            setPhotoError(t.invalidDimensions);
+            return;
+        }
+
         const info = await FileSystem.getInfoAsync(asset.uri);
         if (info.exists && typeof info.size === 'number' && info.size > MAX_PHOTO_BYTES) {
             setPhotoError(t.fileTooLarge);
@@ -214,8 +224,20 @@ export function CustomerFormModal({ visible, onClose, onSubmit, initialData, bus
         await validateAndSetPhoto(result.assets[0]);
     };
 
+    // Opções de foto inline (sem 2.º Modal): no iOS um Modal irmão apresentado por
+    // cima do modal do formulário não aparece e deixa a tela sem toques ao fechar.
+    const handleChooseFromGallery = () => {
+        setPhotoMenuVisible(false);
+        void handlePickFromGallery();
+    };
+
+    const handleChooseTakePhoto = () => {
+        setPhotoMenuVisible(false);
+        void handleTakePhoto();
+    };
+
     const handlePickPhoto = () => {
-        setPhotoMenuVisible(true);
+        setPhotoMenuVisible((visible) => !visible);
     };
 
     const previewUri = pickedPhoto?.uri || resolveMediaUrl(form.photo);
@@ -256,6 +278,16 @@ export function CustomerFormModal({ visible, onClose, onSubmit, initialData, bus
                     </TouchableOpacity>
                     {photoError && (
                         <Text style={{ color: colors.error, fontSize: 12, marginTop: 4 }}>{photoError}</Text>
+                    )}
+                    {photoMenuVisible && (
+                        <View style={styles.photoOptions}>
+                            <Button variant="link" onPress={handleChooseFromGallery}>
+                                {t.chooseFromGallery}
+                            </Button>
+                            <Button variant="link" onPress={handleChooseTakePhoto}>
+                                {t.takePhoto}
+                            </Button>
+                        </View>
                     )}
                 </View>
 
@@ -307,18 +339,12 @@ export function CustomerFormModal({ visible, onClose, onSubmit, initialData, bus
                         style={{ height: 80, textAlignVertical: 'top' }}
                     />
                 </View>
+
+                {visible && initialData?.id ? (
+                    <CustomerFormsSection key={initialData.id} customerId={initialData.id} slug={slug} />
+                ) : null}
             </View>
         </Modal>
-
-        <ActionMenu
-            visible={photoMenuVisible}
-            onClose={() => setPhotoMenuVisible(false)}
-            title={t.photoMenuTitle}
-            options={[
-                { label: t.chooseFromGallery, onPress: handlePickFromGallery },
-                { label: t.takePhoto, onPress: handleTakePhoto },
-            ]}
-        />
         </>
     );
 }
@@ -326,6 +352,13 @@ export function CustomerFormModal({ visible, onClose, onSubmit, initialData, bus
 const styles = StyleSheet.create({
     formContent: {
         // Padding is handled by Modal
+    },
+    photoOptions: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        justifyContent: 'center',
+        gap: 16,
+        marginTop: 4,
     },
     photoSection: {
         alignItems: 'center',

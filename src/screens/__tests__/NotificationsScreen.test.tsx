@@ -165,6 +165,28 @@ describe('NotificationsScreen', () => {
     expect(getByTestId('notifications-push_web_enabled-switch').props.disabled).toBe(true);
   });
 
+  it('does not request the billing overview for a collaborator (BE-SEC-01 returns 403)', async () => {
+    mockUseAuthReturn = { userInfo: { id: 2, role: 'collaborator' } };
+
+    const { getByText } = await render(<NotificationsScreen />);
+    await waitFor(() => expect(getByText('Ativo')).toBeTruthy());
+
+    expect(mockFetchBillingOverview).not.toHaveBeenCalled();
+  });
+
+  it('requests the billing overview for the owner', async () => {
+    const { getByText } = await render(<NotificationsScreen />);
+    await waitFor(() => expect(getByText('Ativo')).toBeTruthy());
+    expect(mockFetchBillingOverview).toHaveBeenCalled();
+  });
+
+  it('requests the billing overview for the manager', async () => {
+    mockUseAuthReturn = { userInfo: { id: 3, role: 'manager' } };
+    const { getByText } = await render(<NotificationsScreen />);
+    await waitFor(() => expect(getByText('Ativo')).toBeTruthy());
+    expect(mockFetchBillingOverview).toHaveBeenCalled();
+  });
+
   it('stops loading and shows an error when the core notifications fetch fails, instead of spinning forever', async () => {
     mockFetchTenantNotifications.mockRejectedValue({
       response: { status: 500, data: {} },

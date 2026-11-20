@@ -55,6 +55,7 @@ jest.mock('expo-file-system/legacy', () => ({
 }));
 
 const TENANT_META = {
+  business_type: 'salon',
   logo_url: 'https://cdn.example.com/logo.png',
   address_street: 'Rua A',
   address_number: '10',
@@ -174,6 +175,7 @@ describe('BrandingScreen', () => {
           address_zip: '1000-100',
           address_country: 'Portugal',
         },
+        businessType: 'salon',
         slug: 'acme',
       });
     });
@@ -237,6 +239,61 @@ describe('BrandingScreen', () => {
       expect(getByTestId('branding-logo-image').props.source.uri).toBe(
         'http://0.0.0.0:8000/media/logos/xyz.png'
       );
+    });
+  });
+
+  describe('business type (MOB-ANAMNESE-01, paridade com FEW-BUSINESS-TYPE-01)', () => {
+    it('shows the current business type', async () => {
+      mockFetchTenantMeta.mockResolvedValue({ ...TENANT_META, business_type: 'psychology' });
+      const { findByText } = await render(<BrandingScreen />);
+      expect(await findByText('Psicologia')).toBeTruthy();
+    });
+
+    it('lets the owner pick another type and saves it with the branding', async () => {
+      mockUpdateTenantBranding.mockResolvedValue(TENANT_META);
+      const { findByTestId, getByText, findByText } = await render(<BrandingScreen />);
+
+      await fireEvent.press(await findByTestId('branding-business-type-select'));
+      await fireEvent.press(await findByText('Tatuagem'));
+      await fireEvent.press(getByText('Guardar'));
+
+      await waitFor(() =>
+        expect(mockUpdateTenantBranding).toHaveBeenCalledWith(
+          expect.objectContaining({ businessType: 'tattoo', slug: 'acme' })
+        )
+      );
+    });
+
+    it('offers the 8 neutral options', async () => {
+      const { findByTestId, getByText } = await render(<BrandingScreen />);
+      await fireEvent.press(await findByTestId('branding-business-type-select'));
+      [
+        'Tatuagem',
+        'Psicologia',
+        'Pedicure/Manicure',
+        'Esteticista',
+        'Fisioterapia',
+        'Nutricionista',
+        'Outro',
+      ].forEach((label) => expect(getByText(label)).toBeTruthy());
+    });
+
+    it('shows the type read-only (no picker) for a collaborator', async () => {
+      mockUseAuthReturn = { userInfo: { id: 2, role: 'collaborator' } };
+      mockFetchTenantMeta.mockResolvedValue({ ...TENANT_META, business_type: 'nutrition' });
+      const { findByText, queryByTestId } = await render(<BrandingScreen />);
+
+      expect(await findByText('Nutricionista')).toBeTruthy();
+      expect(queryByTestId('branding-business-type-select')).toBeNull();
+    });
+
+    it('shows English labels when language is en', async () => {
+      mockLanguage = 'en';
+      mockFetchTenantMeta.mockResolvedValue({ ...TENANT_META, business_type: 'physiotherapy' });
+      const { findByText } = await render(<BrandingScreen />);
+
+      expect(await findByText('Business type')).toBeTruthy();
+      expect(await findByText('Physiotherapy')).toBeTruthy();
     });
   });
 });
