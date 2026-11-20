@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, Text, StyleSheet, Image, Alert, TouchableOpacity } from "react-native";
+import { View, Text, StyleSheet, Image, Alert, TouchableOpacity, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as ImagePicker from "expo-image-picker";
 import { useTheme } from "../../hooks/useTheme";
@@ -11,6 +11,7 @@ import { ThemeToggle } from "../../components/ThemeToggle";
 import { LanguageToggle } from "../../components/LanguageToggle";
 import { resolveMediaUrl } from "../../utils/env";
 import { hasValidProfileImageDimensions } from "../../utils/imageLimits";
+import ClientFormsSection from "../components/ClientFormsSection";
 import { updateClientProfile, updateClientProfilePhoto } from "../../services/clientBooking";
 
 const MAX_PHOTO_BYTES = 2 * 1024 * 1024;
@@ -156,6 +157,7 @@ export default function ClientProfileScreen({ navigation }) {
         </View>
       </View>
 
+      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
       <View style={styles.content}>
         <View style={styles.photoRow}>
           <TouchableOpacity onPress={onPickPhoto} disabled={uploadingPhoto}>
@@ -186,6 +188,8 @@ export default function ClientProfileScreen({ navigation }) {
         <Button variant="link" onPress={() => navigation?.navigate("ClientVouchers")}>
           {t.myVouchers}
         </Button>
+
+        <ClientFormsSection />
       </View>
 
       <View style={styles.logoutContainer}>
@@ -193,6 +197,7 @@ export default function ClientProfileScreen({ navigation }) {
           <Text style={[styles.logoutText, { color: colors.error }]}>{t.logout}</Text>
         </TouchableOpacity>
       </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -207,6 +212,7 @@ const styles = StyleSheet.create({
     paddingTop: 12,
   },
   headerActions: { flexDirection: "row", alignItems: "center", gap: 8 },
+  scroll: { flexGrow: 1 },
   content: { paddingHorizontal: 24, paddingTop: 16, gap: 16 },
   title: { fontSize: 22, fontWeight: "700" },
   photoRow: { flexDirection: "row", alignItems: "center", gap: 16, marginBottom: 8 },

@@ -36,6 +36,8 @@ jest.mock("../../../hooks/useClientAuth", () => ({
 jest.mock("../../../components/ThemeToggle", () => ({ ThemeToggle: () => null }));
 jest.mock("../../../components/LanguageToggle", () => ({ LanguageToggle: () => null }));
 
+jest.mock("../../components/ClientFormsSection", () => () => null);
+
 const mockUpdatePhoto = jest.fn();
 jest.mock("../../../services/clientBooking", () => ({
   updateClientProfile: jest.fn(),
