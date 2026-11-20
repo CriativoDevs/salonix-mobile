@@ -106,6 +106,21 @@ export const applyClientVoucherToAppointment = async (appointmentId, clientVouch
   return data;
 };
 
+/**
+ * Fichas do próprio cliente (BE-ANAMNESE-01) — JWT de cliente. Cada resposta
+ * traz form_title, form_client_editable e form_fields (definição completa dos
+ * campos, inclusive sem resposta). Dados de saúde: nunca em log/URL/storage.
+ */
+export const fetchClientFormResponses = async () => {
+  const { data } = await client.get("clients/me/form-responses/");
+  return Array.isArray(data) ? data : data?.results || [];
+};
+
+export const updateClientFormResponse = async (responseId, { answers }) => {
+  const { data } = await client.put(`clients/me/form-responses/${responseId}/`, { answers });
+  return data;
+};
+
 export const updateClientProfile = async (partial) => {
   const { data } = await client.patch("clients/me/profile/", partial);
   return data;
