@@ -223,9 +223,13 @@ export default function CustomersScreen() {
         setActionLoading(true);
         try {
             if (selectedCustomer) {
-                await updateCustomer(selectedCustomer.id, data);
-                // Update local list
-                setCustomers(prev => prev.map(c => c.id === selectedCustomer.id ? { ...c, ...data } : c));
+                const updated = await updateCustomer(selectedCustomer.id, data);
+                // Atualiza a lista local com o cliente devolvido pelo BE (traz a URL da foto
+                // nova). `photo`/`photoFile` do formulário são a foto antiga/arquivo local:
+                // não entram no merge.
+                const { photo: _oldPhoto, photoFile: _localFile, ...formFields } = data;
+                const fromServer = updated && typeof updated === 'object' ? updated : {};
+                setCustomers(prev => prev.map(c => c.id === selectedCustomer.id ? { ...c, ...formFields, ...fromServer } : c));
             } else {
                 const newCustomer = await createCustomer(data);
                 // Prepend to list

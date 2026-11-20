@@ -28,6 +28,7 @@ const COPY = {
     servicesLink: 'Serviços',
     inventoryLink: 'Estoque',
     vouchersLink: 'Vouchers',
+    formsLink: 'Fichas',
     slotsLink: 'Horários',
   },
   en: {
@@ -49,6 +50,7 @@ const COPY = {
     servicesLink: 'Services',
     inventoryLink: 'Inventory',
     vouchersLink: 'Vouchers',
+    formsLink: 'Forms',
     slotsLink: 'Slots',
   },
 } as const;
@@ -86,6 +88,7 @@ export default function SettingsScreen() {
         { key: 'services', label: t.servicesLink, icon: 'cut-outline', route: 'Services' },
         { key: 'inventory', label: t.inventoryLink, icon: 'cube-outline', route: 'Inventory' },
         { key: 'vouchers', label: t.vouchersLink, icon: 'pricetag-outline', route: 'Vouchers', adminOnly: true },
+        { key: 'forms', label: t.formsLink, icon: 'clipboard-outline', route: 'Forms', adminOnly: true },
         { key: 'slots', label: t.slotsLink, icon: 'calendar-outline', route: 'Slots' },
       ],
     },

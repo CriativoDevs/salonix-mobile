@@ -20,6 +20,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useTenant } from '../hooks/useTenant';
 import { useLanguage } from '../contexts/LanguageContext';
 import { cancelTenantAccount, fetchBillingOverview } from '../api/tenant';
+import { canViewBilling } from '../utils/permissions';
 import JSZip from 'jszip';
 import { BulkImportExportModal } from '../components/BulkImportExportModal';
 import { exportCustomersCSV } from '../api/customers';
@@ -207,7 +208,8 @@ export default function AccountScreen() {
     let active = true;
 
     const loadBilling = async () => {
-      if (!slug) return;
+      // Colaborador leva 403 do BE (BE-SEC-01): nem pedir.
+      if (!slug || !canViewBilling(userInfo)) return;
       setBillingLoading(true);
       try {
         const overview = await fetchBillingOverview({ slug });
@@ -225,7 +227,7 @@ export default function AccountScreen() {
     return () => {
       active = false;
     };
-  }, [slug]);
+  }, [slug, userInfo?.role]);
 
   const ownerName = useMemo(() => {
     if (!userInfo) return '';

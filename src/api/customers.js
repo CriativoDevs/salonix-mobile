@@ -28,7 +28,11 @@ export async function fetchCustomers({ limit = 10, offset = 0, search = "", orde
 }
 
 function buildCustomerRequestBody(payload) {
-  const { photoFile, ...rest } = payload;
+  // `photo` do formulário é a URL da foto atual (string) ou null: o BE (ImageField)
+  // responde 400 a uma string e `null` apagaria a foto. Só o arquivo novo
+  // (`photoFile`) é enviado.
+  // eslint-disable-next-line no-unused-vars
+  const { photoFile, photo, ...rest } = payload;
 
   if (!photoFile) {
     return { body: rest, isMultipart: false };

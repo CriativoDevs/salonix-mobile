@@ -99,6 +99,26 @@ describe('updateTenantBranding', () => {
     expect(result).toEqual({ logo_url: 'https://cdn/new-logo.png' });
   });
 
+  it('includes business_type in the JSON PATCH when given', async () => {
+    client.patch.mockResolvedValue({ data: { business_type: 'psychology' } });
+
+    await updateTenantBranding({ businessType: 'psychology', address: {}, slug: 'acme' });
+
+    expect(client.patch).toHaveBeenCalledWith(
+      'users/tenant/meta/',
+      { business_type: 'psychology' },
+      { headers: { 'X-Tenant-Slug': 'acme' }, params: { tenant: 'acme' } }
+    );
+  });
+
+  it('omits business_type when not given', async () => {
+    client.patch.mockResolvedValue({ data: {} });
+
+    await updateTenantBranding({ address: { address_city: 'Lisboa' } });
+
+    expect(client.patch.mock.calls[0][1]).not.toHaveProperty('business_type');
+  });
+
   it('works without a slug', async () => {
     client.patch.mockResolvedValue({ data: {} });
 

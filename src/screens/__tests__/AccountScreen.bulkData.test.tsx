@@ -156,4 +156,22 @@ describe('AccountScreen - bulk data (Dados)', () => {
 
     expect(queryByText('Importar/Exportar Tudo')).toBeNull();
   });
+
+  describe('billing overview by role (BE-SEC-01)', () => {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { fetchBillingOverview } = require('../../api/tenant');
+
+    it('does not request the billing overview for a collaborator', async () => {
+      mockUseAuthReturn = { userInfo: { email: 'c@acme.pt', full_name: 'Collab', role: 'collaborator' }, logout: jest.fn() };
+      const { getByText } = await render(<AccountScreen />);
+      await waitFor(() => expect(getByText('Zona de Perigo')).toBeTruthy());
+      expect(fetchBillingOverview).not.toHaveBeenCalled();
+    });
+
+    it('requests the billing overview for the owner', async () => {
+      const { getByText } = await render(<AccountScreen />);
+      await waitFor(() => expect(getByText('Zona de Perigo')).toBeTruthy());
+      expect(fetchBillingOverview).toHaveBeenCalled();
+    });
+  });
 });

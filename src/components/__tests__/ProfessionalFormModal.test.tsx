@@ -98,13 +98,41 @@ describe('ProfessionalFormModal - photo', () => {
     mockGetInfoAsync.mockResolvedValue({ exists: true, size: 1024 });
   });
 
-  // Foto do profissional usa `ActionMenu` (themed) em vez de `Alert.alert` com
-  // botões — ver src/components/ui/ActionMenu.tsx. Simula-se a interação real:
-  // abrir o menu tocando no botão de foto, depois tocar na opção pretendida.
+  // As opções de foto aparecem inline (sem 2.º Modal). Simula-se a interação real:
+  // tocar no botão de foto e depois na opção pretendida.
   const pickFromGallery = async (getByText: any, buttonText = 'Alterar foto') => {
     await fireEvent.press(getByText(buttonText));
     await fireEvent.press(getByText('Escolher da galeria'));
   };
+
+  it('rejeita foto acima de 2000x2000 px com mensagem clara (o BE responderia 400)', async () => {
+    mockLaunchImageLibrary.mockResolvedValue({
+      canceled: false,
+      assets: [{ uri: 'file:///tmp/big.jpg', mimeType: 'image/jpeg', fileName: 'big.jpg', width: 4032, height: 3024 }],
+    });
+
+    const { getByText, findByText } = await render(
+      <ProfessionalFormModal visible onClose={jest.fn()} onSubmit={jest.fn()} initialData={initialData} />
+    );
+
+    await pickFromGallery(getByText, 'Alterar foto');
+
+    expect(await findByText('A imagem deve ter entre 50x50 e 2000x2000 pixels.')).toBeTruthy();
+  });
+
+  it('mostra as opções de foto inline, sem segundo Modal (no iOS ele não aparece e trava os toques)', async () => {
+    const { getByText, queryByText, findByText } = await render(
+      <ProfessionalFormModal visible onClose={jest.fn()} onSubmit={jest.fn()} initialData={initialData} />
+    );
+
+    expect(queryByText('Escolher da galeria')).toBeNull();
+    await fireEvent.press(await findByText('Alterar foto'));
+
+    expect(getByText('Escolher da galeria')).toBeTruthy();
+    expect(getByText('Tirar foto')).toBeTruthy();
+    // O menu themed (ActionMenu) era um 2.º Modal com este título: não pode voltar.
+    expect(queryByText('Foto do profissional')).toBeNull();
+  });
 
   it('does not show a photo picker when creating a new professional (no staff account yet)', async () => {
     const { queryByText, findByPlaceholderText } = await render(
