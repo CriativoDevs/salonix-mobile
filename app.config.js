@@ -14,7 +14,7 @@ const VARIANT = {
     notificationIcon: "./assets/notification-icon.png",
     notificationColor: "#2563EB",
     easProjectId: "6642ca0c-7940-4fd3-b2a9-1af204db242b",
-    version: "2.6.2",
+    version: "2.6.3",
     photoLibraryUsageDescription:
       "TimelyOne usa a tua biblioteca de fotos para escolheres uma imagem e defini-la como logotipo do teu negócio ou como foto de perfil de um profissional ou cliente.",
   },
@@ -24,7 +24,7 @@ const VARIANT = {
     scheme: "timelyoneclient",
     bundleIdentifier: "com.timelyone.client",
     androidPackage: "com.timelyone.client",
-    version: "2.1.1",
+    version: "2.1.2",
     // Ícone com paleta invertida em relação ao admin (fundo/anel verde,
     // ponteiro azul) para não duplicar o ícone já publicado do app
     // TimelyOne (rejeição Apple guideline 4.3(a), submissão f9e9f16b).
@@ -102,6 +102,7 @@ module.exports = ({ config }) => ({
     "expo-secure-store",
     ["expo-build-properties", { android: { usesCleartextTraffic: false } }],
     "expo-web-browser",
+    "./plugins/withOptionalPortraitFeature",
   ],
   extra: {
     ...(config.extra || {}),
